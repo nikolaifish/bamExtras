@@ -38,7 +38,7 @@
 #'
 #' @source SEDAR 71 Stock Assessment Report South Atlantic Gag
 #' (\href{http://sedarweb.org/docs/sar/SEDAR_71_SAR_4.19.21_final_withaddendum.pdf}{PDF})
-"rdat_Gag"
+"rdat_GagGrouper"
 
 
 #' BAM stock assessment results (rdat file): South Atlantic Tilefish (SEDAR 66)
@@ -48,7 +48,7 @@
 #'
 #' @source SEDAR 66 Stock Assessment Report South Atlantic Tilefish
 #' (\href{http://sedarweb.org/docs/sar/SEDAR%2066%20assessment%20report%20final_v5_0.pdf}{PDF})
-"rdat_GoldenTilefish"
+"rdat_Tilefish"
 
 
 #' BAM stock assessment results (rdat file): South Atlantic Gray Triggerfish (SEDAR 41)

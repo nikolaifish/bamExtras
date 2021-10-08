@@ -54,10 +54,10 @@ rdat_to_Stock <- function(
   L50_95_sc = scLim, D_sc  = scLim,
   Msd = c(0,0), Ksd = c(0,0), Linfsd = c(0,0), length_sc=0.1,
   Size_area_1 = c(0.5,0.5), Frac_area_1 = c(0.5,0.5), Prob_staying = c(0.5,0.5),
-  SRrel = 1, R0 = 1000, use_bam_R0 = FALSE,
+  SRrel = 1, R0 = 1000, use_bam_R0 = TRUE,
   AC = 0.2, use_bam_AC = TRUE,
   Fdisc=NULL,
-  Mat_age1_max = 0.4,
+  Mat_age1_max = 0.49,
   herm = NULL, genus_species = NULL
 ){
 
@@ -66,12 +66,22 @@ rdat <- standardize_rdat(rdat)
 info <- rdat$info
 parms <- rdat$parms
 parm.cons <- rdat$parm.cons
-years <- paste(parms$styr:parms$endyr)
-nyears <- length(years)
 a.series <- rdat$a.series
-t.series <- rdat$t.series[years,]
+t.series <- rdat$t.series
 
 Name <- gsub(" ","",str_to_title(info$species))
+years <- paste(parms$styr:parms$endyr)
+nyears <- length(years)
+
+# MSEtool expects age-based data to begin with age 1
+  if(min(rdat$a.series$age)<1){
+    warning(paste(Name,": Minimum age <1. Age-based data limited to age >=1"))
+    a.series <- a.series[a.series$age%in%1:max(a.series$age),]
+    rdat$a.series <- a.series
+  }
+  age <- rdat$a.series$age
+
+t.series <- t.series[years,]
 
 Common_Name <- str_replace_all(Name,"(?<=[a-z])(?=[A-Z])"," ")
 if(is.null(genus_species)){genus_species <- bamStockMisc[Name,"Species"]}
@@ -81,7 +91,7 @@ Linf <- parm.cons$Linf[1]
 K <- parm.cons$K[1]
 t0 <- parm.cons$t0[1]
 
-R0 <- ifelse(use_bam_R0, "yes"=parms$BH.R0, "no" =R0_default)
+R0 <- ifelse(use_bam_R0, "yes"=parms$BH.R0, "no" =R0)
 
 # Set slot values
 slot(Stock,"Name") <- Name
@@ -123,70 +133,20 @@ slot(Stock,"Size_area_1")  <-  Size_area_1
 slot(Stock,"Frac_area_1")  <-  Frac_area_1
 slot(Stock,"Prob_staying") <-  Prob_staying
 
-pmatage <- with(a.series,
-                  {
-                    if(herm=="gonochoristic"){ # If gonochoristic use female maturity
-                      out <- mat.female
-                    }
-                    if(herm=="protogynous"){ # If protogynous, use a function of male and female maturity
-                      if(!exists("mat.male")){
-                        mat.male <- rep(1,nrow(a.series))
-                      }
-                      out <- mat.female*prop.female+mat.male*(1-prop.female)
-                    }
-                    names(out) <- age
-                    out[1] <- min(out[[1]],Mat_age1_max)
-                    out
-                  }
-)
+# Compute proportion mature at age
+pmat <- pmatage(rdat=rdat,Mat_age1_max=Mat_age1_max,herm=herm,age=age)$pmat
 
 # Compute maturity-at-length L50 and L50_95
 mat_at_len <- local({
-  age <- as.numeric(names(pmatage))
-  lenage <- setNames(vb_len(Linf=Linf, K=K, t0=t0, a=age)*length_sc,age)
-  pmatdata <- round(cbind("matYes"=pmatage,"matNo"=1-pmatage)*1000)
+  # Predict proportion mature at from linear interpolation
+  age_pr <- seq(min(age),max(age),length=1000)
+  pmat_pr <- approx(age,pmat,xout = age_pr)$y
 
-  # If maturity vector is knife-edged don't bother trying to estimate a logistic curve
-  if(all(pmatage%in%c(0,1))){
-    age_1 <- age[max(which(pmatage==0))]
-    age_2 <- age[min(which(pmatage==1))]
+  age50 <- age_pr[which.min(abs(pmat_pr-0.50))] # age at 50% maturity
+  age95 <- age_pr[which.min(abs(pmat_pr-0.95))] # age at 95% maturity
 
-    len_1 <- vb_len(Linf=Linf, K=K, t0=t0, a=age_1)*length_sc
-    len_2 <- vb_len(Linf=Linf, K=K, t0=t0, a=age_2)*length_sc
-
-    age50 <- age_1+0.5*(age_2-age_1)
-    age95 <- age_1+0.95*(age_2-age_1)
-
-    len50 <- vb_len(Linf=Linf, K=K, t0=t0, a=age50)*length_sc
-    len95 <- vb_len(Linf=Linf, K=K, t0=t0, a=age95)*length_sc
-
-    age_pr <- seq(0,max(age),length=1000)
-    len_pr <- vb_len(Linf=Linf, K=K, t0=t0, a=age_pr)*length_sc
-    pmat_pr <- approx(age,pmatage,xout = age_pr)$y
-
-  }else{
-    fit <- glm(pmatdata~age,family=binomial(link='logit'))
-    age_pr <- seq(0,max(age),length=1000)
-    len_pr <- vb_len(Linf=Linf, K=K, t0=t0, a=age_pr)*length_sc
-    pmat_pr <- predict(fit,type="response",newdata = data.frame(age=age_pr))
-
-    age50 <- age_pr[which.min(abs(pmat_pr-0.50))] # age at 50% maturity
-    age95 <- age_pr[which.min(abs(pmat_pr-0.95))] # age at 95% maturity
-
-    len50 <- vb_len(Linf=Linf, K=K, t0=t0, a=age50)*length_sc # length at 50% maturity
-    len95 <- vb_len(Linf=Linf, K=K, t0=t0, a=age95)*length_sc # length at 95% maturity
-  }
-
-  # par(mfrow=c(2,1))
-  #
-  # plot(age,pmatage,pch=16,main=Name,xlim=range(c(0,age)),ylim=c(0,1))
-  # points(age_pr,pmat_pr,type="l")
-  # abline(v=c(age50,age95),col="blue",lty=2)
-  #
-  # plot(lenage,pmatage,pch=16,main=Name,xlab="length",xlim=range(c(0,lenage)),ylim=c(0,1))
-  # points(len_pr,pmat_pr,type="l")
-  # abline(v=c(len50,len95),col="blue",lty=2)
-
+  len50 <- vb_len(Linf=Linf, K=K, t0=t0, a=age50)*length_sc # length at 50% maturity
+  len95 <- vb_len(Linf=Linf, K=K, t0=t0, a=age95)*length_sc # length at 95% maturity
   return(list("L50"=len50,"L50_95"=len95-len50))
 })
 L50 <- mat_at_len$L50

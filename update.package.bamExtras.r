@@ -20,6 +20,12 @@ library(stringr)
 # Create package
 #create("bamExtras") # I think you only need to do this once
 
+# Create vignette
+#usethis::use_vignette("my-vignette")
+
+# Add dependencies
+#usethis::use_package("stringr","Suggests")
+
 # Install package
 devtools::document(file.path(dirname(getwd()),"bamExtras")) # Important for updating package
 install(file.path(dirname(getwd()),"bamExtras"))

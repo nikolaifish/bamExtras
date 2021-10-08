@@ -29,11 +29,11 @@ rdat_to_Stock(
   Prob_staying = c(0.5, 0.5),
   SRrel = 1,
   R0 = 1000,
-  use_bam_R0 = FALSE,
+  use_bam_R0 = TRUE,
   AC = 0.2,
   use_bam_AC = TRUE,
   Fdisc = NULL,
-  Mat_age1_max = 0.4,
+  Mat_age1_max = 0.49,
   herm = NULL,
   genus_species = NULL
 )

@@ -2,6 +2,7 @@
 #'
 #' @param rdat BAM output rdat (list) object read in with dget()
 #' @param Fleet DLMtool Fleet object to start with
+#' @param length_sc Scalar (multiplier) to convert length units. MSEtool examples seem to use cm whereas BAM uses mm.
 #' @param Eff_sc Scale Effort vector to compute EffLower and EffUpper vectors. Numeric vector of length 2.
 #' @param Spat_targ see \code{\link[DLMtool]{Fleet-class}}
 #' @param Esd see \code{\link[DLMtool]{Fleet-class}}. The default for most MSEtool built-in Fleet objects is c(0.1,0.4)
@@ -33,6 +34,7 @@
 rdat_to_Fleet <- function(
   rdat,
   Fleet = new('Fleet'),
+  length_sc=0.1,
   Eff_sc = 0.1*c(-1,1)+1,
   Spat_targ = c(1,1),
   Esd = c(0.1,0.4),
@@ -65,8 +67,8 @@ Name <- gsub(" ","",str_to_title(info$species))
 # E=C/B  # If we ignore units we can just use this
 E <- local({
   C <- t.series$total.L.klb
-  B <- t.series$B
-  E <- C/B
+  B <- t.series$B # Should be in metric tons
+  E <- C/(B*1000)
   names(E) <- years
   E
 })
@@ -84,64 +86,14 @@ slot(Fleet,"Esd") <- Esd
 slot(Fleet,"qinc") <- qinc
 slot(Fleet,"qcv") <- qcv
 
-# Estimate length at 5% and full (100%) selection (landings) and retention (discards)
-sel_at_len <- local({
-  # Selectivity
-  seldata <- rdat$sel.age$sel.v.wgted.L
-  seldata <- seldata/max(seldata) # Scaled as a proportion of maximum selectivity
+# Estimate length at 5% and full (100%) vulnerability (total selectivity) and retention (landings selectivity)
+vuln_out <- vulnerability(Vdata = rdat$sel.age$sel.v.wgted.tot, retdata = rdat$sel.age$sel.v.wgted.L, Linf = parm.cons$Linf[1], K = parm.cons$K[1], t0 = parm.cons$t0[1], length_sc=length_sc)
 
-  age <- as.numeric(names(seldata))
-  selage <- seldata
+slot(Fleet,"L5") <- vuln_out$L5*L5_sc
+slot(Fleet,"LFS") <- vuln_out$LFS*LFS_sc
 
-  age_pr <- seq(min(age),max(age),length=1000)
-  sel_pr <- approx(age,selage,xout = age_pr)$y
-
-  agesel_05 <- age_pr[which.min(abs(sel_pr-0.05))] # age at 5% selection
-  agesel_100 <- age_pr[which.min(abs(sel_pr-1.00))] # age at 100% selection
-
-  Linf <- parm.cons$Linf[1]
-  K <- parm.cons$K[1]
-  t0 <- parm.cons$t0[1]
-  lenage <- vb_len(Linf=Linf, K=K, t0=t0, a=age)*length_sc
-  len_pr <- vb_len(Linf=Linf, K=K, t0=t0, a=age_pr)*length_sc
-
-  lensel_05 <- vb_len(Linf=Linf, K=K, t0=t0, a=agesel_05)*length_sc # Length at 5% selection
-  lensel_100 <- vb_len(Linf=Linf, K=K, t0=t0, a=agesel_100)*length_sc # Length at 100% selection
-
-  # Retention
-  retdata <- rdat$sel.age$sel.v.wgted.D
-  if(is.null(retdata)){
-    lenret_05 <- L5
-    lenret_100 <- LFS
-  }else{
-  retdata <- retdata/max(retdata) # Scaled as a proportion of maximum selectivity
-
-  age <- as.numeric(names(retdata))
-  retage <- retdata
-
-  age_pr <- seq(min(age),max(age),length=1000)
-  ret_pr <- approx(age,retage,xout = age_pr)$y
-
-  ageret_05 <- age_pr[which.min(abs(ret_pr-0.05))] # age at 5% discard selection
-  ageret_100 <- age_pr[which.min(abs(ret_pr-1.00))] # age at 100% discard selection
-
-  Linf <- parm.cons$Linf[1]
-  K <- parm.cons$K[1]
-  t0 <- parm.cons$t0[1]
-  lenage <- vb_len(Linf=Linf, K=K, t0=t0, a=age)*length_sc
-  len_pr <- vb_len(Linf=Linf, K=K, t0=t0, a=age_pr)*length_sc
-
-  lenret_05 <- vb_len(Linf=Linf, K=K, t0=t0, a=ageret_05)*length_sc # Length at 5% discard selection
-  lenret_100 <- vb_len(Linf=Linf, K=K, t0=t0, a=ageret_100)*length_sc # Length at 100% discard selection
-  }
-  return(list("L5"=lensel_05,"LFS"=lensel_100,"LR5"=lenret_05,"LFR"=lenret_100))
-})
-
-slot(Fleet,"L5") <- sel_at_len$L5*L5_sc
-slot(Fleet,"LFS") <- sel_at_len$LFS*LFS_sc
-
-slot(Fleet,"LR5") <- sel_at_len$LR5*LR5_sc
-slot(Fleet,"LFR") <- sel_at_len$LFR*LFR_sc
+slot(Fleet,"LR5") <- vuln_out$LR5*LR5_sc
+slot(Fleet,"LFR") <- vuln_out$LFR*LFR_sc
 
 slot(Fleet,"isRel") <- isRel
 

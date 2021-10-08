@@ -6,7 +6,7 @@
 \usage{
 standardize_rdat(
   rdat,
-  parms.key = c(R0 = "BH.R0"),
+  parms.key = c(R0 = "BH.R0", M.msst = "M.constant", M.MSST = "M.constant"),
   a.series.key = c(mat.male.endyr = "mat.male", mat.fem.endyr = "mat.female",
     prop.female.endyr = "prop.female"),
   t.series.key = c(total.L.wgt.klb = "total.L.klb")

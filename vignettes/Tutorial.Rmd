@@ -1,0 +1,103 @@
+---
+title: "Tutorial"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Tutorial}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  warning = FALSE,
+  errors = FALSE,
+  messages = FALSE
+)
+```
+
+## Description
+
+`bamExtras` is an R package to that contains functions and data to support
+stock assessments of fish stocks in the Southeast US Atlantic using the Beaufort
+Assessment Model (BAM)
+
+## Example usage
+
+### Load the package
+
+First, install and load the package. 
+
+```{r, echo=TRUE, message=FALSE}
+# Install and load package
+#devtools::install_github("nikolaifish/bamExtras")
+library(bamExtras)
+
+# Load dependencies
+library(stringr)
+```
+
+### Work with results of BAM assessments
+
+```{r, echo=TRUE, message=FALSE}
+# see all data objects in bamExtras
+# data(package="bamExtras")$result[,"Item"]
+
+# standardize naming conventions and assign shorter name
+rdat_BS <- standardize_rdat(rdat_BlackSeaBass)
+rdat_RP <- standardize_rdat(rdat_RedPorgy)
+```
+
+## Plot results from one assessment
+
+```{r}
+with(rdat_BS$t.series,
+     plot(year,B,type="o",col="black"))
+```
+
+## Plot results from multiple assessments
+
+```{r}
+ylim <- range(c(0,rdat_BS$t.series$B,rdat_RP$t.series$B))
+with(rdat_BS$t.series,
+     plot(year,B,type="o",col="black",ylim=ylim)
+     )
+with(rdat_RP$t.series,
+     points(year,B,type="o",col="red")
+     )
+```
+
+### Work with the `MSEtool` package
+
+```{r, echo=TRUE, message=FALSE}
+#install.packages("MSEtool")
+library(MSEtool)
+```
+
+## Build Stock and Fleet objects
+
+```{r}
+Stock_RP <- rdat_to_Stock(rdat_RP)
+Fleet_RP <- rdat_to_Fleet(rdat_RP)
+```
+
+## Assemble operating model
+
+```{r}
+OM_RP <- new("OM", Stock=Stock_RP, Fleet=Fleet_RP, Obs=Precise_Unbiased, Imp=Perfect_Imp)
+```
+
+## Run basic MSE
+
+```{r}
+MSE_RP <- runMSE(OM_RP)
+```
+
+## Plot results
+
+```{r}
+NOAA_plot(MSE_RP)
+```
+

@@ -7,6 +7,7 @@
 rdat_to_Fleet(
   rdat,
   Fleet = new("Fleet"),
+  length_sc = 0.1,
   Eff_sc = 0.1 * c(-1, 1) + 1,
   Spat_targ = c(1, 1),
   Esd = c(0.1, 0.4),
@@ -25,6 +26,8 @@ rdat_to_Fleet(
 \item{rdat}{BAM output rdat (list) object read in with dget()}
 
 \item{Fleet}{DLMtool Fleet object to start with}
+
+\item{length_sc}{Scalar (multiplier) to convert length units. MSEtool examples seem to use cm whereas BAM uses mm.}
 
 \item{Eff_sc}{Scale Effort vector to compute EffLower and EffUpper vectors. Numeric vector of length 2.}
 

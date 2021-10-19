@@ -3,7 +3,8 @@
 #' @param rdat BAM output rdat (list) object read in with dget()
 #' @param Stock DLMtool Stock object to start with
 #' @param sc Scalar (multiplier) to compute upper and lower bounds of random uniform distribution from mean value
-#' @param M_constant_sc Scalar for M_constant. Numeric vector of length 2
+#' @param M_sc Scalar for M_constant. Numeric vector of length 2
+#' @param is_M_age_varying logical. Indicate if age varying M should be used. If TRUE, M and M2 will be upper bounds for age-varying M, set as a function of t.series$M from BAM rdat and M_sc. If FALSE M will be a function of parms[["M.constant"]] and M_sc
 #' @param steep_sc Scalar for steep. Numeric vector of length 2
 #' @param rec_sigma_sc Scalar for rec_sigma. Numeric vector of length 2
 #' @param rec_AC_sc Scalar for rec_AC (lag-1 recruitment autocorrelation). Numeric vector of length 2
@@ -49,7 +50,9 @@
 rdat_to_Stock <- function(
   rdat, Stock = new('Stock'),
   sc = 0,  scLim = sc*c(-1,1)+1,
-  M_constant_sc = 0.1*c(-1,1)+1, steep_sc = scLim, rec_sigma_sc = scLim, rec_AC_sc = scLim,
+  M_sc = 0.001*c(-1,1)+1,
+  is_M_age_varying = FALSE,
+  steep_sc = scLim, rec_sigma_sc = scLim, rec_AC_sc = scLim,
   Linf_sc = scLim, K_sc = scLim, t0_sc = scLim, len_cv_val_sc = scLim, L_50_sc = scLim,
   L50_95_sc = scLim, D_sc  = scLim,
   Msd = c(0,0), Ksd = c(0,0), Linfsd = c(0,0), length_sc=0.1,
@@ -73,12 +76,12 @@ Name <- gsub(" ","",str_to_title(info$species))
 years <- paste(parms$styr:parms$endyr)
 nyears <- length(years)
 
-# MSEtool expects age-based data to begin with age 1
-  if(min(rdat$a.series$age)<1){
-    warning(paste(Name,": Minimum age <1. Age-based data limited to age >=1"))
-    a.series <- a.series[a.series$age%in%1:max(a.series$age),]
-    rdat$a.series <- a.series
-  }
+# # MSEtool expects age-based data to begin with age 1
+#   if(min(rdat$a.series$age)<1){
+#     warning(paste(Name,": Minimum age <1. Age-based data limited to age >=1"))
+#     a.series <- a.series[a.series$age%in%1:max(a.series$age),]
+#     rdat$a.series <- a.series
+#   }
   age <- rdat$a.series$age
 
 t.series <- t.series[years,]
@@ -99,8 +102,12 @@ slot(Stock,"Common_Name") <- Common_Name
 slot(Stock,"Species") <- genus_species
 slot(Stock,"maxage") <- max(a.series$age)
 slot(Stock,"R0") <- R0
-slot(Stock,"M") <-  a.series$M*M_constant_sc[1] # lower bound of age-dependent M
-slot(Stock,"M2") <- a.series$M*M_constant_sc[2] # upper bound of age-dependent M
+if(is_M_age_varying){
+slot(Stock,"M") <-  a.series$M*M_sc[1] # lower bound of age-dependent M
+slot(Stock,"M2") <- a.series$M*M_sc[2] # upper bound of age-dependent M
+}else{
+  slot(Stock,"M") <- parms[["M.constant"]]*M_sc # age-dependent M
+}
 slot(Stock,"Msd") <- Msd
 slot(Stock,"h") <- local({
   a <- parm.cons$steep[1]*steep_sc

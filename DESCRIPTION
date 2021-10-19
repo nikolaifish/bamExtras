@@ -5,7 +5,7 @@ Authors@R:
     person(given = "Nikolai",
            family = "Klibansky",
            role = c("aut", "cre"),
-           email = "first.last@example.com",
+           email = "nikolai.klibansky@noaa.gov",
            comment = c(ORCID = "0000-0003-2025-5089"))
 Description: This package is a miscellany of functions and data sets used in support of stock assessments using the Beaufort Assessment Model (BAM). 
 License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
@@ -15,8 +15,8 @@ LazyData: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Suggests:
+    knitr,	
     magrittr, 
-    knitr,
-    rmarkdown,
+    rmarkdown,	
     stringr
 VignetteBuilder: knitr

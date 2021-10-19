@@ -4,22 +4,27 @@
 \alias{vb_len}
 \title{Von Bertalanffy (VB) age to length function}
 \usage{
-vb_len(Linf, K, t0, a)
+vb_len(a, Linf, K, t0, aP = 0)
 }
 \arguments{
+\item{a}{ages to convert to lengths}
+
 \item{Linf}{length infinity}
 
 \item{K}{growth coefficient}
 
 \item{t0}{age (time) at length zero}
 
-\item{a}{ages to convert}
+\item{aP}{proportion of age (value between 0 and 1) at which to compute length (e.g. aP=0.5 to compute length at midyear)}
 }
 \description{
 Converts age to length with a Von Bertalanffy function
 }
 \examples{
-vb_len()
+\dontrun{
+# Length at age for Black Sea Bass
+vb_len(a=0:11,Linf = 502, K = 0.173, t0 = -0.97)
+}
 }
 \author{
 Nikolai Klibansky

@@ -40,17 +40,27 @@ rdat_to_cpars <- function(rdat,nsim,nyears=NULL,proyears,
     nyears <- length(rdat$parms$styr:rdat$parms$endyr)
   }
   # MSEtool expects age-based data to begin with age 1
-  age <- rdat$a.series$age
+  a.series <- rdat$a.series
+  age <- a.series$age
   if(min(age)<1){
     warning(paste(Name,": Minimum age <1. Age-based data limited to age >=1"))
     age <- age[age%in%1:max(age)]
   }
+  a.series <- a.series[a.series$age%in%age,]
+  M <- a.series$M
+
+  # M_ageArray
+  M_ageArray_dim <- c(nsim,length(age),nyears+proyears)
+  M_ageArray <- array(data = rep(M,each=nsim), dim = M_ageArray_dim,
+                   dimnames=list("sim"=seq_len(M_ageArray_dim[1]),
+                                 "M"=M,
+                                 "year"=seq_len(M_ageArray_dim[3])))
 
   # Mat_age
   if(is.null(herm)){herm <- bamStockMisc[Name,"herm"]}
   pmat <- pmatage(rdat=rdat,Mat_age1_max=Mat_age1_max,herm=herm,age=age)$pmat
 
-  Mat_age_dim <- c(nsim,length(pmat),nyears+proyears)
+  Mat_age_dim <- c(nsim,length(age),nyears+proyears)
   Mat_age <- array(data = rep(pmat,each=nsim), dim = Mat_age_dim,
                    dimnames=list("sim"=seq_len(Mat_age_dim[1]),
                                  "mat"=age,
@@ -59,7 +69,7 @@ rdat_to_cpars <- function(rdat,nsim,nyears=NULL,proyears,
   # V (vulnerability at age; i.e. total selectivity)
   Vage <- rdat$sel.age$sel.v.wgted.tot/max(rdat$sel.age$sel.v.wgted.tot) # Scaled to a maximum of 1
   Vage <- Vage[paste(age)]
-  V_dim <- c(nsim,length(Vage),nyears+proyears)
+  V_dim <- c(nsim,length(age),nyears+proyears)
   V <- array(data = rep(Vage,each=nsim), dim = V_dim,
              dimnames=list("sim"=seq_len(V_dim[1]),
                            "V"=age,
@@ -68,7 +78,7 @@ rdat_to_cpars <- function(rdat,nsim,nyears=NULL,proyears,
   # retA (retention at age; i.e. landings selectivity)
   retage <- rdat$sel.age$sel.v.wgted.L/max(rdat$sel.age$sel.v.wgted.L) # Scaled to a maximum of 1
   retage <- retage[paste(age)]
-  ret_dim <- c(nsim,length(retage),nyears+proyears)
+  ret_dim <- c(nsim,length(age),nyears+proyears)
   retA <- array(data = rep(retage,each=nsim), dim = ret_dim,
              dimnames=list("sim"=seq_len(ret_dim[1]),
                            "ret"=age,
@@ -76,6 +86,7 @@ rdat_to_cpars <- function(rdat,nsim,nyears=NULL,proyears,
 
   # Build cpars
   cpars <- list()
+  cpars$M_ageArray <- M_ageArray
   cpars$Mat_age <- Mat_age
   cpars$V <- V
   cpars$retA <- retA

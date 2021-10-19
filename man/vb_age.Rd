@@ -4,16 +4,16 @@
 \alias{vb_age}
 \title{Von Bertalanffy (VB) length to age function}
 \usage{
-vb_age(Linf, K, t0, L)
+vb_age(L, Linf, K, t0)
 }
 \arguments{
+\item{L}{lengths to convert to ages}
+
 \item{Linf}{length infinity}
 
 \item{K}{growth coefficient}
 
 \item{t0}{age (time) at length zero}
-
-\item{L}{length to convert}
 }
 \description{
 Converts age to length with a Von Bertalanffy function

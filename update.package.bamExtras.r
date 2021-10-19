@@ -14,7 +14,7 @@ library(stringr)
 # library(Rtools)
 
 
-# Set working directory
+# Set working director
 # wd <- getwd()
 
 # Create package

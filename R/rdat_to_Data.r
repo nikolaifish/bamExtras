@@ -62,11 +62,11 @@ rdat_to_Data <- function(
   Name <- gsub(" ","",str_to_title(info$species))
 
   # MSEtool expects age-based data to begin with age 1
-  if(min(rdat$a.series$age)<1){
-    warning(paste(Name,": Minimum age <1. Age-based data limited to age >=1"))
-    a.series <- a.series[a.series$age%in%1:max(a.series$age),]
-    rdat$a.series <- a.series
-  }
+  # if(min(rdat$a.series$age)<1){
+  #   warning(paste(Name,": Minimum age <1. Age-based data limited to age >=1"))
+  #   a.series <- a.series[a.series$age%in%1:max(a.series$age),]
+  #   rdat$a.series <- a.series
+  # }
   age <- rdat$a.series$age
 
   t.series <- t.series[paste(styr:endyr),]

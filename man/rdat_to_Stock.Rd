@@ -9,7 +9,8 @@ rdat_to_Stock(
   Stock = new("Stock"),
   sc = 0,
   scLim = sc * c(-1, 1) + 1,
-  M_constant_sc = 0.1 * c(-1, 1) + 1,
+  M_sc = 0.001 * c(-1, 1) + 1,
+  is_M_age_varying = FALSE,
   steep_sc = scLim,
   rec_sigma_sc = scLim,
   rec_AC_sc = scLim,
@@ -45,7 +46,9 @@ rdat_to_Stock(
 
 \item{sc}{Scalar (multiplier) to compute upper and lower bounds of random uniform distribution from mean value}
 
-\item{M_constant_sc}{Scalar for M_constant. Numeric vector of length 2}
+\item{M_sc}{Scalar for M_constant. Numeric vector of length 2}
+
+\item{is_M_age_varying}{logical. Indicate if age varying M should be used. If TRUE, M and M2 will be upper bounds for age-varying M, set as a function of t.series$M from BAM rdat and M_sc. If FALSE M will be a function of parms[\link{"M.constant"}] and M_sc}
 
 \item{steep_sc}{Scalar for steep. Numeric vector of length 2}
 

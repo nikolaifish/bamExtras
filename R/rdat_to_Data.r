@@ -3,24 +3,23 @@
 #' @param rdat BAM output rdat (list) object read in with dget()
 #' @param Data DLMtool Data object to start with
 #' @param herm Is the species hermaphroditic? If "gonochoristic", use female maturity. If "protogynous", use a function of male and female maturity.
-#' @param nsim see \code{\link[DLMtool]{OM-class}}
+#' @param nsim see \code{\link[MSEtool]{OM-class}}
 #' @param genus_species Genus and species names separated by a space (e.g. "Centropristis striata").
-#' @param Region see \code{\link[DLMtool]{Data-class}}
+#' @param Region see \code{\link[MSEtool]{Data-class}}
 #' @param Fref_name Name of F reference as named in rdat$parms list (e.g. Fmsy, F30)
-#' @param Rec see \code{\link[DLMtool]{Data-class}}. Set to "bam_recruits" to set this value to the vector of recruits estimated by bam for years where rec devs were estimated. Set to NULL to leave it empty.
+#' @param Rec see \code{\link[MSEtool]{Data-class}}. Set to "bam_recruits" to set this value to the vector of recruits estimated by bam for years where rec devs were estimated. Set to NULL to leave it empty.
 #' @param CAA_abb Abbreviation for identifying the observed age comp matrix for the catch-at-age (CAA) slot. Names of age compositions in the BAM rdat comp.mats list are expected to follow the naming convention "acomp.abb.ob". Examples from SEDAR 53 Red Grouper: "CVT", "HB", "cH". Set to "all" or "none" to use all or none of the age comps, respectively.
 #' @param CAL_abb Abbreviation for identifying the observed index for the catch-at-length (CAL) slot. Analogous to CAA_abb. Names of length compositions in the BAM rdat comp.mats list are expected to follow the naming convention "lcomp.abb.ob". Set to "all" or "none" to use all or none of the length comps, respectively.
 #' @param Ind_abb Abbreviation for identifying the observed index of abundance for the Ind slot. Names of indices in the BAM rdat t.series matrix are expected to follow the naming convention "U.abb.ob". Examples from SEDAR 53 Red Grouper: "CVT", "HB", "cH". If multiple (valid) abb values are provided, the corresponding indices will be averaged (geomean) and restandardized to a mean of 1. Abbreviations that don't match any indices will be ignored. Set to "all" or "none" to use all or none of the indices, respectively.
-#' @param Type see \code{\link[DLMtool]{Data-class}}
-#' @param Mat_age1_max Limit maximum value of proportion mature of first age class (usually age-1). Models sometimes fail when maturity of first age class is too high (e.g. >0.5)
+#' @param Mat_age1_max Limit maximum value of proportion mature of first age class (usually age-0 or age-1). Models sometimes fail when maturity of first age class is too high (e.g. >0.5)
 #' @param length_sc  Scalar (multiplier) to convert length units including wla parameter. MSEtool examples seem to use cm whereas BAM uses mm.
 #' @param wla_sc Scalar (multiplier) to convert wla parameter to appropriate weight units. In null, the function will try to figure out if the weight unit of wla was g, kg, or mt based on the range of the exponent. The wla parameter will also be scaled by 1/length_sc^wlb.
 #' @param catch_sc  Scalar (multiplier) for catch. BAM catch is usually in thousand pounds (klb). The default 1 maintains that scale.
-#' @param CV_vbK see \code{\link[DLMtool]{Data-class}}
-#' @param CV_vbLinf see \code{\link[DLMtool]{Data-class}}
-#' @param CV_vbt0 see \code{\link[DLMtool]{Data-class}}
-#' @param CV_Cat see \code{\link[DLMtool]{Data-class}}
-#' @param Units Units of catch. see \code{\link[DLMtool]{Data-class}}
+#' @param CV_vbK see \code{\link[MSEtool]{Data-class}}
+#' @param CV_vbLinf see \code{\link[MSEtool]{Data-class}}
+#' @param CV_vbt0 see \code{\link[MSEtool]{Data-class}}
+#' @param CV_Cat see \code{\link[MSEtool]{Data-class}}
+#' @param Units Units of catch. see \code{\link[MSEtool]{Data-class}}
 #' @keywords bam stock assessment fisheries DLMtool
 #' @author Nikolai Klibansky
 #' @export
@@ -38,8 +37,7 @@ rdat_to_Data <- function(
   CAL_abb="all",
   Ind_abb="all",
   CV_vbK=0.001, CV_vbLinf=0.001, CV_vbt0=0.001,
-  CV_Cat=0.05,
-  Type=NA,
+  CV_Cat=matrix(0.05,nrow=nsim),
   Units="thousand pounds",
   Mat_age1_max = 0.49,
   length_sc=0.1,
@@ -61,13 +59,16 @@ rdat_to_Data <- function(
 
   Name <- gsub(" ","",str_to_title(info$species))
 
-  # MSEtool expects age-based data to begin with age 1
-  # if(min(rdat$a.series$age)<1){
-  #   warning(paste(Name,": Minimum age <1. Age-based data limited to age >=1"))
-  #   a.series <- a.series[a.series$age%in%1:max(a.series$age),]
-  #   rdat$a.series <- a.series
-  # }
-  age <- rdat$a.series$age
+  # MSEtool expects age-based data to begin with age 0
+  if(min(a.series$age)>0){
+    warning(paste(Name,": Minimum age > 0. Age-based data extrapolated to age-0"))
+    a.series <- data_polate(a.series,xout=0:max(a.series$age))
+    a.series <- data_lim(a.series,xlim=c(0,Inf))
+    a.series <- data_lim(a.series,xname=c("prop.female","prop.male","mat.female","mat.male"),xlim=c(0,1))
+    a.series <- as.data.frame(a.series)
+    rownames(a.series) <- a.series$age
+  }
+  age <- a.series$age
 
   t.series <- t.series[paste(styr:endyr),]
 
@@ -183,7 +184,7 @@ slot(Data,"CV_Ind") <- IndCalc$CV_Ind
 Dt <- t.series[paste(tail(year,1)),"SSB"]/t.series[paste(year[1]),"SSB"]
 
 # Compute proportion mature at age
-pmat <- pmatage(rdat=rdat,Mat_age1_max=Mat_age1_max,herm=herm,age=age)$pmat
+pmat <- pmatage(a.series=a.series,Mat_age1_max=Mat_age1_max,herm=herm,age=age)$pmat
 
 # Compute maturity-at-length L50 and L50_95
 mat_at_len <- local({
@@ -286,7 +287,6 @@ slot(Data,"Region") <- Region
 slot(Data,"Year") <- year
 slot(Data,"Cat") <- Cat
 slot(Data,"CV_Cat") <- CV_Cat
-slot(Data,"Type") <- Type
 slot(Data,"Rec") <- Rec
 slot(Data,"t") <- nyears
 slot(Data,"AvC") <- mean(Cat)

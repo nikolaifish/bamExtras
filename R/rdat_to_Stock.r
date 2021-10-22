@@ -3,18 +3,18 @@
 #' @param rdat BAM output rdat (list) object read in with dget()
 #' @param Stock DLMtool Stock object to start with
 #' @param sc Scalar (multiplier) to compute upper and lower bounds of random uniform distribution from mean value
-#' @param M_sc Scalar for M_constant. Numeric vector of length 2
-#' @param is_M_age_varying logical. Indicate if age varying M should be used. If TRUE, M and M2 will be upper bounds for age-varying M, set as a function of t.series$M from BAM rdat and M_sc. If FALSE M will be a function of parms[["M.constant"]] and M_sc
-#' @param steep_sc Scalar for steep. Numeric vector of length 2
-#' @param rec_sigma_sc Scalar for rec_sigma. Numeric vector of length 2
-#' @param rec_AC_sc Scalar for rec_AC (lag-1 recruitment autocorrelation). Numeric vector of length 2
-#' @param Linf_sc Scalar for Linf (Von Bertalanffy growth function). Numeric vector of length 2
-#' @param K_sc Scalar for K (Von Bertalanffy growth function). Numeric vector of length 2
-#' @param t0_sc Scalar for t0 (Von Bertalanffy growth function). Numeric vector of length 2
-#' @param len_cv_val_sc Scalar for len_cv_val. Numeric vector of length 2
-#' @param L_50_sc Scalar for L_50 (length at 50 percent maturity). Numeric vector of length 2
-#' @param L_50_95_sc Scalar for L_50_95 (Length increment from 50 percent to 95 percent maturity). Numeric vector of length 2
-#' @param D_sc Scalar for D_95. Numeric vector of length 2
+#' @param M_scLim Scalar for M_constant limits. Numeric vector of length 2
+#' @param is_M_age_varying logical. Indicate if age varying M should be used. If TRUE, M and M2 will be upper bounds for age-varying M, set as a function of t.series$M from BAM rdat and M_scLim. If FALSE M will be a function of M.constant and M_scLim
+#' @param steep_scLim Scalar for steep limits. Numeric vector of length 2
+#' @param rec_sigma_scLim Scalar for rec_sigma limits. Numeric vector of length 2
+#' @param rec_AC_scLim Scalar for rec_AC (lag-1 recruitment autocorrelation) limits. Numeric vector of length 2
+#' @param Linf_scLim Scalar for Linf (Von Bertalanffy growth function) limits. Numeric vector of length 2
+#' @param K_scLim Scalar for K (Von Bertalanffy growth function) limits. Numeric vector of length 2
+#' @param t0_scLim Scalar for t0 (Von Bertalanffy growth function) limits. Numeric vector of length 2
+#' @param len_cv_val_scLim Scalar for len_cv_val limits. Numeric vector of length 2
+#' @param L_50_scLim Scalar for L_50 (length at 50 percent maturity) limits. Numeric vector of length 2
+#' @param L_50_95_scLim Scalar for L_50_95 (Length increment from 50 percent to 95 percent maturity) limits. Numeric vector of length 2
+#' @param D_scLim Scalar for D_95 limits. Numeric vector of length 2
 #' @param Msd see \code{\link[DLMtool]{Stock-class}}
 #' @param Ksd  see \code{\link[DLMtool]{Stock-class}}
 #' @param Linfsd see \code{\link[DLMtool]{Stock-class}}
@@ -50,11 +50,11 @@
 rdat_to_Stock <- function(
   rdat, Stock = new('Stock'),
   sc = 0,  scLim = sc*c(-1,1)+1,
-  M_sc = 0.001*c(-1,1)+1,
+  M_scLim = 0.001*c(-1,1)+1,
   is_M_age_varying = FALSE,
-  steep_sc = scLim, rec_sigma_sc = scLim, rec_AC_sc = scLim,
-  Linf_sc = scLim, K_sc = scLim, t0_sc = scLim, len_cv_val_sc = scLim, L_50_sc = scLim,
-  L50_95_sc = scLim, D_sc  = scLim,
+  steep_scLim = scLim, rec_sigma_scLim = scLim, rec_AC_scLim = scLim,
+  Linf_scLim = scLim, K_scLim = scLim, t0_scLim = scLim, len_cv_val_scLim = scLim, L_50_scLim = scLim,
+  L50_95_scLim = scLim, D_scLim  = scLim,
   Msd = c(0,0), Ksd = c(0,0), Linfsd = c(0,0), length_sc=0.1,
   Size_area_1 = c(0.5,0.5), Frac_area_1 = c(0.5,0.5), Prob_staying = c(0.5,0.5),
   SRrel = 1, R0 = 1000, use_bam_R0 = TRUE,
@@ -76,13 +76,16 @@ Name <- gsub(" ","",str_to_title(info$species))
 years <- paste(parms$styr:parms$endyr)
 nyears <- length(years)
 
-# # MSEtool expects age-based data to begin with age 1
-#   if(min(rdat$a.series$age)<1){
-#     warning(paste(Name,": Minimum age <1. Age-based data limited to age >=1"))
-#     a.series <- a.series[a.series$age%in%1:max(a.series$age),]
-#     rdat$a.series <- a.series
-#   }
-  age <- rdat$a.series$age
+# MSEtool expects age-based data to begin with age 0
+if(min(a.series$age)>0){
+  warning(paste(Name,": Minimum age > 0. Age-based data extrapolated to age-0"))
+  a.series <- data_polate(a.series,xout=0:max(a.series$age))
+  a.series <- data_lim(a.series,xlim=c(0,Inf))
+  a.series <- data_lim(a.series,xname=c("prop.female","prop.male","mat.female","mat.male"),xlim=c(0,1))
+  a.series <- as.data.frame(a.series)
+  rownames(a.series) <- a.series$age
+}
+age <- a.series$age
 
 t.series <- t.series[years,]
 
@@ -90,11 +93,18 @@ Common_Name <- str_replace_all(Name,"(?<=[a-z])(?=[A-Z])"," ")
 if(is.null(genus_species)){genus_species <- bamStockMisc[Name,"Species"]}
 if(is.null(herm)){herm <- bamStockMisc[Name,"herm"]}
 
-Linf <- parm.cons$Linf[1]
+Linf <- parm.cons$Linf[1]*length_sc
 K <- parm.cons$K[1]
 t0 <- parm.cons$t0[1]
 
-R0 <- ifelse(use_bam_R0, "yes"=parms$BH.R0, "no" =R0)
+# Compute R0 in units of catch (klb)
+Nage_F0 <- expDecay(age=age,Z=a.series$M,N0=1)
+bam_R0 <- parms$BH.R0
+bam_age_R <- min(rdat$a.series$age)
+N0_F0 <- bam_R0*(Nage_F0/Nage_F0[paste(bam_age_R)]) # Numbers at age zero with no fishing
+
+
+R0 <- ifelse(use_bam_R0, "yes"=N0_F0, "no" =R0)
 
 # Set slot values
 slot(Stock,"Name") <- Name
@@ -103,18 +113,18 @@ slot(Stock,"Species") <- genus_species
 slot(Stock,"maxage") <- max(a.series$age)
 slot(Stock,"R0") <- R0
 if(is_M_age_varying){
-slot(Stock,"M") <-  a.series$M*M_sc[1] # lower bound of age-dependent M
-slot(Stock,"M2") <- a.series$M*M_sc[2] # upper bound of age-dependent M
+slot(Stock,"M") <-  a.series$M*M_scLim[1] # lower bound of age-dependent M
+slot(Stock,"M2") <- a.series$M*M_scLim[2] # upper bound of age-dependent M
 }else{
-  slot(Stock,"M") <- parms[["M.constant"]]*M_sc # age-dependent M
+  slot(Stock,"M") <- parms[["M.constant"]]*M_scLim # age-dependent M
 }
 slot(Stock,"Msd") <- Msd
 slot(Stock,"h") <- local({
-  a <- parm.cons$steep[1]*steep_sc
+  a <- parm.cons$steep[1]*steep_scLim
   pmax(pmin(a,0.99),0.2) # Constrain to be between 0.2 and 0.99
 })
 slot(Stock,"SRrel") <- SRrel
-slot(Stock,"Perr") <- parm.cons$rec_sigma[1]*rec_sigma_sc
+slot(Stock,"Perr") <- parm.cons$rec_sigma[1]*rec_sigma_scLim
 
 rec_AC <- local({
   logR.dev <- t.series$logR.dev
@@ -124,15 +134,15 @@ rec_AC <- local({
     }
   out
 })
-slot(Stock,"AC") <- round(rec_AC*rec_AC_sc,3) # Upper and lower limits
+slot(Stock,"AC") <- round(rec_AC*rec_AC_scLim,3) # Upper and lower limits
 
 slot(Stock,"a") <- parms$wgt.a/length_sc^parms$wgt.b # Adjust a parameter for length units
 slot(Stock,"b") <- parms$wgt.b
 
-slot(Stock,"Linf") <-  Linf*Linf_sc*length_sc
-slot(Stock,"K") <- K*K_sc
-slot(Stock,"t0") <- t0*t0_sc
-slot(Stock,"LenCV") <- parm.cons$len_cv_val[1]*len_cv_val_sc
+slot(Stock,"Linf") <-  Linf*Linf_scLim
+slot(Stock,"K") <- K*K_scLim
+slot(Stock,"t0") <- t0*t0_scLim
+slot(Stock,"LenCV") <- parm.cons$len_cv_val[1]*len_cv_val_scLim
 slot(Stock,"Ksd") <- Ksd
 slot(Stock,"Linfsd") <- Linfsd
 
@@ -141,7 +151,7 @@ slot(Stock,"Frac_area_1")  <-  Frac_area_1
 slot(Stock,"Prob_staying") <-  Prob_staying
 
 # Compute proportion mature at age
-pmat <- pmatage(rdat=rdat,Mat_age1_max=Mat_age1_max,herm=herm,age=age)$pmat
+pmat <- pmatage(a.series=a.series,Mat_age1_max=Mat_age1_max,herm=herm,age=age)$pmat
 
 # Compute maturity-at-length L50 and L50_95
 mat_at_len <- local({
@@ -152,21 +162,21 @@ mat_at_len <- local({
   age50 <- age_pr[which.min(abs(pmat_pr-0.50))] # age at 50% maturity
   age95 <- age_pr[which.min(abs(pmat_pr-0.95))] # age at 95% maturity
 
-  len50 <- vb_len(Linf=Linf, K=K, t0=t0, a=age50)*length_sc # length at 50% maturity
-  len95 <- vb_len(Linf=Linf, K=K, t0=t0, a=age95)*length_sc # length at 95% maturity
+  len50 <- vb_len(Linf=Linf, K=K, t0=t0, a=age50) # length at 50% maturity
+  len95 <- vb_len(Linf=Linf, K=K, t0=t0, a=age95) # length at 95% maturity
   return(list("L50"=len50,"L50_95"=len95-len50))
 })
 L50 <- mat_at_len$L50
-A50 <- vb_age(Linf,K,t0,L50)
+A50 <- vb_age(L=L50,Linf=Linf,K=K,t0=t0)
 
-slot(Stock,"L50") <- mat_at_len$L50*L_50_sc
-slot(Stock,"L50_95") <- mat_at_len$L50_95*L50_95_sc
+slot(Stock,"L50") <- mat_at_len$L50*L_50_scLim
+slot(Stock,"L50_95") <- mat_at_len$L50_95*L50_95_scLim
 
 # Compute current level of depletion
 SSBend <- parms$SSBmsy*parms$SSBend.SSBmsy
 D <- SSBend/parms$SSB0
 
-slot(Stock,"D") <- D*D_sc
+slot(Stock,"D") <- D*D_scLim
 slot(Stock,"Fdisc") <- local({
   if(is.null(Fdisc)){
   a <- grepl("D.mort",names(parms))

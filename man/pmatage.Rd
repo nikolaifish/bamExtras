@@ -4,12 +4,12 @@
 \alias{pmatage}
 \title{Calculate proportion mature population from rdat. Either proportion female-at-age (for gonochoristic) or proportion combined proportion male and female maturity at age (for protogynous)}
 \usage{
-pmatage(rdat, Mat_age1_max = 0.49, herm, age = NULL)
+pmatage(a.series, Mat_age1_max = 0.49, herm, age = NULL)
 }
 \arguments{
-\item{rdat}{BAM output rdat (list) object read in with dget()}
+\item{a.series}{life history-at-age data with naming conventions used in BAM rdat$a.series data frames. Expects column "age", "mat.female", prop.female and looks for columns "mat.male".}
 
-\item{Mat_age1_max}{Limit maximum value of proportion mature of first age class (usually age-1). Models sometimes fail when maturity of first age class is too high (e.g. >0.5)}
+\item{Mat_age1_max}{Limit maximum value of proportion mature of first age class (usually age-0 or age-1). Models sometimes fail when maturity of first age class is too high (e.g. >0.5)}
 
 \item{herm}{Is the species hermaphroditic? If "gonochoristic", use female maturity. If "protogynous", use a function of male and female maturity.}
 
@@ -21,7 +21,7 @@ Calculate proportion mature population from rdat. Either proportion female-at-ag
 \examples{
 \dontrun{
 # Identify proportion mature-at-age
-pmat <- pmatage(rdat_RedPorgy)
+pmat <- pmatage(rdat_RedPorgy$a.series)
 plot(names(pmat),pmat)
 }
 }

@@ -2,15 +2,15 @@
 % Please edit documentation in R/rdat_to_Fleet.r
 \name{rdat_to_Fleet}
 \alias{rdat_to_Fleet}
-\title{Build DLMtool Stock object from bam rdat object}
+\title{Build MSEtool Stock object from bam rdat object}
 \usage{
 rdat_to_Fleet(
   rdat,
   Fleet = new("Fleet"),
   length_sc = 0.1,
-  Eff_sc = 0.1 * c(-1, 1) + 1,
+  Eff_sc = 0.01 * c(-1, 1) + 1,
   Spat_targ = c(1, 1),
-  Esd = c(0.1, 0.4),
+  Esd = c(0, 0),
   qinc = c(0, 0),
   qcv = c(0, 0),
   L5_sc = c(1, 1),
@@ -19,50 +19,53 @@ rdat_to_Fleet(
   LFR_sc = c(1, 1),
   Vmaxlen = c(1, 1),
   Rmaxlen = c(1, 1),
+  DR = NULL,
   isRel = FALSE
 )
 }
 \arguments{
 \item{rdat}{BAM output rdat (list) object read in with dget()}
 
-\item{Fleet}{DLMtool Fleet object to start with}
+\item{Fleet}{MSEtool Fleet object to start with}
 
 \item{length_sc}{Scalar (multiplier) to convert length units. MSEtool examples seem to use cm whereas BAM uses mm.}
 
 \item{Eff_sc}{Scale Effort vector to compute EffLower and EffUpper vectors. Numeric vector of length 2.}
 
-\item{Spat_targ}{see \code{\link[DLMtool]{Fleet-class}}}
+\item{Spat_targ}{see \code{\link[MSEtool]{Fleet-class}}}
 
-\item{Esd}{see \code{\link[DLMtool]{Fleet-class}}. The default for most MSEtool built-in Fleet objects is c(0.1,0.4)}
+\item{Esd}{see \code{\link[MSEtool]{Fleet-class}}. The default for most MSEtool built-in Fleet objects is c(0.1,0.4)}
 
-\item{qinc}{see \code{\link[DLMtool]{Fleet-class}}}
+\item{qinc}{see \code{\link[MSEtool]{Fleet-class}}}
 
-\item{qcv}{see \code{\link[DLMtool]{Fleet-class}}}
+\item{qcv}{see \code{\link[MSEtool]{Fleet-class}}}
 
-\item{L5_sc}{Scalar for L5 (see \code{\link[DLMtool]{Fleet-class}}). Numeric vector of length 2}
+\item{L5_sc}{Scalar for L5 (see \code{\link[MSEtool]{Fleet-class}}). Numeric vector of length 2}
 
-\item{LFS_sc}{Scalar for LFS (see \code{\link[DLMtool]{Fleet-class}}). Numeric vector of length 2}
+\item{LFS_sc}{Scalar for LFS (see \code{\link[MSEtool]{Fleet-class}}). Numeric vector of length 2}
 
-\item{LR5_sc}{Scalar for LR5 (see \code{\link[DLMtool]{Fleet-class}}). Numeric vector of length 2}
+\item{LR5_sc}{Scalar for LR5 (see \code{\link[MSEtool]{Fleet-class}}). Numeric vector of length 2}
 
-\item{LFR_sc}{Scalar for LFR (see \code{\link[DLMtool]{Fleet-class}}). Numeric vector of length 2}
+\item{LFR_sc}{Scalar for LFR (see \code{\link[MSEtool]{Fleet-class}}). Numeric vector of length 2}
 
-\item{Vmaxlen}{see \code{\link[DLMtool]{Fleet-class}}}
+\item{Vmaxlen}{see \code{\link[MSEtool]{Fleet-class}}}
 
-\item{Rmaxlen}{see \code{\link[DLMtool]{Fleet-class}}}
+\item{Rmaxlen}{see \code{\link[MSEtool]{Fleet-class}}}
 
-\item{isRel}{see \code{\link[DLMtool]{Fleet-class}}}
+\item{DR}{see \code{\link[MSEtool]{Fleet-class}}}
+
+\item{isRel}{see \code{\link[MSEtool]{Fleet-class}}}
 }
 \description{
-Build DLMtool Stock object from bam rdat object
+Build MSEtool Stock object from bam rdat object
 }
 \examples{
 \dontrun{
-# Build DLMtool Stock and Fleet (Stock-class and Fleet-class objects)
+# Build MSEtool Stock and Fleet (Stock-class and Fleet-class objects)
 Stock_RedPorgy <- rdat_to_Stock(rdat_RedPorgy)
 Fleet_RedPorgy <- rdat_to_Fleet(rdat_RedPorgy)
 
-# Build DLMtool operating model (OM-class object)
+# Build MSEtool operating model (OM-class object)
 OM_RedPorgy <- new("OM", Stock_RedPorgy, Fleet_RedPorgy, Precise_Unbiased, Perfect_Imp)
 # Run and plot simple management strategy evaluation (MSE)
 mse_out <- runMSE(OM_RedPorgy)
@@ -72,7 +75,7 @@ NOAA_plot(mse_out)
 \author{
 Nikolai Klibansky
 }
-\keyword{DLMtool}
+\keyword{MSEtool}
 \keyword{assessment}
 \keyword{bam}
 \keyword{fisheries}

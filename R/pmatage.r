@@ -1,7 +1,7 @@
 #' Calculate proportion mature population from rdat. Either proportion female-at-age (for gonochoristic) or proportion combined proportion male and female maturity at age (for protogynous)
 #'
-#' @param rdat BAM output rdat (list) object read in with dget()
-#' @param Mat_age1_max Limit maximum value of proportion mature of first age class (usually age-1). Models sometimes fail when maturity of first age class is too high (e.g. >0.5)
+#' @param a.series life history-at-age data with naming conventions used in BAM rdat$a.series data frames. Expects column "age", "mat.female", prop.female and looks for columns "mat.male".
+#' @param Mat_age1_max Limit maximum value of proportion mature of first age class (usually age-0 or age-1). Models sometimes fail when maturity of first age class is too high (e.g. >0.5)
 #' @param herm Is the species hermaphroditic? If "gonochoristic", use female maturity. If "protogynous", use a function of male and female maturity.
 #' @param age Vector of ages to include
 #' @keywords bam stock assessment fisheries DLMtool
@@ -10,15 +10,23 @@
 #' @examples
 #' \dontrun{
 #' # Identify proportion mature-at-age
-#' pmat <- pmatage(rdat_RedPorgy)
+#' pmat <- pmatage(rdat_RedPorgy$a.series)
 #' plot(names(pmat),pmat)
 #' }
 
 pmatage <- function(
-  rdat, Mat_age1_max = 0.49, herm, age=NULL
+  a.series, Mat_age1_max = 0.49, herm, age=NULL
 ){
-rdat <- standardize_rdat(rdat)
-a.series <- rdat$a.series
+  # MSEtool expects age-based data to begin with age 0
+  if(min(a.series$age)>0){
+    warning(paste(Name,": Minimum age > 0. Age-based data extrapolated to age-0"))
+    a.series <- data_polate(a.series,xout=0:max(a.series$age))
+    a.series <- data_lim(a.series,xlim=c(0,Inf))
+    a.series <- data_lim(a.series,xname=c("prop.female","prop.male","mat.female","mat.male"),xlim=c(0,1))
+    a.series <- as.data.frame(a.series)
+    rownames(a.series) <- a.series$age
+  }
+
 if(is.null(age)){
 age <- a.series$age
 }

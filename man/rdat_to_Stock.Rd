@@ -9,18 +9,18 @@ rdat_to_Stock(
   Stock = new("Stock"),
   sc = 0,
   scLim = sc * c(-1, 1) + 1,
-  M_sc = 0.001 * c(-1, 1) + 1,
+  M_scLim = 0.001 * c(-1, 1) + 1,
   is_M_age_varying = FALSE,
-  steep_sc = scLim,
-  rec_sigma_sc = scLim,
-  rec_AC_sc = scLim,
-  Linf_sc = scLim,
-  K_sc = scLim,
-  t0_sc = scLim,
-  len_cv_val_sc = scLim,
-  L_50_sc = scLim,
-  L50_95_sc = scLim,
-  D_sc = scLim,
+  steep_scLim = scLim,
+  rec_sigma_scLim = scLim,
+  rec_AC_scLim = scLim,
+  Linf_scLim = scLim,
+  K_scLim = scLim,
+  t0_scLim = scLim,
+  len_cv_val_scLim = scLim,
+  L_50_scLim = scLim,
+  L50_95_scLim = scLim,
+  D_scLim = scLim,
   Msd = c(0, 0),
   Ksd = c(0, 0),
   Linfsd = c(0, 0),
@@ -46,27 +46,27 @@ rdat_to_Stock(
 
 \item{sc}{Scalar (multiplier) to compute upper and lower bounds of random uniform distribution from mean value}
 
-\item{M_sc}{Scalar for M_constant. Numeric vector of length 2}
+\item{M_scLim}{Scalar for M_constant limits. Numeric vector of length 2}
 
-\item{is_M_age_varying}{logical. Indicate if age varying M should be used. If TRUE, M and M2 will be upper bounds for age-varying M, set as a function of t.series$M from BAM rdat and M_sc. If FALSE M will be a function of parms[\link{"M.constant"}] and M_sc}
+\item{is_M_age_varying}{logical. Indicate if age varying M should be used. If TRUE, M and M2 will be upper bounds for age-varying M, set as a function of t.series$M from BAM rdat and M_scLim. If FALSE M will be a function of M.constant and M_scLim}
 
-\item{steep_sc}{Scalar for steep. Numeric vector of length 2}
+\item{steep_scLim}{Scalar for steep limits. Numeric vector of length 2}
 
-\item{rec_sigma_sc}{Scalar for rec_sigma. Numeric vector of length 2}
+\item{rec_sigma_scLim}{Scalar for rec_sigma limits. Numeric vector of length 2}
 
-\item{rec_AC_sc}{Scalar for rec_AC (lag-1 recruitment autocorrelation). Numeric vector of length 2}
+\item{rec_AC_scLim}{Scalar for rec_AC (lag-1 recruitment autocorrelation) limits. Numeric vector of length 2}
 
-\item{Linf_sc}{Scalar for Linf (Von Bertalanffy growth function). Numeric vector of length 2}
+\item{Linf_scLim}{Scalar for Linf (Von Bertalanffy growth function) limits. Numeric vector of length 2}
 
-\item{K_sc}{Scalar for K (Von Bertalanffy growth function). Numeric vector of length 2}
+\item{K_scLim}{Scalar for K (Von Bertalanffy growth function) limits. Numeric vector of length 2}
 
-\item{t0_sc}{Scalar for t0 (Von Bertalanffy growth function). Numeric vector of length 2}
+\item{t0_scLim}{Scalar for t0 (Von Bertalanffy growth function) limits. Numeric vector of length 2}
 
-\item{len_cv_val_sc}{Scalar for len_cv_val. Numeric vector of length 2}
+\item{len_cv_val_scLim}{Scalar for len_cv_val limits. Numeric vector of length 2}
 
-\item{L_50_sc}{Scalar for L_50 (length at 50 percent maturity). Numeric vector of length 2}
+\item{L_50_scLim}{Scalar for L_50 (length at 50 percent maturity) limits. Numeric vector of length 2}
 
-\item{D_sc}{Scalar for D_95. Numeric vector of length 2}
+\item{D_scLim}{Scalar for D_95 limits. Numeric vector of length 2}
 
 \item{Msd}{see \code{\link[DLMtool]{Stock-class}}}
 
@@ -100,7 +100,7 @@ rdat_to_Stock(
 
 \item{genus_species}{Genus and species names separated by a space (e.g. "Centropristis striata").}
 
-\item{L_50_95_sc}{Scalar for L_50_95 (Length increment from 50 percent to 95 percent maturity). Numeric vector of length 2}
+\item{L_50_95_scLim}{Scalar for L_50_95 (Length increment from 50 percent to 95 percent maturity) limits. Numeric vector of length 2}
 }
 \description{
 Build DLMtool Stock object from bam rdat object

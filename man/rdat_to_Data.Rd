@@ -19,8 +19,7 @@ rdat_to_Data(
   CV_vbK = 0.001,
   CV_vbLinf = 0.001,
   CV_vbt0 = 0.001,
-  CV_Cat = 0.05,
-  Type = NA,
+  CV_Cat = matrix(0.05, nrow = nsim),
   Units = "thousand pounds",
   Mat_age1_max = 0.49,
   length_sc = 0.1,
@@ -35,15 +34,15 @@ rdat_to_Data(
 
 \item{herm}{Is the species hermaphroditic? If "gonochoristic", use female maturity. If "protogynous", use a function of male and female maturity.}
 
-\item{nsim}{see \code{\link[DLMtool]{OM-class}}}
+\item{nsim}{see \code{\link[MSEtool]{OM-class}}}
 
 \item{genus_species}{Genus and species names separated by a space (e.g. "Centropristis striata").}
 
-\item{Region}{see \code{\link[DLMtool]{Data-class}}}
+\item{Region}{see \code{\link[MSEtool]{Data-class}}}
 
 \item{Fref_name}{Name of F reference as named in rdat$parms list (e.g. Fmsy, F30)}
 
-\item{Rec}{see \code{\link[DLMtool]{Data-class}}. Set to "bam_recruits" to set this value to the vector of recruits estimated by bam for years where rec devs were estimated. Set to NULL to leave it empty.}
+\item{Rec}{see \code{\link[MSEtool]{Data-class}}. Set to "bam_recruits" to set this value to the vector of recruits estimated by bam for years where rec devs were estimated. Set to NULL to leave it empty.}
 
 \item{CAA_abb}{Abbreviation for identifying the observed age comp matrix for the catch-at-age (CAA) slot. Names of age compositions in the BAM rdat comp.mats list are expected to follow the naming convention "acomp.abb.ob". Examples from SEDAR 53 Red Grouper: "CVT", "HB", "cH". Set to "all" or "none" to use all or none of the age comps, respectively.}
 
@@ -51,19 +50,17 @@ rdat_to_Data(
 
 \item{Ind_abb}{Abbreviation for identifying the observed index of abundance for the Ind slot. Names of indices in the BAM rdat t.series matrix are expected to follow the naming convention "U.abb.ob". Examples from SEDAR 53 Red Grouper: "CVT", "HB", "cH". If multiple (valid) abb values are provided, the corresponding indices will be averaged (geomean) and restandardized to a mean of 1. Abbreviations that don't match any indices will be ignored. Set to "all" or "none" to use all or none of the indices, respectively.}
 
-\item{CV_vbK}{see \code{\link[DLMtool]{Data-class}}}
+\item{CV_vbK}{see \code{\link[MSEtool]{Data-class}}}
 
-\item{CV_vbLinf}{see \code{\link[DLMtool]{Data-class}}}
+\item{CV_vbLinf}{see \code{\link[MSEtool]{Data-class}}}
 
-\item{CV_vbt0}{see \code{\link[DLMtool]{Data-class}}}
+\item{CV_vbt0}{see \code{\link[MSEtool]{Data-class}}}
 
-\item{CV_Cat}{see \code{\link[DLMtool]{Data-class}}}
+\item{CV_Cat}{see \code{\link[MSEtool]{Data-class}}}
 
-\item{Type}{see \code{\link[DLMtool]{Data-class}}}
+\item{Units}{Units of catch. see \code{\link[MSEtool]{Data-class}}}
 
-\item{Units}{Units of catch. see \code{\link[DLMtool]{Data-class}}}
-
-\item{Mat_age1_max}{Limit maximum value of proportion mature of first age class (usually age-1). Models sometimes fail when maturity of first age class is too high (e.g. >0.5)}
+\item{Mat_age1_max}{Limit maximum value of proportion mature of first age class (usually age-0 or age-1). Models sometimes fail when maturity of first age class is too high (e.g. >0.5)}
 
 \item{length_sc}{Scalar (multiplier) to convert length units including wla parameter. MSEtool examples seem to use cm whereas BAM uses mm.}
 

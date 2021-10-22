@@ -1,30 +1,31 @@
-#' Build DLMtool Stock object from bam rdat object
+#' Build MSEtool Stock object from bam rdat object
 #'
 #' @param rdat BAM output rdat (list) object read in with dget()
-#' @param Fleet DLMtool Fleet object to start with
+#' @param Fleet MSEtool Fleet object to start with
 #' @param length_sc Scalar (multiplier) to convert length units. MSEtool examples seem to use cm whereas BAM uses mm.
 #' @param Eff_sc Scale Effort vector to compute EffLower and EffUpper vectors. Numeric vector of length 2.
-#' @param Spat_targ see \code{\link[DLMtool]{Fleet-class}}
-#' @param Esd see \code{\link[DLMtool]{Fleet-class}}. The default for most MSEtool built-in Fleet objects is c(0.1,0.4)
-#' @param qinc see \code{\link[DLMtool]{Fleet-class}}
-#' @param qcv see \code{\link[DLMtool]{Fleet-class}}
-#' @param L5_sc Scalar for L5 (see \code{\link[DLMtool]{Fleet-class}}). Numeric vector of length 2
-#' @param LFS_sc Scalar for LFS (see \code{\link[DLMtool]{Fleet-class}}). Numeric vector of length 2
-#' @param LR5_sc Scalar for LR5 (see \code{\link[DLMtool]{Fleet-class}}). Numeric vector of length 2
-#' @param LFR_sc Scalar for LFR (see \code{\link[DLMtool]{Fleet-class}}). Numeric vector of length 2
-#' @param Vmaxlen see \code{\link[DLMtool]{Fleet-class}}
-#' @param Rmaxlen see \code{\link[DLMtool]{Fleet-class}}
-#' @param isRel see \code{\link[DLMtool]{Fleet-class}}
-#' @keywords bam stock assessment fisheries DLMtool
+#' @param Spat_targ see \code{\link[MSEtool]{Fleet-class}}
+#' @param Esd see \code{\link[MSEtool]{Fleet-class}}. The default for most MSEtool built-in Fleet objects is c(0.1,0.4)
+#' @param qinc see \code{\link[MSEtool]{Fleet-class}}
+#' @param qcv see \code{\link[MSEtool]{Fleet-class}}
+#' @param L5_sc Scalar for L5 (see \code{\link[MSEtool]{Fleet-class}}). Numeric vector of length 2
+#' @param LFS_sc Scalar for LFS (see \code{\link[MSEtool]{Fleet-class}}). Numeric vector of length 2
+#' @param LR5_sc Scalar for LR5 (see \code{\link[MSEtool]{Fleet-class}}). Numeric vector of length 2
+#' @param LFR_sc Scalar for LFR (see \code{\link[MSEtool]{Fleet-class}}). Numeric vector of length 2
+#' @param Vmaxlen see \code{\link[MSEtool]{Fleet-class}}
+#' @param Rmaxlen see \code{\link[MSEtool]{Fleet-class}}
+#' @param DR see \code{\link[MSEtool]{Fleet-class}}
+#' @param isRel see \code{\link[MSEtool]{Fleet-class}}
+#' @keywords bam stock assessment fisheries MSEtool
 #' @author Nikolai Klibansky
 #' @export
 #' @examples
 #' \dontrun{
-#' # Build DLMtool Stock and Fleet (Stock-class and Fleet-class objects)
+#' # Build MSEtool Stock and Fleet (Stock-class and Fleet-class objects)
 #' Stock_RedPorgy <- rdat_to_Stock(rdat_RedPorgy)
 #' Fleet_RedPorgy <- rdat_to_Fleet(rdat_RedPorgy)
 #'
-#' # Build DLMtool operating model (OM-class object)
+#' # Build MSEtool operating model (OM-class object)
 #' OM_RedPorgy <- new("OM", Stock_RedPorgy, Fleet_RedPorgy, Precise_Unbiased, Perfect_Imp)
 #' # Run and plot simple management strategy evaluation (MSE)
 #' mse_out <- runMSE(OM_RedPorgy)
@@ -35,9 +36,9 @@ rdat_to_Fleet <- function(
   rdat,
   Fleet = new('Fleet'),
   length_sc=0.1,
-  Eff_sc = 0.1*c(-1,1)+1,
+  Eff_sc = 0.01*c(-1,1)+1,
   Spat_targ = c(1,1),
-  Esd = c(0.1,0.4),
+  Esd = c(0,0),
   qinc = c(0,0),
   qcv = c(0,0),
   L5_sc = c(1,1),
@@ -46,6 +47,7 @@ rdat_to_Fleet <- function(
   LFR_sc = c(1,1),
   Vmaxlen = c(1,1),
   Rmaxlen = c(1,1),
+  DR = NULL,
   isRel = FALSE
 )
 {
@@ -60,6 +62,8 @@ nyears <- length(years)
 a.series <- rdat$a.series
 t.series <- rdat$t.series[years,]
 
+age <- a.series$age
+
 Name <- gsub(" ","",str_to_title(info$species))
 
 ## Effort
@@ -68,19 +72,23 @@ Name <- gsub(" ","",str_to_title(info$species))
 E <- local({
   C <- t.series$total.L.klb
   B <- t.series$B # Should be in metric tons
-  E <- C/(B*1000)
+  Bklb <- measurements::conv_unit(B,"metric_ton","lbs")/1000
+  E <- C/Bklb
   names(E) <- years
   E
 })
+# E_scaled <- (E/max(E,na.rm=TRUE))
+EffLower <- E*Eff_sc[1]
+EffUpper <- E*Eff_sc[2]
 
 # Set slot values
 slot(Fleet,"Name") <- Name
 slot(Fleet,"nyears") <- nyears
-slot(Fleet,"Spat_targ") <- Spat_targ
+slot(Fleet,"CurrentYr") <- parms$endyr
 
 slot(Fleet,"EffYears") <- 1:nyears # Should be a sequence of integers starting with 1, not actual years
-slot(Fleet,"EffLower") <- E*Eff_sc[1]
-slot(Fleet,"EffUpper") <- E*Eff_sc[2]
+slot(Fleet,"EffLower") <- EffLower
+slot(Fleet,"EffUpper") <- EffUpper
 slot(Fleet,"Esd") <- Esd
 
 slot(Fleet,"qinc") <- qinc
@@ -100,7 +108,13 @@ slot(Fleet,"isRel") <- isRel
 slot(Fleet,"Vmaxlen") <- Vmaxlen
 slot(Fleet,"Rmaxlen") <- Rmaxlen
 
-slot(Fleet,"CurrentYr") <- parms$endyr
+if(is.null(DR)){
+  DR <- as.numeric(sort(1-quantile(pmin(1,(vuln_out$retdata/vuln_out$Vdata)[paste(round(vuln_out$AFS):max(age))]),probs=c(0.25,0.75))))
+}
+
+slot(Fleet,"DR") <- DR
+
+slot(Fleet,"Spat_targ") <- Spat_targ
 
 return(Fleet)
 }

@@ -8,9 +8,11 @@ rdat_to_cpars(
   rdat,
   nsim,
   nyears = NULL,
-  proyears,
+  proyears = 50,
   Mat_age1_max = 0.49,
-  herm = NULL
+  herm = NULL,
+  V_scaleToMax = FALSE,
+  ret_scaleToMax = FALSE
 )
 }
 \arguments{
@@ -25,6 +27,10 @@ rdat_to_cpars(
 \item{Mat_age1_max}{Limit maximum value of proportion mature of first age class (usually age-1).}
 
 \item{herm}{Is the species hermaphroditic? If "gonochoristic", use female maturity. If "protogynous", use a function of male and female maturity.}
+
+\item{V_scaleToMax}{Should vulnerability be rescaled to max vulnerability?}
+
+\item{ret_scaleToMax}{Should retention be rescaled to max retention?}
 }
 \description{
 Build DLMtool cpars list from bam rdat object

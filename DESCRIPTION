@@ -16,7 +16,8 @@ Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.1
 Suggests:
     knitr,	
-    magrittr, 
+    magrittr,
+    measurements,	
     rmarkdown,	
     stringr
 VignetteBuilder: knitr

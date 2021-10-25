@@ -37,7 +37,7 @@ rdat_to_Data <- function(
   CAL_abb="all",
   Ind_abb="all",
   CV_vbK=0.001, CV_vbLinf=0.001, CV_vbt0=0.001,
-  CV_Cat=matrix(0.05,nrow=nsim),
+  CV_Cat=NULL,
   Units="thousand pounds",
   Mat_age1_max = 0.49,
   length_sc=0.1,
@@ -87,7 +87,7 @@ B.to.klb <- local({
 catch.raw <- t.series$total.L.klb*catch_sc
 cc.yrCat <- complete.cases(t.series$year,catch.raw) # Complete cases for catch data series
 year <- t.series$year[cc.yrCat]
-nyears <- length(year)
+nyear <- length(year)
 catch <- catch.raw[cc.yrCat]
 recruits <- setNames(t.series$recruits,t.series$year)
 
@@ -141,6 +141,11 @@ if(!is.null(Rec)){
 
 # Catch (Cat): Total annual catches (NOTE: DLMtool wants Cat to be a matrix)
 Cat <- matrix(data=catch,nrow=nsim,ncol=length(catch),dimnames=list("sim"=1:nsim,"year"=year))
+
+# Catch CV
+if(is.null(CV_Cat)){
+CV_Cat <- matrix(0.05,nrow=nsim,ncol=nyear)
+}
 
 # Abundance Index (Ind): Relative abundance index (NOTE: DLMtool wants Ind to be a matrix)
 if(!Ind_abb[1]=="none"){
@@ -267,7 +272,7 @@ colnames(lcomp_nfish) <- paste(as.numeric(colnames(lcomp_nfish))*length_sc)
 # Mean
 ML_LFS_out <- ML_LFS(lcomp_nfish,minL=LFS)
 ML <- setNames(ML_LFS_out$mlen,ML_LFS_out$year)
-#slot(Data,"ML") <-  matrix(ML,nrow=nsim,ncol=nyears,byrow=TRUE,dimnames=list("sim"=1:nsim,"year"=year))
+#slot(Data,"ML") <-  matrix(ML,nrow=nsim,ncol=nyear,byrow=TRUE,dimnames=list("sim"=1:nsim,"year"=year))
 
 # Convert CAL to array to appease DLMtool
 CAL <- array(data=lcomp_nfish, dim=c(nsim,nrow(lcomp_nfish),ncol(lcomp_nfish)),
@@ -288,7 +293,7 @@ slot(Data,"Year") <- year
 slot(Data,"Cat") <- Cat
 slot(Data,"CV_Cat") <- CV_Cat
 slot(Data,"Rec") <- Rec
-slot(Data,"t") <- nyears
+slot(Data,"t") <- nyear
 slot(Data,"AvC") <- mean(Cat)
 slot(Data,"Dt") <- Dt
 slot(Data,"Mort") <- M.constant

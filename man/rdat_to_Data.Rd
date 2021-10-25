@@ -19,7 +19,7 @@ rdat_to_Data(
   CV_vbK = 0.001,
   CV_vbLinf = 0.001,
   CV_vbt0 = 0.001,
-  CV_Cat = matrix(0.05, nrow = nsim),
+  CV_Cat = NULL,
   Units = "thousand pounds",
   Mat_age1_max = 0.49,
   length_sc = 0.1,

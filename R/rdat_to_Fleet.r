@@ -95,7 +95,7 @@ slot(Fleet,"qinc") <- qinc
 slot(Fleet,"qcv") <- qcv
 
 # Estimate length at 5% and full (100%) vulnerability (total selectivity) and retention (landings selectivity)
-vuln_out <- vulnerability(Vdata = rdat$sel.age$sel.v.wgted.tot, retdata = rdat$sel.age$sel.v.wgted.L, Linf = parm.cons$Linf[1], K = parm.cons$K[1], t0 = parm.cons$t0[1], length_sc=length_sc)
+vuln_out <- vulnerability(Vdata = rdat$sel.age$sel.v.wgted.tot, retdata = rdat$sel.age$sel.v.wgted.L, Linf = parm.cons$Linf[8], K = parm.cons$K[8], t0 = parm.cons$t0[8], length_sc=length_sc)
 
 slot(Fleet,"L5") <- vuln_out$L5*L5_sc
 slot(Fleet,"LFS") <- vuln_out$LFS*LFS_sc

@@ -25,6 +25,7 @@ rdat_to_Stock(
   Ksd = c(0, 0),
   Linfsd = c(0, 0),
   length_sc = 0.1,
+  wla_sc = NULL,
   Size_area_1 = c(0.5, 0.5),
   Frac_area_1 = c(0.5, 0.5),
   Prob_staying = c(0.5, 0.5),
@@ -75,6 +76,8 @@ rdat_to_Stock(
 \item{Linfsd}{see \code{\link[DLMtool]{Stock-class}}}
 
 \item{length_sc}{Scalar (multiplier) to convert length units. MSEtool examples seem to use cm whereas BAM uses mm.}
+
+\item{wla_sc}{Scalar (multiplier) to convert wla parameter to appropriate weight units. If null, the function will try to figure out if the weight unit of wla was g, kg, or mt based on the range of the exponent. The wla parameter will also be scaled by 1/length_sc^wlb.}
 
 \item{Size_area_1}{see \code{\link[DLMtool]{Stock-class}}}
 

@@ -20,10 +20,11 @@ rdat_to_Data(
   CV_vbLinf = 0.001,
   CV_vbt0 = 0.001,
   CV_Cat = NULL,
-  Units = "thousand pounds",
   Mat_age1_max = 0.49,
   length_sc = 0.1,
   wla_sc = NULL,
+  wla_unit = "lbs",
+  wla_unit_mult = 1000,
   catch_sc = 1
 )
 }
@@ -58,22 +59,31 @@ rdat_to_Data(
 
 \item{CV_Cat}{see \code{\link[MSEtool]{Data-class}}}
 
-\item{Units}{Units of catch. see \code{\link[MSEtool]{Data-class}}}
-
 \item{Mat_age1_max}{Limit maximum value of proportion mature of first age class (usually age-0 or age-1). Models sometimes fail when maturity of first age class is too high (e.g. >0.5)}
 
-\item{length_sc}{Scalar (multiplier) to convert length units including wla parameter. MSEtool examples seem to use cm whereas BAM uses mm.}
+\item{length_sc}{Scalar (multiplier) to convert length units including wla parameter. For example if L in wla*L^wlb is in mm then length_sc should be 0.1 to convert to cm. (MSEtool examples tend to use cm whereas BAM uses mm.)}
 
-\item{wla_sc}{Scalar (multiplier) to convert wla parameter to appropriate weight units. In null, the function will try to figure out if the weight unit of wla was g, kg, or mt based on the range of the exponent. The wla parameter will also be scaled by 1/length_sc^wlb.}
+\item{wla_sc}{Scalar (multiplier) to convert wla parameter to kilograms (kg). Setting a value for wla_sc will override settings for wla_unit and wla_unit_mult. If null, the function will try to figure out if the weight unit of wla was g, kg, or mt based on the range of the exponent to convert to kg. The wla parameter will also be scaled by 1/length_sc^wlb.}
+
+\item{wla_unit}{Character. Basic unit that you want weight to be in, which is applied to the wla parameter. Accepted units are those used by measurements::conv_unit function (\code{\link[measurments]{conv_unit})}.}
+
+\item{wla_unit_mult}{Numeric. Multiplier to apply to wla_unit (e.g. 10, 100, 1000)}
 
 \item{catch_sc}{Scalar (multiplier) for catch. BAM catch is usually in thousand pounds (klb). The default 1 maintains that scale.}
 }
 \description{
 Build DLMtool Data object from bam rdat object
 }
+\details{
+
+}
 \examples{
 \dontrun{
-# Write example here
+# Convert Black Sea Bass rdat to Data object
+Data_BlackSeaBass <- rdat_to_Data(rdat_BlackSeaBass)
+# Run statistical catch-at-age model
+SCA(1,Data_BlackSeaBass)
+
 }
 }
 \author{

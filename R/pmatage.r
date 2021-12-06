@@ -15,11 +15,11 @@
 #' }
 
 pmatage <- function(
-  a.series, Mat_age1_max = 0.49, herm, age=NULL
+  a.series, Mat_age1_max = 0.49, herm="gonochoristic", age=NULL
 ){
   # MSEtool expects age-based data to begin with age 0
   if(min(a.series$age)>0){
-    warning(paste(Name,": Minimum age > 0. Age-based data extrapolated to age-0"))
+    warning("Minimum age > 0. Age-based data extrapolated to age-0")
     a.series <- data_polate(a.series,xout=0:max(a.series$age))
     a.series <- data_lim(a.series,xlim=c(0,Inf))
     a.series <- data_lim(a.series,xname=c("prop.female","prop.male","mat.female","mat.male"),xlim=c(0,1))

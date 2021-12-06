@@ -19,6 +19,7 @@
 #' @param Ksd  see \code{\link[DLMtool]{Stock-class}}
 #' @param Linfsd see \code{\link[DLMtool]{Stock-class}}
 #' @param length_sc Scalar (multiplier) to convert length units. MSEtool examples seem to use cm whereas BAM uses mm.
+#' @param wla_sc Scalar (multiplier) to convert wla parameter to appropriate weight units. If null, the function will try to figure out if the weight unit of wla was g, kg, or mt based on the range of the exponent. The wla parameter will also be scaled by 1/length_sc^wlb.
 #' @param SRrel see \code{\link[DLMtool]{Stock-class}}
 #' @param Size_area_1 see \code{\link[DLMtool]{Stock-class}}
 #' @param Frac_area_1 see \code{\link[DLMtool]{Stock-class}}
@@ -55,7 +56,7 @@ rdat_to_Stock <- function(
   steep_scLim = scLim, rec_sigma_scLim = scLim, rec_AC_scLim = scLim,
   Linf_scLim = scLim, K_scLim = scLim, t0_scLim = scLim, len_cv_val_scLim = scLim, L_50_scLim = scLim,
   L50_95_scLim = scLim, D_scLim  = scLim,
-  Msd = c(0,0), Ksd = c(0,0), Linfsd = c(0,0), length_sc=0.1,
+  Msd = c(0,0), Ksd = c(0,0), Linfsd = c(0,0), length_sc=0.1, wla_sc=NULL,
   Size_area_1 = c(0.5,0.5), Frac_area_1 = c(0.5,0.5), Prob_staying = c(0.5,0.5),
   SRrel = 1, R0 = 1000, use_bam_R0 = TRUE,
   AC = 0.2, use_bam_AC = TRUE,
@@ -93,18 +94,19 @@ Common_Name <- str_replace_all(Name,"(?<=[a-z])(?=[A-Z])"," ")
 if(is.null(genus_species)){genus_species <- bamStockMisc[Name,"Species"]}
 if(is.null(herm)){herm <- bamStockMisc[Name,"herm"]}
 
-Linf <- parm.cons$Linf[1]*length_sc
-K <- parm.cons$K[1]
-t0 <- parm.cons$t0[1]
+Linf <- parm.cons$Linf[8]*length_sc
+K <- parm.cons$K[8]
+t0 <- parm.cons$t0[8]
 
-# Compute R0 in units of catch (klb)
+# Scale BAM R0 to approximate age-0 recruits (most BAM models use age-1 for recruitment)
 Nage_F0 <- expDecay(age=age,Z=a.series$M,N0=1)
 bam_R0 <- parms$BH.R0
 bam_age_R <- min(rdat$a.series$age)
-N0_F0 <- bam_R0*(Nage_F0/Nage_F0[paste(bam_age_R)]) # Numbers at age zero with no fishing
+R_sc <- Nage_F0["0"]/Nage_F0[paste(bam_age_R)] # Scaling factor for recruitment
+bam_R0_sc <- bam_R0*R_sc # Scaled value of BAM R0 to approximate unfished numbers at age-0
 
 
-R0 <- ifelse(use_bam_R0, "yes"=N0_F0, "no" =R0)
+R0 <- ifelse(use_bam_R0, "yes"=bam_R0_sc, "no" =R0)
 
 # Set slot values
 slot(Stock,"Name") <- Name
@@ -120,11 +122,11 @@ slot(Stock,"M2") <- a.series$M*M_scLim[2] # upper bound of age-dependent M
 }
 slot(Stock,"Msd") <- Msd
 slot(Stock,"h") <- local({
-  a <- parm.cons$steep[1]*steep_scLim
+  a <- parm.cons$steep[8]*steep_scLim
   pmax(pmin(a,0.99),0.2) # Constrain to be between 0.2 and 0.99
 })
 slot(Stock,"SRrel") <- SRrel
-slot(Stock,"Perr") <- parm.cons$rec_sigma[1]*rec_sigma_scLim
+slot(Stock,"Perr") <- parm.cons$rec_sigma[8]*rec_sigma_scLim
 
 rec_AC <- local({
   logR.dev <- t.series$logR.dev
@@ -136,13 +138,38 @@ rec_AC <- local({
 })
 slot(Stock,"AC") <- round(rec_AC*rec_AC_scLim,3) # Upper and lower limits
 
-slot(Stock,"a") <- parms$wgt.a/length_sc^parms$wgt.b # Adjust a parameter for length units
-slot(Stock,"b") <- parms$wgt.b
+# Length-weight parameter a (wla)
+# Identify weight unit used in weight~length equation and scale parameter to compute weight in kg
+wla <- parms$wgt.a
+wlb <- parms$wgt.b
+
+if(is.null(wla_sc)){
+  wla_sc <- local({
+    if(wla>=1E-6&wla<=1E-4){
+      wla_sc <- 0.001
+      message(paste0("For ",Name," weight~length appears to be in grams. Scaling wla parameter by ",wla_sc))
+    }
+    if(wla>=1E-9&wla<=1E-7){wla_sc <- 1}      # Weight appears to already be in kilograms
+    if(wla>=1E-13&wla<=1E-11){
+      wla_sc <- 1000
+      message(paste0("For ",Name," weight~length appears to be in metric tonnes. Scaling wla parameter by ",wla_sc))
+    }
+    wla_sc
+  })
+}
+
+# Length-weight parameter b (wlb)
+if(wlb<=2|wlb>=4){
+  message(paste0("For ",Name," the wlb parameter is outside of the expected range (2-4)"))
+}
+
+slot(Stock,"a") <- (wla*wla_sc)/length_sc^wlb # Adjust a parameter for length units
+slot(Stock,"b") <- wlb
 
 slot(Stock,"Linf") <-  Linf*Linf_scLim
 slot(Stock,"K") <- K*K_scLim
 slot(Stock,"t0") <- t0*t0_scLim
-slot(Stock,"LenCV") <- parm.cons$len_cv_val[1]*len_cv_val_scLim
+slot(Stock,"LenCV") <- parm.cons$len_cv_val[8]*len_cv_val_scLim
 slot(Stock,"Ksd") <- Ksd
 slot(Stock,"Linfsd") <- Linfsd
 

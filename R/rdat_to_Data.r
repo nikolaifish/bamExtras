@@ -12,20 +12,27 @@
 #' @param CAL_abb Abbreviation for identifying the observed index for the catch-at-length (CAL) slot. Analogous to CAA_abb. Names of length compositions in the BAM rdat comp.mats list are expected to follow the naming convention "lcomp.abb.ob". Set to "all" or "none" to use all or none of the length comps, respectively.
 #' @param Ind_abb Abbreviation for identifying the observed index of abundance for the Ind slot. Names of indices in the BAM rdat t.series matrix are expected to follow the naming convention "U.abb.ob". Examples from SEDAR 53 Red Grouper: "CVT", "HB", "cH". If multiple (valid) abb values are provided, the corresponding indices will be averaged (geomean) and restandardized to a mean of 1. Abbreviations that don't match any indices will be ignored. Set to "all" or "none" to use all or none of the indices, respectively.
 #' @param Mat_age1_max Limit maximum value of proportion mature of first age class (usually age-0 or age-1). Models sometimes fail when maturity of first age class is too high (e.g. >0.5)
-#' @param length_sc  Scalar (multiplier) to convert length units including wla parameter. MSEtool examples seem to use cm whereas BAM uses mm.
-#' @param wla_sc Scalar (multiplier) to convert wla parameter to appropriate weight units. In null, the function will try to figure out if the weight unit of wla was g, kg, or mt based on the range of the exponent. The wla parameter will also be scaled by 1/length_sc^wlb.
+#' @param length_sc  Scalar (multiplier) to convert length units including wla parameter. For example if L in wla*L^wlb is in mm then length_sc should be 0.1 to convert to cm. (MSEtool examples tend to use cm whereas BAM uses mm.)
+#' @param wla_sc Scalar (multiplier) to convert wla parameter to kilograms (kg). Setting a value for wla_sc will override settings for wla_unit and wla_unit_mult. If null, the function will try to figure out if the weight unit of wla was g, kg, or mt based on the range of the exponent to convert to kg. The wla parameter will also be scaled by 1/length_sc^wlb.
+#' @param wla_unit Character. Basic unit that you want weight to be in, which is applied to the wla parameter. Accepted units are those used by measurements::conv_unit function (\code{\link[measurments]{conv_unit})}.
+#' @param wla_unit_mult Numeric. Multiplier to apply to wla_unit (e.g. 10, 100, 1000)
 #' @param catch_sc  Scalar (multiplier) for catch. BAM catch is usually in thousand pounds (klb). The default 1 maintains that scale.
 #' @param CV_vbK see \code{\link[MSEtool]{Data-class}}
 #' @param CV_vbLinf see \code{\link[MSEtool]{Data-class}}
 #' @param CV_vbt0 see \code{\link[MSEtool]{Data-class}}
 #' @param CV_Cat see \code{\link[MSEtool]{Data-class}}
-#' @param Units Units of catch. see \code{\link[MSEtool]{Data-class}}
+#' @details 
+#' 
 #' @keywords bam stock assessment fisheries DLMtool
 #' @author Nikolai Klibansky
 #' @export
 #' @examples
 #' \dontrun{
-#' # Write example here
+#' # Convert Black Sea Bass rdat to Data object
+#' Data_BlackSeaBass <- rdat_to_Data(rdat_BlackSeaBass)
+#' # Run statistical catch-at-age model
+#' SCA(1,Data_BlackSeaBass)
+#' 
 #' }
 
 rdat_to_Data <- function(
@@ -38,10 +45,11 @@ rdat_to_Data <- function(
   Ind_abb="all",
   CV_vbK=0.001, CV_vbLinf=0.001, CV_vbt0=0.001,
   CV_Cat=NULL,
-  Units="thousand pounds",
   Mat_age1_max = 0.49,
   length_sc=0.1,
   wla_sc=NULL,
+  wla_unit="lbs",
+  wla_unit_mult=1000,
   catch_sc=1
 ){
 
@@ -91,11 +99,17 @@ nyear <- length(year)
 catch <- catch.raw[cc.yrCat]
 recruits <- setNames(t.series$recruits,t.series$year)
 
-Linf <- parm.cons$Linf[1]
-K <- parm.cons$K[1]
-t0 <- parm.cons$t0[1]
+# Scale BAM recruits to approximate age-0 recruits (most BAM models use age-1 for recruitment)
+Nage_F0 <- expDecay(age=age,Z=a.series$M,N0=1)
+bam_age_R <- min(rdat$a.series$age)
+R_sc <- Nage_F0["0"]/Nage_F0[paste(bam_age_R)] # Scaling factor for recruitment
+recruits_sc <- recruits*R_sc # Scaled value of BAM R0 to approximate unfished numbers at age-0
 
-LenCV <- parm.cons$len_cv_val[1]
+Linf <- parm.cons$Linf[8]
+K <- parm.cons$K[8]
+t0 <- parm.cons$t0[8]
+
+LenCV <- parm.cons$len_cv_val[8]
 
 M.constant <- ifelse(!is.null(parms$M.constant),
                      parms$M.constant,
@@ -132,7 +146,7 @@ if(!is.null(Rec)){
     Rec <- local({
       year_nodev <- parm.tvec$year[is.na(parm.tvec$log.rec.dev)]
       recruits[paste(year_nodev)] <- NA
-      matrix(data=recruits,nrow=nsim,ncol=length(recruits),dimnames=list("sim"=1:nsim,"year"=year))
+      matrix(data=recruits_sc,nrow=nsim,ncol=length(recruits_sc),dimnames=list("sim"=1:nsim,"year"=year))
     })
   }
 }else{
@@ -208,7 +222,7 @@ L50 <- mat_at_len$L50
 L95 <- mat_at_len$L50+mat_at_len$L50_95
 
 # Estimate length at 5% and full (100%) vulnerability (total selectivity) and retention (landings selectivity)
-vuln_out <- vulnerability(Vdata = rdat$sel.age$sel.v.wgted.tot, retdata = rdat$sel.age$sel.v.wgted.L, Linf = parm.cons$Linf[1], K = parm.cons$K[1], t0 = parm.cons$t0[1], length_sc=length_sc)
+vuln_out <- vulnerability(Vdata = rdat$sel.age$sel.v.wgted.tot, retdata = rdat$sel.age$sel.v.wgted.L, Linf = parm.cons$Linf[8], K = parm.cons$K[8], t0 = parm.cons$t0[8], length_sc=length_sc)
 
 L5 <- vuln_out$L5
 LFS <- vuln_out$LFS
@@ -338,18 +352,20 @@ wla_sc <- local({
   wla_sc
 })
 }
+wla_kg <- wla*wla_sc
+wla_userunit <- conv_unit(wla_kg,from="kg",to=wla_unit)
 
 # Length-weight parameter b (wlb)
 if(wlb<=2|wlb>=4){
   message(paste0("For ",Name," the wlb parameter is outside of the expected range (2-4)"))
 }
 
-slot(Data,"wla") <- (wla*wla_sc)/length_sc^wlb # Adjust a parameter for length units
+slot(Data,"wla") <- wla_unit_mult*wla_userunit*1/length_sc^wlb # Adjust a parameter for length units
 slot(Data,"wlb") <- wlb
 
 
-slot(Data,"steep") <- parm.cons$steep[1]
-slot(Data,"sigmaR") <- parm.cons$rec_sigma[1]
+slot(Data,"steep") <- parm.cons$steep[8]
+slot(Data,"sigmaR") <- parm.cons$rec_sigma[8]
 
 slot(Data,"MaxAge") <- max(age)
 
@@ -361,7 +377,7 @@ slot(Data,"LHYear") <- LHYear
 
 slot(Data,"Cref") <- Cref
 
-slot(Data,"Units") <- Units
+# slot(Data,"Units") <- Units
 
 return(Data)
 }

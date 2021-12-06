@@ -4,7 +4,7 @@
 \alias{pmatage}
 \title{Calculate proportion mature population from rdat. Either proportion female-at-age (for gonochoristic) or proportion combined proportion male and female maturity at age (for protogynous)}
 \usage{
-pmatage(a.series, Mat_age1_max = 0.49, herm, age = NULL)
+pmatage(a.series, Mat_age1_max = 0.49, herm = "gonochoristic", age = NULL)
 }
 \arguments{
 \item{a.series}{life history-at-age data with naming conventions used in BAM rdat$a.series data frames. Expects column "age", "mat.female", prop.female and looks for columns "mat.male".}

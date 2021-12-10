@@ -1,3 +1,5 @@
+rm(list=ls())
+
 # install.packages("devtools")
 # install.packages("rlang")
 # install.packages("roxygen2")
@@ -12,7 +14,6 @@ library(rlang)
 library(roxygen2)
 library(stringr)
 # library(Rtools)
-
 
 # Set working director
 # wd <- getwd()

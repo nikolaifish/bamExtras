@@ -141,6 +141,55 @@
 "rdat_VermilionSnapper"
 
 
+#' Raw input data: South Atlantic Red Porgy (SEDAR 60)
+#'
+#' @format An object of class \code{"list"}
+#' \describe{
+#' \item{acomp.c.hal}{Age composition data for the commercial handline fleet}
+#' \item{acomp.hb}{Age composition data for the recreational headboat fleet}
+#' \item{acomp.mmCVT}{Age composition data for the SCDNR MARMAP Chevron Trap Survey}
+#' \item{acomp.mmFST}{Age composition data for the SCDNR MARMAP Florida Snapper Trap Survey}
+#' \item{acomp.mrip}{Age composition data for the recreational fleet, excluding headboat, developed by the Marine Recreational Information Program (MRIP)}
+#' \item{BAMDataParameterSection}{A table of values representing inputs to the parameter section of the BAM dat file. Note that these values may not have been directly used to modify the dat file.}
+#' \item{commercial.comp.sample.size}{A table of sample sizes (nfish = number of fish, nsamp = number of trips) associated with the commercial length composition data.}
+#' \item{DiscardMortality}{Discard mortality estimates and ranges.}
+#' \item{Discards}{Time series of discards and discard cvs by fleet.}
+#' \item{Indices}{Time series of abundance indices.}
+#' \item{Landings}{Time series of landings and landings cvs by fleet.}
+#' \item{lcomp.c.hal}{Length composition data for the commercial handline fleet}
+#' \item{lcomp.c.twl}{Length composition data for the commercial trawl fleet}
+#' \item{lcomp.hb}{Length composition data for the recreational headboat fleet}
+#' \item{lcomp.mmCVT}{Length composition data for the SCDNR MARMAP Chevron Trap Survey}
+#' \item{lcomp.mmFST}{Length composition data for the SCDNR MARMAP Florida Snapper Trap Survey}
+#' \item{lcomp.mrip}{Length composition data for the recreational fleet, excluding headboat, developed by the Marine Recreational Information Program (MRIP)}
+#' \item{LifeHistoryAtAge}{Life history data by age}
+#' \item{MaturityFemale}{Female maturity by age and year (NOTE: used in a sensitivity run but not the base run.)}
+#' \item{PointValues}{Other miscellaneous point values used in the assessment, such as estimates of constant natural mortality and meristics equation parameters.}
+#' }
+#' @source Data providers submitted data to NMFS Beaufort which was then compiled into spreadsheets.
+"inputData_RedPorgy"
+
+#' Raw input data: South Atlantic Tilefish (SEDAR 66)
+#'
+#' @format An object of class \code{"list"}
+#' \describe{
+#' \item{acomp.cH}{Age composition data for the commercial handline fleet}
+#' \item{acomp.cL}{Age composition data for the commercial longline fleet}
+#' \item{acomp.mm}{Age composition data for the SCDNR MARMAP longline Survey}
+#' \item{BAMDataBAMDataLikWeights}{A table of values representing inputs to the likelihood weights section of the BAM dat file. Note that these values may not have been directly used to modify the dat file.}
+#' \item{BAMDataParPoints}{A table of values representing inputs to point parameters (e.g. BH steepness) in the parameters section of the BAM dat file. Note that these values may not have been directly used to modify the dat file.}
+#' \item{BAMDataBAMDataParVectors}{A table of values representing inputs to dev vectors (e.g. set_log_rec_dev) in the BAM dat file. Note that these values may not have been directly used to modify the dat file.}
+#' \item{Indices}{Time series of abundance indices.}
+#' \item{Landings}{Time series of landings and landings cvs by fleet.}
+#' \item{lcomp.cH}{Length composition data for the commercial handline fleet}
+#' \item{lcomp.cL}{Length composition data for the commercial longline fleet}
+#' \item{lcomp.rA}{Length composition data for the recreational (All sources) fleet}
+#' \item{LifeHistoryAtAge}{Life history data by age}
+#' \item{LifeHistoryPointValues}{Other miscellaneous point values used in the assessment, such as estimates of constant natural mortality and meristics equation parameters.}
+#' }
+#' @source Data providers submitted data to NMFS Beaufort which was then compiled into spreadsheets.
+"inputData_Tilefish"
+
 #' A dataset containing miscellaneous information related to species assessed with the Beaufort Assessment Model
 #'
 #' @format An object of class \code{"data.frame"}

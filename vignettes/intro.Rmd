@@ -1,8 +1,8 @@
 ---
-title: "intro_to_bamExtras"
+title: "intro"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{intro_to_bamExtras}
+  %\VignetteIndexEntry{intro}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---

@@ -1,8 +1,8 @@
 ---
-title: "work_with_openMSE"
+title: "workWithopenMSE"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{work_with_openMSE}
+  %\VignetteIndexEntry{workWithopenMSE}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -23,7 +23,9 @@ knitr::opts_chunk$set(
 
 `bamExtras` is an R package to that contains functions and data to support
 stock assessments of fish stocks in the Southeast US Atlantic using the Beaufort
-Assessment Model (BAM)
+Assessment Model (BAM).
+
+A set of functions has been developed to use BAM assessment data and outputs to condition operating models that can be used with the [openMSE](https://openmse.com/) package .
 
 ## Example usage
 

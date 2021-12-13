@@ -1,0 +1,110 @@
+---
+title: "intro_to_bamExtras"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{intro_to_bamExtras}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 7,
+  warning = FALSE,
+  errors = FALSE,
+  messages = FALSE
+)
+```
+
+## Description
+
+`bamExtras` is an R package that contains functions and data to support
+stock assessments of fish stocks in the Southeast US Atlantic using the Beaufort
+Assessment Model (BAM)
+
+## Example usage
+
+### Load the package
+
+First, install and load the package. 
+
+```{r, echo=TRUE, message=FALSE}
+# Install and load package
+#devtools::install_github("nikolaifish/bamExtras")
+library(bamExtras)
+
+# Load dependencies
+library(stringr)
+```
+
+### Work with results of BAM assessments
+
+```{r, echo=TRUE, message=FALSE}
+# see all data objects in bamExtras
+# data(package="bamExtras")$result[,"Item"]
+
+# standardize naming conventions and assign shorter name
+rdat_BS <- standardize_rdat(rdat_BlackSeaBass)
+rdat_RP <- standardize_rdat(rdat_RedPorgy)
+```
+
+## Plot results from one assessment
+
+```{r}
+with(rdat_BS$t.series,
+     plot(year,B,type="o",col="black"))
+```
+
+## Plot results from multiple assessments
+
+```{r}
+ylim <- range(c(0,rdat_BS$t.series$B,rdat_RP$t.series$B))
+with(rdat_BS$t.series,
+     plot(year,B,type="o",col="black",ylim=ylim)
+     )
+with(rdat_RP$t.series,
+     points(year,B,type="o",col="red")
+     )
+```
+
+## Conduct a catch curve analysis
+
+```{r}
+# read in black ses bass age comps used in the recent stock assessment
+rdat <- rdat_BlackSeaBass
+comp <- rdat$comp.mats # List of composition matrices
+acomp <- comp[grepl("^acomp.*.ob$",names(comp))] # list of observed age composition matrices
+
+comp_i <- acomp$acomp.Mcvt.ob
+cc_i <- catch_curve(comp_i)
+
+# Plot comps and add catch curves (note the log-tranformation of the composition data)
+comp_plot(log(comp_i),cc=cc_i,fillComp = FALSE,ylab= "log(proportion)",xlab="age",title="black sea bass commercial handline catch curves")
+
+# Plot Z estimates over time for multiple sets of age compositions
+par(mfrow=c(1,1),mgp=c(1,.2,0),mar=c(2,2,1,1),oma=c(0,0,0,0),tck=0.01)
+M <- rdat$parms$M.msst
+cc <- lapply(acomp,catch_curve)
+abb <- gsub("^(acomp.)|(.ob)$","",names(cc)) # abbreviations of age composition fleets
+cols <- rainbow(length(cc))
+xlim <- range(unlist(lapply(cc,function(x){as.numeric(x$year)})),na.rm=TRUE)
+ylim <- range(c(0,unlist(lapply(cc,function(x){-as.numeric(x$slope)}))),na.rm=TRUE)
+for(i in 1:length(cc)){
+  xi <- cc[[i]]
+  year <- as.numeric(xi$year)
+  Z <- -xi$slope
+  if(i==1){
+    plot(year,Z,xlim=xlim,ylim=ylim,type="o",col=cols[i])
+  }else{
+    points(year,Z,type="o",col=cols[i])
+  }
+}
+# Add reference line for natural mortality
+abline(h=M,lty=2,lwd=2)
+text(par("usr")[1]+0.05*diff(par("usr")[1:2]),M,labels="M",pos=3)
+
+legend("bottomleft",legend=abb,col=cols,pch=1,lty=1,bty="n")
+```

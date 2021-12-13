@@ -1,8 +1,8 @@
 ---
-title: "Tutorial"
+title: "work_with_openMSE"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Tutorial}
+  %\VignetteIndexEntry{work_with_openMSE}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -12,6 +12,7 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   fig.width = 7,
+  fig.height = 7,
   warning = FALSE,
   errors = FALSE,
   messages = FALSE
@@ -28,7 +29,7 @@ Assessment Model (BAM)
 
 ### Load the package
 
-First, install and load the package. 
+First, install and load the `bamExtras` package. 
 
 ```{r, echo=TRUE, message=FALSE}
 # Install and load package
@@ -39,6 +40,13 @@ library(bamExtras)
 library(stringr)
 ```
 
+### Work with the `openMSE` package
+
+```{r, echo=TRUE, message=FALSE}
+#install.packages("openMSE")
+library(openMSE)
+```
+
 ### Work with results of BAM assessments
 
 ```{r, echo=TRUE, message=FALSE}
@@ -46,35 +54,9 @@ library(stringr)
 # data(package="bamExtras")$result[,"Item"]
 
 # standardize naming conventions and assign shorter name
-rdat_BS <- standardize_rdat(rdat_BlackSeaBass)
 rdat_RP <- standardize_rdat(rdat_RedPorgy)
 ```
 
-## Plot results from one assessment
-
-```{r}
-with(rdat_BS$t.series,
-     plot(year,B,type="o",col="black"))
-```
-
-## Plot results from multiple assessments
-
-```{r}
-ylim <- range(c(0,rdat_BS$t.series$B,rdat_RP$t.series$B))
-with(rdat_BS$t.series,
-     plot(year,B,type="o",col="black",ylim=ylim)
-     )
-with(rdat_RP$t.series,
-     points(year,B,type="o",col="red")
-     )
-```
-
-### Work with the `MSEtool` package
-
-```{r, echo=TRUE, message=FALSE}
-#install.packages("MSEtool")
-library(MSEtool)
-```
 
 ## Build Stock and Fleet objects
 
@@ -91,7 +73,7 @@ OM_RP <- new("OM", Stock=Stock_RP, Fleet=Fleet_RP, Obs=Precise_Unbiased, Imp=Per
 
 ## Run basic MSE
 
-```{r}
+```{r, results="hide"}
 MSE_RP <- runMSE(OM_RP)
 ```
 

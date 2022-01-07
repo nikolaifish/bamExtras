@@ -17,7 +17,7 @@ library(bamExtras)
 
 
 ## Vignettes available
-Examples of how this package can be used are provided in the vignettes (i.e. like tutorials but with a fancier name).
+Examples of how this package can be used are provided in the vignettes (i.e. long-form guides).
 
 The `intro` vignette is intended to introduce the basics of the package.
 ```R

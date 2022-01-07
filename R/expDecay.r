@@ -4,35 +4,35 @@
 #' @param age ages
 #' @param Z instantaneous mortality rate
 #' @param N0 number of individuals at age zero at the beginning of the year
-#' @param plus.group Should the function include a plus group? logical
+#' @param plus_group Should the function include a plus group? logical
 #' @keywords bam stock assessment fisheries population dynamics
 #' @author Nikolai Klibansky
 #' @export
 #' @examples
 #' \dontrun{
 #' expDecay(age=1:10,Z=0.2,N0=100)
-#' expDecay(age=1:10,Z=0.2,N0=100,plus.group = TRUE)
-#' expDecay(age=c(2,5,10),Z=0.2,N0=100,plus.group = TRUE)
+#' expDecay(age=1:10,Z=0.2,N0=100,plus_group = TRUE)
+#' expDecay(age=c(2,5,10),Z=0.2,N0=100,plus_group = TRUE)
 #' }
-expDecay <- function(age,Z,N0=1,plus.group=FALSE){
+expDecay <- function(age,Z,N0=1,plus_group=FALSE){
   ac <- 1:(max(age)+1) # Vector of all age classes
   ages <- ac-1
-  ac.n <- length(ac)
-  N.a <-  setNames(rep(0,ac.n),ages)    # Numbers at age
+  ac_n <- length(ac)
+  N_a <-  setNames(rep(0,ac_n),ages)    # Numbers at age
   if(length(Z)==1){
-    Z <- rep(Z,ac.n)
+    Z <- rep(Z,ac_n)
   }
-  a.steps <-  ac.n/(max(ac)-min(ac)+1) # Number of age steps per age class
+  a_steps <-  ac_n/(max(ac)-min(ac)+1) # Number of age steps per age class
   # Numbers at age (based on Gabriel et al. 1989)
   for (a in ac){
-    N.a[a] <- local({
+    N_a[a] <- local({
       if(a==1)   {return(N0)}
       if(a>1)    {
-        if(plus.group&a==ac.n){return(N.a[ac.n-1]*exp(-Z[ac.n-1]/a.steps)/   # Plus group
-                                        (1-exp(-Z[ac.n-1]/a.steps)))
-        }else{return(N.a[a-1]* exp(-Z[a-1]/a.steps))}
+        if(plus_group&a==ac_n){return(N_a[ac_n-1]*exp(-Z[ac_n-1]/a_steps)/   # Plus group
+                                        (1-exp(-Z[ac_n-1]/a_steps)))
+        }else{return(N_a[a-1]* exp(-Z[a-1]/a_steps))}
       }
     })
   }
-  return(N.a[paste(age)])
+  return(N_a[paste(age)])
 }

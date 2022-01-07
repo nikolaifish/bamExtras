@@ -4,7 +4,7 @@
 \alias{expDecay}
 \title{Exponential decay}
 \usage{
-expDecay(age, Z, N0 = 1, plus.group = FALSE)
+expDecay(age, Z, N0 = 1, plus_group = FALSE)
 }
 \arguments{
 \item{age}{ages}
@@ -13,7 +13,7 @@ expDecay(age, Z, N0 = 1, plus.group = FALSE)
 
 \item{N0}{number of individuals at age zero at the beginning of the year}
 
-\item{plus.group}{Should the function include a plus group? logical}
+\item{plus_group}{Should the function include a plus group? logical}
 }
 \description{
 Compute numbers of individuals alive at time in a population experiencing exponential decay, allowing age-varying Z. Can be used to compute numbers at age at the beginning of the year.
@@ -21,8 +21,8 @@ Compute numbers of individuals alive at time in a population experiencing expone
 \examples{
 \dontrun{
 expDecay(age=1:10,Z=0.2,N0=100)
-expDecay(age=1:10,Z=0.2,N0=100,plus.group = TRUE)
-expDecay(age=c(2,5,10),Z=0.2,N0=100,plus.group = TRUE)
+expDecay(age=1:10,Z=0.2,N0=100,plus_group = TRUE)
+expDecay(age=c(2,5,10),Z=0.2,N0=100,plus_group = TRUE)
 }
 }
 \author{

@@ -11,6 +11,7 @@ rm(list=ls())
 library(devtools)
 library(pkgdown)
 library(rlang)
+
 library(roxygen2)
 library(stringr)
 # library(Rtools)
@@ -19,7 +20,7 @@ library(stringr)
 # Set working director
 # wd <- getwd()
 
-# Create package
+# Create package3
 #create("bamExtras") # I think you only need to do this once
 
 # Create vignette (only run to create vignette)
@@ -31,4 +32,4 @@ library(stringr)
 
 # Install package
 devtools::document(file.path(dirname(getwd()),"bamExtras")) # Important for updating package
-devtools::install(file.path(dirname(getwd()),"bamExtras"),build_vignettes = TRUE)
+devtools::install(file.path(dirname(getwd()),"bamExtras"),build_vignettes = FALSE)

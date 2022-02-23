@@ -15,10 +15,14 @@ LazyData: true
 BuildVignettes: true
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.1.2
-Suggests:
-    knitr,	
+Depends: 
     magrittr,
-    measurements,	
-    rmarkdown,	
+    R (>= 3.4.1)
+Imports:
+    abind,
+    measurements,
     stringr
+Suggests:
+  knitr,
+  rmarkdown
 VignetteBuilder: knitr

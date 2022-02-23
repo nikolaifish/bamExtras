@@ -37,12 +37,15 @@ M_Lorenzen(
 
 \item{aMin}{minimum age to include in computation of scaling factor when scaling M}
 
-\item{par_a}{a parameter for Lorenzen equation par_a*W^par_b. Defaults to value from manuscript par_a=3.69.}
+\item{par_a}{a parameter for Lorenzen equation par_a*W^par_b. Defaults to value from Lorenzen et al. (1996; Table 1, ocean system) par_a=3.69.}
 
-\item{par_b}{b parameter for Lorenzen equation par_a*W^par_b. Defaults to value from manuscript par_b=-0.305.}
+\item{par_b}{b parameter for Lorenzen equation par_a*W^par_b. Defaults to value from Lorenzen et al. (1996; Table 1, ocean system) par_b=-0.305.}
 }
 \description{
 Compute age-varying natural mortality (M) based on Charnov et al (2013) and scale based on constant M
+}
+\note{
+Input parameters for von Bertalanffy growth equation and weight~length equation should have units that result in weight in grams (g), which is what the Lorenzen equation is based on.
 }
 \examples{
 \dontrun{

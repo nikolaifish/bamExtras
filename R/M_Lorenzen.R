@@ -9,8 +9,9 @@
 #' @param aP proportion of age (value between 0 and 1) at which to compute length (e.g. aP=0.5 to compute length at midyear)
 #' @param M_constant constant M value used to scale age-varying M. Defaults to NULL. M will be scaled if a numeric value of M_constant is supplied.
 #' @param aMin minimum age to include in computation of scaling factor when scaling M
-#' @param par_a a parameter for Lorenzen equation par_a*W^par_b. Defaults to value from manuscript par_a=3.69.
-#' @param par_b b parameter for Lorenzen equation par_a*W^par_b. Defaults to value from manuscript par_b=-0.305.
+#' @param par_a a parameter for Lorenzen equation par_a*W^par_b. Defaults to value from Lorenzen et al. (1996; Table 1, ocean system) par_a=3.69.
+#' @param par_b b parameter for Lorenzen equation par_a*W^par_b. Defaults to value from Lorenzen et al. (1996; Table 1, ocean system) par_b=-0.305.
+#' @note Input parameters for von Bertalanffy growth equation and weight~length equation should have units that result in weight in grams (g), which is what the Lorenzen equation is based on.
 #' @keywords bam stock assessment fisheries
 #' @author Nikolai Klibansky
 #' @references Lorenzen, K. 1996. The relationship between body weight and natural mortality in juvenile and adult fish: a comparison of natural ecosystems and aquaculture. Journal of Fish Biology 49:627-642.
@@ -29,7 +30,7 @@ M_Lorenzen <- function(a,
   W <- par_wl_a*L^par_wl_b
   M_Lz <- par_a*W^par_b
   if(is.null(M_constant)){
-    M.out <- M_Lz   # unscaled Lorenzen estimates
+    M_out <- M_Lz   # unscaled Lorenzen estimates
   }else{
     M_Lzsum <- sum(M_Lz[which(a>=aMin)])
     na_Sc <- length(which(a>=aMin))

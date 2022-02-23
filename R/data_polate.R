@@ -34,7 +34,7 @@ data_polate <- function(data,xname=NULL,ynames=NULL,xout=NULL){
   xout <- as.matrix(xout)
   colnames(xout) <- colnames(x)
 
-  yout <- apply(data[,c(ynames)],2,function(y){Hmisc::approxExtrap(x=x,y=y,xout=xout)$y})
+  yout <- apply(data[,c(ynames),drop=FALSE],2,function(y){Hmisc::approxExtrap(x=x,y=y,xout=xout)$y})
   out <- cbind(xout,yout)
 
   return(out)

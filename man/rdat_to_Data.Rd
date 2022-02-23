@@ -25,7 +25,9 @@ rdat_to_Data(
   wla_sc = NULL,
   wla_unit = "lbs",
   wla_unit_mult = 1000,
-  catch_sc = 1
+  catch_sc = 1,
+  combine_indices = FALSE,
+  fleet_sel_abb_key = data.frame(U = "CVID", sel = "Mcvt")
 )
 }
 \arguments{
@@ -65,11 +67,13 @@ rdat_to_Data(
 
 \item{wla_sc}{Scalar (multiplier) to convert wla parameter to kilograms (kg). Setting a value for wla_sc will override settings for wla_unit and wla_unit_mult. If null, the function will try to figure out if the weight unit of wla was g, kg, or mt based on the range of the exponent to convert to kg. The wla parameter will also be scaled by 1/length_sc^wlb.}
 
-\item{wla_unit}{Character. Basic unit that you want weight to be in, which is applied to the wla parameter. Accepted units are those used by measurements::conv_unit function (\code{\link[measurments]{conv_unit})}.}
+\item{wla_unit}{Character. Basic unit that you want weight to be in, which is applied to the wla parameter. Accepted units are those used by measurements::conv_unit function (\code{\link[measurements]{conv_unit})}.}
 
 \item{wla_unit_mult}{Numeric. Multiplier to apply to wla_unit (e.g. 10, 100, 1000)}
 
 \item{catch_sc}{Scalar (multiplier) for catch. BAM catch is usually in thousand pounds (klb). The default 1 maintains that scale.}
+
+\item{combine_indices}{Indicate whether indices should be combined or remain separate. logical.}
 }
 \description{
 Build DLMtool Data object from bam rdat object

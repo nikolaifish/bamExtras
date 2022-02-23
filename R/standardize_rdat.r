@@ -1,6 +1,14 @@
 #' Change non-standard names of rdat objects to standard naming conventions. Compute standard objects.
 #'
 #' @param rdat rdat (list) object read in with dget()
+#' @param separator.key named vector indicating what separator(s) should be used in the rdat. By default, any "_" will be replaced with "." in names of rdat elements
+#' @param separator.key.x names of elements in the rdat list to apply the fleet.key to.
+#' @param fleet.replace Should fleet.key be applied to fleet.key.x to replace fleet.abbreviations in the rdat?
+#' @param fleet.key list where values are patterns (character vector) to find in rdat list elements specified with fleet.key.x and the names are the replacements. Patterns are searched with regex to find these values at the beginning or end of character strings, followed or preceded by ".", or in the middle of a string preceded and followed by ".".
+#' @param fleet.key.x names of elements in the rdat list to apply the fleet.key to.
+#' @param parms.key named vector where values are patterns (character strings) to find in names(rdat$parms) and the names in parms.key are replacements
+#' @param a.series.key named vector where values are patterns (character strings) to find in names(a.series$parms) and the names in a.series.key are replacements
+#' @param t.series.key named vector where values are patterns (character strings) to find in names(t.series$parms) and the names in t.series.key are replacements
 #' @keywords bam stock assessment fisheries
 #' @author Nikolai Klibansky
 #' @export
@@ -12,6 +20,28 @@
 #' }
 
 standardize_rdat <- function(rdat,
+                             separator.key = c("."="_"),
+                             separator.key.x = names(rdat),
+                             fleet.replace = TRUE,
+                             fleet.key=list("sCT"=c("CVT"),              # Chevron trap (could possibly include video)
+                                            "sTV"=c("CVID","Mcvt","sCT"),# Combined chevron trap/video data (sCT in Red Porgy; Mcvt used in Black Seabass bass for the combined index but also for the comps which are really only from the trap)
+                                            "sVD"=c("VID"),              # Video data (from chevron trap survey)
+                                            "sBT"=c("Mbft"),             # MARMAP blackfish trap (see Black Seabass)
+                                            "sBL"=c("sM"),               # MARMAP bottom longline survey (see Tilefish)
+                                            "sVL"=c("vll"),              # MARMAP vertical longline survey (see Snowy Grouper)
+                                            "sFT"=c("FST"),              # MARMAP Florida Snapper Trap (see Vermilion Snapper)
+                                            "cDV"=c("cD"),               # Commercial diving (see Gag)
+                                            "cHL"=c("cH","cHl"),         # Commercial handlines (a.k.a. commercial lines)
+                                            "cLL"=c("cL"),               # Commercial longlines (see Blueline Tilefish)
+                                            "cOT"=c("cO"),               # Commercial other (see Red Grouper)
+                                            "cPT"=c("cp","cP"),          # Commercial pots (see Black Seabass)
+                                            "cTW"=c("cT","cTw", "cHTR"), # Commercial trawl (see Black Seabass, Red Porgy, Vermilion Snapper)
+                                            "cGN"=c("comm"),             # Commercial all. general commercial (see Black Seabass "D.comm.ob")
+                                            "rHB"=c("HB","hb","rHb"),    # Recreational headboat
+                                            "rHB.D"=c("hbd","HBD"),      # Recreational headboat discards (atypical abbreviation found in Black Sea Bass selectivity parameters)
+                                            "rGN"=c("GR","mrip","rGe","rA")  # Recreational all (a.k.a. general recreational (i.e. not headboat)
+                             ),
+                           fleet.key.x=c("parms","parm.cons","t.series","comp.mats","sel.age","sel.parms"),
                            parms.key=c("R0"="BH.R0",
                                        "M.msst"="M.constant",
                                        "M.MSST"="M.constant"
@@ -21,23 +51,48 @@ standardize_rdat <- function(rdat,
                                           "prop.female.endyr"="prop.female"
                                           ),
                            t.series.key=c("total.L.wgt.klb"="total.L.klb")
-
-                           # This works but it's a little sketchy because you could accidentally replace
-                           # text by accident that would mess up the rdat. It's probably fine, but
-                           # I'm not sure it's a good idea yet.
-                           # ,rdat.key=list("CVT"=c("sCT","Mcvt"),
-                           #               "VID"=c("CVID")
-                           #               )
                            ){
   # # rdat
   # rdat.char <- deparse(rdat) # Convert rdat list into character vector preserving list structure
-  # for(i in 1:length(rdat.key)){
-  #   replacement <- names(rdat.key)[i]
-  #   pattern <- paste(rdat.key[[i]],collapse="|")
+  # for(i in 1:length(fleet.key)){
+  #   replacement <- names(fleet.key)[i]
+  #   pattern <- paste(fleet.key[[i]],collapse="|")
   #   rdat.char <- gsub(pattern=pattern,replacement = replacement,x=rdat.char)
   # }
   # rdat <- eval(parse(text=rdat.char))
 
+  # Replace "_" with "." in all rdat element names
+
+  for(i in names(rdat)){
+    oi <- rdat[[i]]
+    nam <- names(oi)
+    if(!is.null(nam)){
+      nam <- gsub("_",".",nam)
+      names(oi) <- nam
+      rdat[[i]] <- oi
+    }
+  }
+
+  if(fleet.replace){
+    # apply general fleet key
+    for(i in names(fleet.key)){
+      pattern_beg_i <- paste0("^(",paste(fleet.key[[i]],collapse="|"),")\\.")
+      pattern_mid_i <- paste0("\\.(",paste(fleet.key[[i]],collapse="|"),")\\.")
+      pattern_end_i <- paste0("\\.(",paste(fleet.key[[i]],collapse="|"),")([0-9]*)$")
+
+      for(j in fleet.key.x){
+        if(j%in%names(rdat)){
+          oj <- rdat[[j]]
+          nam <- names(oj)
+          nam <- gsub(pattern_beg_i,paste0(i,"."),nam)
+          nam <- gsub(pattern_mid_i,paste0(".",i,"."),nam)
+          nam <- gsub(pattern_end_i,paste0(".",i,"\\2"),nam)
+          names(oj) <- nam
+          rdat[[j]] <- oj
+        }
+      }
+    }
+  }
 
   # info
   info <- rdat$info

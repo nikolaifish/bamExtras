@@ -14,15 +14,16 @@
 #' @param Mat_age1_max Limit maximum value of proportion mature of first age class (usually age-0 or age-1). Models sometimes fail when maturity of first age class is too high (e.g. >0.5)
 #' @param length_sc  Scalar (multiplier) to convert length units including wla parameter. For example if L in wla*L^wlb is in mm then length_sc should be 0.1 to convert to cm. (MSEtool examples tend to use cm whereas BAM uses mm.)
 #' @param wla_sc Scalar (multiplier) to convert wla parameter to kilograms (kg). Setting a value for wla_sc will override settings for wla_unit and wla_unit_mult. If null, the function will try to figure out if the weight unit of wla was g, kg, or mt based on the range of the exponent to convert to kg. The wla parameter will also be scaled by 1/length_sc^wlb.
-#' @param wla_unit Character. Basic unit that you want weight to be in, which is applied to the wla parameter. Accepted units are those used by measurements::conv_unit function (\code{\link[measurments]{conv_unit})}.
+#' @param wla_unit Character. Basic unit that you want weight to be in, which is applied to the wla parameter. Accepted units are those used by measurements::conv_unit function (\code{\link[measurements]{conv_unit})}.
 #' @param wla_unit_mult Numeric. Multiplier to apply to wla_unit (e.g. 10, 100, 1000)
 #' @param catch_sc  Scalar (multiplier) for catch. BAM catch is usually in thousand pounds (klb). The default 1 maintains that scale.
 #' @param CV_vbK see \code{\link[MSEtool]{Data-class}}
 #' @param CV_vbLinf see \code{\link[MSEtool]{Data-class}}
 #' @param CV_vbt0 see \code{\link[MSEtool]{Data-class}}
 #' @param CV_Cat see \code{\link[MSEtool]{Data-class}}
-#' @details 
-#' 
+#' @param combine_indices Indicate whether indices should be combined or remain separate. logical.
+#' @details
+#'
 #' @keywords bam stock assessment fisheries DLMtool
 #' @author Nikolai Klibansky
 #' @export
@@ -32,7 +33,7 @@
 #' Data_BlackSeaBass <- rdat_to_Data(rdat_BlackSeaBass)
 #' # Run statistical catch-at-age model
 #' SCA(1,Data_BlackSeaBass)
-#' 
+#'
 #' }
 
 rdat_to_Data <- function(
@@ -50,7 +51,9 @@ rdat_to_Data <- function(
   wla_sc=NULL,
   wla_unit="lbs",
   wla_unit_mult=1000,
-  catch_sc=1
+  catch_sc=1,
+  combine_indices=FALSE,
+  fleet_sel_abb_key=data.frame("U"="CVID","sel"="Mcvt")
 ){
 
   rdat <- standardize_rdat(rdat)
@@ -62,14 +65,17 @@ rdat_to_Data <- function(
   a.series <- rdat$a.series
   t.series <- rdat$t.series
   comp.mats <- rdat$comp.mats
+  sel.age <- rdat$sel.age
+  B.age <- rdat$B.age
+
   styr <- parms$styr
   endyr <- parms$endyr
 
-  Name <- gsub(" ","",str_to_title(info$species))
+  Name <- gsub(" ","",stringr::str_to_title(info$species))
 
   # MSEtool expects age-based data to begin with age 0
   if(min(a.series$age)>0){
-    warning(paste(Name,": Minimum age > 0. Age-based data extrapolated to age-0"))
+    warning(paste(Name,": Minimum age > 0. Age-based data (a.series) linearly extrapolated to age-0"))
     a.series <- data_polate(a.series,xout=0:max(a.series$age))
     a.series <- data_lim(a.series,xlim=c(0,Inf))
     a.series <- data_lim(a.series,xname=c("prop.female","prop.male","mat.female","mat.male"),xlim=c(0,1))
@@ -80,7 +86,31 @@ rdat_to_Data <- function(
 
   t.series <- t.series[paste(styr:endyr),]
 
-Common_Name <- str_replace_all(Name,"(?<=[a-z])(?=[A-Z])"," ")
+  for(i in names(sel.age)){
+    sel.i <- sel.age[[i]]
+    if(grepl("^sel.v",i)){
+    if(min(as.numeric(names(sel.i)))>0){
+      warning(paste0(Name,": Minimum age of ",i," > 0. ", i, " linearly extrapolated to age-0"))
+        sel.i <- cbind("age"=as.numeric(names(sel.i)),"sel"=sel.i)
+        sel.i <- data_polate(sel.i,xout=0:max(sel.i[,"age"]))
+        sel.i <- data_lim(sel.i,xname="sel",xlim=c(0,1))
+        # sel.i <- as.data.frame(sel.i)
+        sel.age[[i]] <- setNames(sel.i[,"sel"],sel.i[,"age"])
+      }
+    }
+    if(grepl("^sel.m",i)){
+      if(min(as.numeric(colnames(sel.i)))>0){
+        warning(paste0(Name,": Minimum age of ",i," > 0. ", i, " linearly extrapolated to age-0"))
+        sel.i <- cbind("age"=as.numeric(colnames(sel.i)),t(sel.i))
+        sel.i <- data_polate(sel.i,xout=0:max(sel.i[,"age"]))
+        sel.i <- data_lim(sel.i,xname=colnames(sel.i)[colnames(sel.i)!="age"],xlim=c(0,1))
+        # sel.i <- as.data.frame(sel.i)
+        sel.age[[i]] <- t(sel.i[,colnames(sel.i)!="age"])
+      }
+    }
+  }
+
+Common_Name <-stringr::str_replace_all(Name,"(?<=[a-z])(?=[A-Z])"," ")
 if(is.null(genus_species)){genus_species <- bamStockMisc[Name,"Species"]}
 if(is.null(herm)){herm <- bamStockMisc[Name,"herm"]}
 
@@ -109,7 +139,7 @@ Linf <- parm.cons$Linf[8]
 K <- parm.cons$K[8]
 t0 <- parm.cons$t0[8]
 
-LenCV <- parm.cons$len_cv_val[8]
+LenCV <- parm.cons$len.cv.val[8]
 
 M.constant <- ifelse(!is.null(parms$M.constant),
                      parms$M.constant,
@@ -133,7 +163,20 @@ SSBcurrent <- t.series[paste(endyr),"SSB"]
 SSB0 <- parms$SSB0
 
 #An estimate of absolute current vulnerable abundance, converted to klb (needs to be in same units as catch)
-Abun <- sum(rdat$B.age[paste(endyr),]*B.to.klb*rdat$sel.age$sel.v.wgted.tot)*catch_sc
+if(min(as.numeric(colnames(B.age)))>0){
+  warning(paste0(Name,": Minimum age of B.age > 0. B.age linearly extrapolated to age-0"))
+
+  tB.age <- t(B.age)
+  tB.age <- cbind("age"=as.numeric(rownames(tB.age)),tB.age)
+  tB.age <- data_polate(tB.age,xout=age)
+  tB.age <- tB.age[,colnames(tB.age)!="age"]
+  tB.age <- data_lim(tB.age,xlim=c(0,Inf))
+  rownames(tB.age) <- age
+  B.age <- t(tB.age)
+}
+
+
+Abun <- sum(B.age[paste(endyr),]*B.to.klb*sel.age$sel.v.wgted.tot)*catch_sc
 
 FMSY_M <- Fref/M.constant
 BMSY_B0 <- Bref/B0
@@ -184,6 +227,23 @@ IndCalc <- local({
   D_Ind <- D[,Ind_names,drop=FALSE]
   D_CV_Ind <- D[,CV_Ind_names,drop=FALSE]
 
+  names(D_Ind) <- gsub("^U.|.ob$","",names(D_Ind))
+  names(D_Ind) <- gsub("^cv.U.","",names(D_CV_Ind))
+
+  A_Ind <- local({
+    a <- abind::abind(replicate(n=nsim,D_Ind,simplify = FALSE),along=3)
+    aperm(a,perm=c(3,2,1))
+  })
+
+  dimnames(A_Ind)[[1]] <- 1:nsim
+
+  A_CV_Ind <- local({
+    a <- abind::abind(replicate(n=nsim,D_CV_Ind,simplify = FALSE),along=3)
+    aperm(a,perm=c(3,2,1))
+  })
+
+  dimnames(A_CV_Ind)[[1]] <- 1:nsim
+
   Ind <- apply(D_Ind,1, geomean) # Calculate geometric mean of all indices
   Ind <- Ind/mean(Ind, na.rm=TRUE) # Restandardize to mean of 1
   Ind <- matrix(data=Ind,nrow=1,ncol=length(Ind))
@@ -193,11 +253,74 @@ IndCalc <- local({
   CV_Ind <- matrix(data=CV_Ind,nrow=1,ncol=length(CV_Ind))
   CV_Ind[is.nan(CV_Ind)] <- NA
 
-  return(list("Ind"=Ind,"CV_Ind"=CV_Ind))
+  return(list("A_Ind"=A_Ind,"A_CV_Ind"=A_CV_Ind,"Ind_Combined"=Ind,"CV_Ind_Combined"=CV_Ind))
 })
 
-slot(Data,"Ind") <- IndCalc$Ind
-slot(Data,"CV_Ind") <- IndCalc$CV_Ind
+if(combine_indices){
+  slot(Data,"Ind") <- IndCalc$Ind_Combined
+  slot(Data,"CV_Ind") <- IndCalc$CV_Ind_Combined
+}else{
+  slot(Data,"AddInd") <- IndCalc$A_Ind
+  slot(Data,"CV_AddInd") <- IndCalc$A_CV_Ind
+}
+
+}
+
+## Identify selectivities associated with indices, landings, and discards
+# Combined selectivities
+sel_tot <- sel.age$sel.v.wgted.tot
+sel_L <- sel.age$sel.v.wgted.L
+sel_D <- sel.age$sel.v.wgted.D
+
+if(!combine_indices){
+# Fleet-specific selectivities
+selNames <- names(sel.age)[!grepl("sel.v.wgted",names(sel.age))]
+selNames_D <- selNames[grepl("[A-Za-z]+(\\.D)$",selNames)]  # Selectivities of discards
+selNames_LU <- selNames[!grepl("[A-Za-z]+(\\.D)$",selNames)] # Selectivities of landings and/or indices
+
+# Define matrix of selectivity-at-age in the final year available (should be endyr)
+M_sel <- matrix(NA,nrow=length(age),ncol=length(selNames),dimnames=list(age,selNames))
+for(i in selNames){
+  sel_i <- setNames(rep(0,length(age)),age) # Initialize with zeros
+  if(grepl("^sel.v",i)){ # For vectors
+    sel_i[names(sel.age[[i]])] <- sel.age[[i]][names(sel.age[[i]])]
+  }
+  if(grepl("^sel.m",i)){ # For matrices (get most recent selectivity-at-age)
+    sel_i[colnames(sel.age[[i]])] <- sel.age[[i]][dim(sel.age[[i]])[1],colnames(sel.age[[i]])]
+  }
+  M_sel[,i] <- sel_i
+}
+
+# Match indices to selectivities by abbreviation
+AddInd_abb <- dimnames(IndCalc$A_Ind)[[2]]
+sel_fleet_abb <- unlist(stringr::str_extract_all(colnames(M_sel),"[A-Za-z]+$"))
+M_sel_abb <- gsub("^sel.[mv].","",colnames(M_sel)) # Fleet abbreviations used in M_sel colnames
+
+AddIndV <- matrix(NA,nrow=length(age),ncol=length(AddInd_abb),dimnames=list(paste(age),AddInd_abb))
+for(abb_i in AddInd_abb){
+  if(abb_i%in%M_sel_abb){
+    AddIndV[,abb_i] <- M_sel[,match(abb_i,M_sel_abb)]
+  }else{
+    ma1_i <- match(abb_i,fleet_sel_abb_key$U)
+    ma2_i <- match(fleet_sel_abb_key[ma1_i,"sel"],M_sel_abb)
+    # Try to match abb_i in fleet_sel_abb_key and then match the selectivity abbreviation among the available selectivities
+    if(!is.na(ma1_i)&!is.na(ma2_i)){
+      AddIndV[,abb_i] <- M_sel[,ma2_i]
+    }else{
+      AddIndV[,abb_i] <- sel_tot
+      warning(paste0("The ",abb_i, " index does not match any of the abbreviations in the available selectivities (", paste(M_sel_abb,collapse=", "),
+                     "). Total selectivity will be used. If this is undesirable, please indicate the abbreviation for the selectivity you want to use for the ",
+                     abb_i ," index with fleet_sel_abb_key.")
+      )
+    }
+
+  }
+}
+
+# Convert AddIndV to array of correct dimensions
+AddIndV <- aperm(replicate(nsim,AddIndV),c(3,2,1))
+
+slot(Data,"AddIndV") <- AddIndV
 }
 
 Dt <- t.series[paste(tail(year,1)),"SSB"]/t.series[paste(year[1]),"SSB"]
@@ -222,7 +345,7 @@ L50 <- mat_at_len$L50
 L95 <- mat_at_len$L50+mat_at_len$L50_95
 
 # Estimate length at 5% and full (100%) vulnerability (total selectivity) and retention (landings selectivity)
-vuln_out <- vulnerability(Vdata = rdat$sel.age$sel.v.wgted.tot, retdata = rdat$sel.age$sel.v.wgted.L, Linf = parm.cons$Linf[8], K = parm.cons$K[8], t0 = parm.cons$t0[8], length_sc=length_sc)
+vuln_out <- vulnerability(Vdata = sel_tot, retdata = sel_L, Linf = parm.cons$Linf[8], K = parm.cons$K[8], t0 = parm.cons$t0[8], length_sc=length_sc)
 
 L5 <- vuln_out$L5
 LFS <- vuln_out$LFS
@@ -251,12 +374,13 @@ acomp_mats_nfish <- comp_complete(acomp_mats,acomp_data_n,output_type = "nfish",
 
 acomp_nfish <- comp_combine(acomp_mats_nfish,scale_rows = FALSE)
 # Convert CAA to array to appease DLMtool
-CAA <- array(data=acomp_nfish, dim=c(nsim,nrow(acomp_nfish),ncol(acomp_nfish)),
-             dimnames = list("sim"=nsim,"year"=rownames(acomp_nfish),"age"=colnames(acomp_nfish)))
+
+CAA <- aperm(replicate(nsim,acomp_nfish),c(3,1,2))
+# CAA <- array(data=acomp_nfish, dim=c(nsim,nrow(acomp_nfish),ncol(acomp_nfish)),
+#              dimnames = list("sim"=1:nsim,"year"=rownames(acomp_nfish),"age"=colnames(acomp_nfish)))
 slot(Data,"CAA") <- CAA
 }
 }
-
 
 ## Length comps
 if(!CAL_abb=="none"){
@@ -289,8 +413,11 @@ ML <- setNames(ML_LFS_out$mlen,ML_LFS_out$year)
 #slot(Data,"ML") <-  matrix(ML,nrow=nsim,ncol=nyear,byrow=TRUE,dimnames=list("sim"=1:nsim,"year"=year))
 
 # Convert CAL to array to appease DLMtool
-CAL <- array(data=lcomp_nfish, dim=c(nsim,nrow(lcomp_nfish),ncol(lcomp_nfish)),
-             dimnames = list("sim"=nsim,"year"=rownames(lcomp_nfish),"len"=colnames(lcomp_nfish)))
+# CAL <- array(data=lcomp_nfish, dim=c(nsim,nrow(lcomp_nfish),ncol(lcomp_nfish)),
+#              dimnames = list("sim"=1:nsim,"year"=rownames(lcomp_nfish),"len"=colnames(lcomp_nfish)))
+CAL <- aperm(replicate(nsim,lcomp_nfish),c(3,1,2))
+# CAL <- array(data=lcomp_nfish, dim=c(nsim,nrow(lcomp_nfish),ncol(lcomp_nfish)),
+#              dimnames = list("sim"=1:nsim,"year"=rownames(lcomp_nfish),"length"=colnames(lcomp_nfish)))
 
 CAL_bins <- as.numeric(dimnames(CAL)$len)
 
@@ -353,7 +480,7 @@ wla_sc <- local({
 })
 }
 wla_kg <- wla*wla_sc
-wla_userunit <- conv_unit(wla_kg,from="kg",to=wla_unit)
+wla_userunit <- measurements::conv_unit(wla_kg,from="kg",to=wla_unit)
 
 # Length-weight parameter b (wlb)
 if(wlb<=2|wlb>=4){
@@ -365,7 +492,7 @@ slot(Data,"wlb") <- wlb
 
 
 slot(Data,"steep") <- parm.cons$steep[8]
-slot(Data,"sigmaR") <- parm.cons$rec_sigma[8]
+slot(Data,"sigmaR") <- parm.cons$rec.sigma[8]
 
 slot(Data,"MaxAge") <- max(age)
 

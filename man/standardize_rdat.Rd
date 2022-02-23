@@ -6,6 +6,16 @@
 \usage{
 standardize_rdat(
   rdat,
+  separator.key = c(. = "_"),
+  separator.key.x = names(rdat),
+  fleet.replace = TRUE,
+  fleet.key = list(sCT = c("CVT"), sTV = c("CVID", "Mcvt", "sCT"), sVD = c("VID"), sBT
+    = c("Mbft"), sBL = c("sM"), sVL = c("vll"), sFT = c("FST"), cDV = c("cD"), cHL =
+    c("cH", "cHl"), cLL = c("cL"), cOT = c("cO"), cPT = c("cp", "cP"), cTW = c("cT",
+    "cTw", "cHTR"), cGN = c("comm"), rHB = c("HB", "hb", "rHb"), rHB.D = c("hbd", "HBD"),
+    rGN = c("GR", "mrip", "rGe", "rA")),
+  fleet.key.x = c("parms", "parm.cons", "t.series", "comp.mats", "sel.age",
+    "sel.parms"),
   parms.key = c(R0 = "BH.R0", M.msst = "M.constant", M.MSST = "M.constant"),
   a.series.key = c(mat.male.endyr = "mat.male", mat.fem.endyr = "mat.female",
     prop.female.endyr = "prop.female"),
@@ -14,6 +24,22 @@ standardize_rdat(
 }
 \arguments{
 \item{rdat}{rdat (list) object read in with dget()}
+
+\item{separator.key}{named vector indicating what separator(s) should be used in the rdat. By default, any "_" will be replaced with "." in names of rdat elements}
+
+\item{separator.key.x}{names of elements in the rdat list to apply the fleet.key to.}
+
+\item{fleet.replace}{Should fleet.key be applied to fleet.key.x to replace fleet.abbreviations in the rdat?}
+
+\item{fleet.key}{list where values are patterns (character vector) to find in rdat list elements specified with fleet.key.x and the names are the replacements. Patterns are searched with regex to find these values at the beginning or end of character strings, followed or preceded by ".", or in the middle of a string preceded and followed by ".".}
+
+\item{fleet.key.x}{names of elements in the rdat list to apply the fleet.key to.}
+
+\item{parms.key}{named vector where values are patterns (character strings) to find in names(rdat$parms) and the names in parms.key are replacements}
+
+\item{a.series.key}{named vector where values are patterns (character strings) to find in names(a.series$parms) and the names in a.series.key are replacements}
+
+\item{t.series.key}{named vector where values are patterns (character strings) to find in names(t.series$parms) and the names in t.series.key are replacements}
 }
 \description{
 Change non-standard names of rdat objects to standard naming conventions. Compute standard objects.

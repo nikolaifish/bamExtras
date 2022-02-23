@@ -4,7 +4,7 @@
 \alias{bam_to_r}
 \title{BAM inputs to R object conversion function}
 \usage{
-bam_to_r(dat.file, tpl.file, cxx.file, L.init.user)
+bam_to_r(dat.file, tpl.file, cxx.file, L.init.user = NULL)
 }
 \arguments{
 \item{dat.file}{dat file path}

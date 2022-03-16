@@ -10,11 +10,11 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' expDecay(age=1:10,Z=0.2,N0=100)
-#' expDecay(age=1:10,Z=0.2,N0=100,plus_group = TRUE)
-#' expDecay(age=c(2,5,10),Z=0.2,N0=100,plus_group = TRUE)
+#' exp_decay(age=1:10,Z=0.2,N0=100)
+#' exp_decay(age=1:10,Z=0.2,N0=100,plus_group = TRUE)
+#' exp_decay(age=c(2,5,10),Z=0.2,N0=100,plus_group = TRUE)
 #' }
-expDecay <- function(age,Z,N0=1,plus_group=FALSE){
+exp_decay <- function(age,Z,N0=1,plus_group=FALSE){
   ac <- 1:(max(age)+1) # Vector of all age classes
   ages <- ac-1
   ac_n <- length(ac)

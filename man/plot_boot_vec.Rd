@@ -10,7 +10,9 @@ plot_boot_vec(
   runsToKeep = NULL,
   ref_x = NULL,
   ref_y = NULL,
-  col_shade = rgb(0, 0, 0, 0.25),
+  col_lines = rgb(0, 0, 0, 1),
+  col_shade = NULL,
+  add = FALSE,
   ...
 )
 }
@@ -23,7 +25,11 @@ plot_boot_vec(
 
 \item{ref_x, ref_y}{x and y vectors for adding a reference line to the plot (e.g. base run values)}
 
+\item{col_lines}{color for lines depicting central tendency and confidence limits. Expects hex color}
+
 \item{col_shade}{color for shading confidence bands}
+
+\item{add}{logical. Should a new plot be drawn or should it be added to an existing plot?}
 
 \item{...}{other arguments to pass to \code{matplot}}
 }

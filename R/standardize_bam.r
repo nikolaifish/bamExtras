@@ -2,34 +2,34 @@
 #'
 #' This script reads in BAM dat, tpl, and cxx files, and converts them to R objects (character vectors of each line of the code). It then runs a set of gsub() functions to
 #' replace object names with preferred naming conventions and returns dat, tpl, and cxx character vectors to use to rewrite the corresponding files with writeLines)
-#' @param dat.file dat file path
-#' @param tpl.file tpl file path
-#' @param cxx.file cxx file path
+#' @param dat_file dat file path
+#' @param tpl_file tpl file path
+#' @param cxx_file cxx file path
 #' @keywords bam stock assessment fisheries
 #' @export
 #' @examples
 #' standardize_bam()
 
-standardize_bam <- function(dat.file,tpl.file,cxx.file){
+standardize_bam <- function(dat_file,tpl_file,cxx_file){
   # Read in dat, tpl, and cxx files
-  dat <- readLines(con=dat.file)
+  dat <- readLines(con=dat_file)
   dat <- trimws(dat) # Remove leading and/or trailing whitespace from character strings
-  tpl <- readLines(con=tpl.file)
-  cxx <- readLines(con=cxx.file)
+  tpl <- readLines(con=tpl_file)
+  cxx <- readLines(con=cxx_file)
 
   bamr <- bam_to_r(
-    dat.file = dat.file,
-    tpl.file = tpl.file,
-    cxx.file = cxx.file)
+    dat_file = dat_file,
+    tpl_file = tpl_file,
+    cxx_file = cxx_file)
 
   dat <- bamr$dat
   dat <- trimws(dat) # Remove leading and/or trailing whitespace from character strings
   tpl <- bamr$tpl
   cxx <- bamr$cxx
-  L.init <- bamr$L.init
+  L_init <- bamr$L_init
 
   # Restructure variable names so that fleet name is at the end (this makes it easier to identify similar variables in search)
-  initNames <- names(L.init)
+  initNames <- names(L_init)
 
   ## Landings
   # styr_L

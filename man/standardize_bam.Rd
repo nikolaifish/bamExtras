@@ -4,14 +4,14 @@
 \alias{standardize_bam}
 \title{Standardize object names in bam files (dat, tpl, and cxx)}
 \usage{
-standardize_bam(dat.file, tpl.file, cxx.file)
+standardize_bam(dat_file, tpl_file, cxx_file)
 }
 \arguments{
-\item{dat.file}{dat file path}
+\item{dat_file}{dat file path}
 
-\item{tpl.file}{tpl file path}
+\item{tpl_file}{tpl file path}
 
-\item{cxx.file}{cxx file path}
+\item{cxx_file}{cxx file path}
 }
 \description{
 This script reads in BAM dat, tpl, and cxx files, and converts them to R objects (character vectors of each line of the code). It then runs a set of gsub() functions to

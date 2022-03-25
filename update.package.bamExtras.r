@@ -24,7 +24,7 @@ library(stringr)
 #create("bamExtras") # I think you only need to do this once
 
 # Create vignette (only run to create vignette)
-#usethis::use_vignette("intro") 
+#usethis::use_vignette("intro")
 #usethis::use_vignette("workWithopenMSE")
 
 # Add dependencies
@@ -32,4 +32,4 @@ library(stringr)
 
 # Install package
 devtools::document(file.path(dirname(getwd()),"bamExtras")) # Important for updating package
-devtools::install(file.path(dirname(getwd()),"bamExtras"),build_vignettes = FALSE)
+devtools::install(file.path(dirname(getwd()),"bamExtras"),build_vignettes = TRUE)

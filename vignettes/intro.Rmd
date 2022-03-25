@@ -35,7 +35,6 @@ First, install and load the package.
 # Install and load package
 #devtools::install_github("nikolaifish/bamExtras")
 library(bamExtras)
-
 # Load dependencies
 library(stringr)
 ```
@@ -45,7 +44,6 @@ library(stringr)
 ```{r, echo=TRUE, message=FALSE}
 # see all data objects in bamExtras
 # data(package="bamExtras")$result[,"Item"]
-
 # standardize naming conventions and assign shorter name
 rdat_BS <- standardize_rdat(rdat_BlackSeaBass)
 rdat_RP <- standardize_rdat(rdat_RedPorgy)
@@ -77,13 +75,10 @@ with(rdat_RP$t.series,
 rdat <- rdat_BlackSeaBass
 comp <- rdat$comp.mats # List of composition matrices
 acomp <- comp[grepl("^acomp.*.ob$",names(comp))] # list of observed age composition matrices
-
 comp_i <- acomp$acomp.Mcvt.ob
 cc_i <- catch_curve(comp_i)
-
 # Plot comps and add catch curves (note the log-tranformation of the composition data)
 comp_plot(log(comp_i),cc=cc_i,fillComp = FALSE,ylab= "log(proportion)",xlab="age",title="black sea bass commercial handline catch curves")
-
 # Plot Z estimates over time for multiple sets of age compositions
 par(mfrow=c(1,1),mgp=c(1,.2,0),mar=c(2,2,1,1),oma=c(0,0,0,0),tck=0.01)
 M <- rdat$parms$M.msst
@@ -105,6 +100,5 @@ for(i in 1:length(cc)){
 # Add reference line for natural mortality
 abline(h=M,lty=2,lwd=2)
 text(par("usr")[1]+0.05*diff(par("usr")[1:2]),M,labels="M",pos=3)
-
 legend("bottomleft",legend=abb,col=cols,pch=1,lty=1,bty="n")
 ```

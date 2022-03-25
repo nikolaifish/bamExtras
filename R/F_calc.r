@@ -4,7 +4,7 @@
 #' written by Kyle Shertzer in a very similar function.
 #' @param ac age classes. numeric vector
 #' @param h Beverton-Holt steepness parameter
-#' @param R0 Beverton-Holt R0 parameter [numbers of fish at age-a (often age-0 or age-1)]
+#' @param R0 Beverton-Holt R0 parameter. Numbers of fish at age-a (often age-0 or age-1).
 #' @param sigma lognormal bias correction -- exp(sigma^2/2)
 #' @param M Natural mortality rate
 #' @param Fmax Maximum fishing mortality rate
@@ -50,7 +50,7 @@ spr <- SPR <- R_eq <- S_eq <- B_eq <- Y_eq <- E_eq <- rep(0,length(F)) # Initial
     }
 
     # Number of fish in the spawning stock (e.g. number of mature females) at age
-      N_S_a <- N_a*PS      
+      N_S_a <- N_a*PS
     # Spawners per recruit
       spr[fi] <- sum(N_S_a*ep)
     # Unfished spawning biomass per recruit
@@ -86,18 +86,18 @@ spr <- SPR <- R_eq <- S_eq <- B_eq <- Y_eq <- E_eq <- rep(0,length(F)) # Initial
     #SPR_Px<<-which(abs(SPR-Px)==min(abs(SPR-Px)))  # Index value corresponding to SPR_Px
     # Calculate close approximation of F at SPR_Px, by interpolating between the nearest values
         x1_ix <- which(SPR==max(SPR[SPR<=SPR_Px]))
-        x2_ix <- which(SPR==min(SPR[SPR>SPR_Px])) 
+        x2_ix <- which(SPR==min(SPR[SPR>SPR_Px]))
         x1 <- SPR[x1_ix]  # Value just below SPR_Px
         x2 <- SPR[x2_ix]   # Value just above SPR_Px
 
         # F_Px
           F_Px <- local({
-          y1 <- F[x1_ix]      # F at x1 
+          y1 <- F[x1_ix]      # F at x1
           y2 <- F[x2_ix]      # F at x2
           B1 <- (y2-y1)/(x2-x1)            # Slope of the line connecting the adjacent points
           B0 <- y1-B1*x1                   # Intercept of the line connecting the adjacent points
           return(B0+B1*SPR_Px)          # F_Px calculated through linear interpolation
-          })   
+          })
 
 
     #F_Px <-    F[SPR_Px_ix]    # F at SPR reference value

@@ -40,17 +40,6 @@
 #' (\href{http://sedarweb.org/docs/sar/SEDAR_71_SAR_4.19.21_final_withaddendum.pdf}{PDF})
 "rdat_GagGrouper"
 
-
-#' BAM stock assessment results (rdat file): South Atlantic Tilefish (SEDAR 66)
-#'
-#' Data stored in the standard rdat file output by the Beaufort Assessment Model (BAM)
-#' @format An object of class \code{"list"}
-#'
-#' @source SEDAR 66 Stock Assessment Report South Atlantic Tilefish
-#' (\href{http://sedarweb.org/docs/sar/SEDAR%2066%20assessment%20report%20final_v5_0.pdf}{PDF})
-"rdat_Tilefish"
-
-
 #' BAM stock assessment results (rdat file): South Atlantic Gray Triggerfish (SEDAR 41)
 #'
 #' Data stored in the standard rdat file output by the Beaufort Assessment Model (BAM)
@@ -78,7 +67,7 @@
 #'
 #' @source SEDAR 69 Stock Assessment Report Atlantic Menhaden
 #' (\href{http://sedarweb.org/docs/sar/SEDAR%2069%20SAR%20final%20combined%20benchmark.pdf}{PDF})
-"rdat_MenhadenAtl"
+"rdat_AtlanticMenhaden"
 
 
 #' BAM stock assessment results (rdat file): South Atlantic Red Grouper (SEDAR 53)
@@ -130,6 +119,14 @@
 #' (\href{http://sedarweb.org/docs/sar/S28_SAR_SASpMack_FinalWithPStar_5.16.2013.pdf}{PDF})
 "rdat_SpanishMackerel"
 
+#' BAM stock assessment results (rdat file): South Atlantic Tilefish (SEDAR 66)
+#'
+#' Data stored in the standard rdat file output by the Beaufort Assessment Model (BAM)
+#' @format An object of class \code{"list"}
+#'
+#' @source SEDAR 66 Stock Assessment Report South Atlantic Tilefish
+#' (\href{http://sedarweb.org/docs/sar/SEDAR%2066%20assessment%20report%20final_v5_0.pdf}{PDF})
+"rdat_Tilefish"
 
 #' BAM stock assessment results (rdat file): South Atlantic Vermilion Snapper (SEDAR 55)
 #'

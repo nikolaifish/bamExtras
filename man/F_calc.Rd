@@ -27,7 +27,7 @@ F_calc(
 
 \item{h}{Beverton-Holt steepness parameter}
 
-\item{R0}{Beverton-Holt R0 parameter \link{numbers of fish at age-a (often age-0 or age-1)}}
+\item{R0}{Beverton-Holt R0 parameter. Numbers of fish at age-a (often age-0 or age-1).}
 
 \item{sigma}{lognormal bias correction -- exp(sigma^2/2)}
 

@@ -1,14 +1,14 @@
 #' Change non-standard names of rdat objects to standard naming conventions. Compute standard objects.
 #'
 #' @param rdat rdat (list) object read in with dget()
-#' @param separator.key named vector indicating what separator(s) should be used in the rdat. By default, any "_" will be replaced with "." in names of rdat elements
-#' @param separator.key.x names of elements in the rdat list to apply the fleet.key to.
-#' @param fleet.replace Should fleet.key be applied to fleet.key.x to replace fleet.abbreviations in the rdat?
-#' @param fleet.key list where values are patterns (character vector) to find in rdat list elements specified with fleet.key.x and the names are the replacements. Patterns are searched with regex to find these values at the beginning or end of character strings, followed or preceded by ".", or in the middle of a string preceded and followed by ".".
-#' @param fleet.key.x names of elements in the rdat list to apply the fleet.key to.
-#' @param parms.key named vector where values are patterns (character strings) to find in names(rdat$parms) and the names in parms.key are replacements
-#' @param a.series.key named vector where values are patterns (character strings) to find in names(a.series$parms) and the names in a.series.key are replacements
-#' @param t.series.key named vector where values are patterns (character strings) to find in names(t.series$parms) and the names in t.series.key are replacements
+#' @param separator_key named vector indicating what separator(s) should be used in the rdat. By default, any "_" will be replaced with "." in names of rdat elements
+#' @param separator_key_x names of elements in the rdat list to apply the fleet_key to.
+#' @param fleet_replace Should fleet_key be applied to fleet_key_x to replace fleet_abbreviations in the rdat?
+#' @param fleet_key list where values are patterns (character vector) to find in rdat list elements specified with fleet_key_x and the names are the replacements. Patterns are searched with regex to find these values at the beginning or end of character strings, followed or preceded by ".", or in the middle of a string preceded and followed by ".".
+#' @param fleet_key_x names of elements in the rdat list to apply the fleet_key to.
+#' @param parms_key named vector where values are patterns (character strings) to find in names(rdat$parms) and the names in parms_key are replacements
+#' @param a_series_key named vector where values are patterns (character strings) to find in names(a.series$parms) and the names in a_series_key are replacements
+#' @param t_series_key named vector where values are patterns (character strings) to find in names(t.series$parms) and the names in t_series_key are replacements
 #' @keywords bam stock assessment fisheries
 #' @author Nikolai Klibansky
 #' @export
@@ -20,10 +20,10 @@
 #' }
 
 standardize_rdat <- function(rdat,
-                             separator.key = c("."="_"),
-                             separator.key.x = names(rdat),
-                             fleet.replace = TRUE,
-                             fleet.key=list("sCT"=c("CVT"),              # Chevron trap (could possibly include video)
+                             separator_key = c("."="_"),
+                             separator_key_x = names(rdat),
+                             fleet_replace = TRUE,
+                             fleet_key=list("sCT"=c("CVT"),              # Chevron trap (could possibly include video)
                                             "sTV"=c("CVID","Mcvt","sCT"),# Combined chevron trap/video data (sCT in Red Porgy; Mcvt used in Black Seabass bass for the combined index but also for the comps which are really only from the trap)
                                             "sVD"=c("VID"),              # Video data (from chevron trap survey)
                                             "sBT"=c("Mbft"),             # MARMAP blackfish trap (see Black Seabass)
@@ -41,25 +41,25 @@ standardize_rdat <- function(rdat,
                                             "rHB.D"=c("hbd","HBD"),      # Recreational headboat discards (atypical abbreviation found in Black Sea Bass selectivity parameters)
                                             "rGN"=c("GR","mrip","rGe","rA")  # Recreational all (a.k.a. general recreational (i.e. not headboat)
                              ),
-                           fleet.key.x=c("parms","parm.cons","t.series","comp.mats","sel.age","sel.parms"),
-                           parms.key=c("R0"="BH.R0",
+                           fleet_key_x=c("parms","parm.cons","t.series","comp.mats","sel.age","sel.parms"),
+                           parms_key=c("R0"="BH.R0",
                                        "M.msst"="M.constant",
                                        "M.MSST"="M.constant"
                                        ),
-                           a.series.key=c("mat.male.endyr"="mat.male",
+                           a_series_key=c("mat.male.endyr"="mat.male",
                                           "mat.fem.endyr"="mat.female",
                                           "prop.female.endyr"="prop.female"
                                           ),
-                           t.series.key=c("total.L.wgt.klb"="total.L.klb")
+                           t_series_key=c("total.L.wgt.klb"="total.L.klb")
                            ){
   # # rdat
-  # rdat.char <- deparse(rdat) # Convert rdat list into character vector preserving list structure
-  # for(i in 1:length(fleet.key)){
-  #   replacement <- names(fleet.key)[i]
-  #   pattern <- paste(fleet.key[[i]],collapse="|")
-  #   rdat.char <- gsub(pattern=pattern,replacement = replacement,x=rdat.char)
+  # rdat_char <- deparse(rdat) # Convert rdat list into character vector preserving list structure
+  # for(i in 1:length(fleet_key)){
+  #   replacement <- names(fleet_key)[i]
+  #   pattern <- paste(fleet_key[[i]],collapse="|")
+  #   rdat_char <- gsub(pattern=pattern,replacement = replacement,x=rdat_char)
   # }
-  # rdat <- eval(parse(text=rdat.char))
+  # rdat <- eval(parse(text=rdat_char))
 
   # Replace "_" with "." in all rdat element names
 
@@ -73,14 +73,14 @@ standardize_rdat <- function(rdat,
     }
   }
 
-  if(fleet.replace){
+  if(fleet_replace){
     # apply general fleet key
-    for(i in names(fleet.key)){
-      pattern_beg_i <- paste0("^(",paste(fleet.key[[i]],collapse="|"),")\\.")
-      pattern_mid_i <- paste0("\\.(",paste(fleet.key[[i]],collapse="|"),")\\.")
-      pattern_end_i <- paste0("\\.(",paste(fleet.key[[i]],collapse="|"),")([0-9]*)$")
+    for(i in names(fleet_key)){
+      pattern_beg_i <- paste0("^(",paste(fleet_key[[i]],collapse="|"),")\\.")
+      pattern_mid_i <- paste0("\\.(",paste(fleet_key[[i]],collapse="|"),")\\.")
+      pattern_end_i <- paste0("\\.(",paste(fleet_key[[i]],collapse="|"),")([0-9]*)$")
 
-      for(j in fleet.key.x){
+      for(j in fleet_key_x){
         if(j%in%names(rdat)){
           oj <- rdat[[j]]
           nam <- names(oj)
@@ -101,26 +101,26 @@ standardize_rdat <- function(rdat,
 
   # parms
   parms <- rdat$parms
-  parms.names <- names(parms)
-  names(parms) <- find_replace(names(parms.key),parms.key,parms.names)
+  parms_names <- names(parms)
+  names(parms) <- find_replace(names(parms_key),parms_key,parms_names)
   rdat$parms <- parms
 
-  # a.series
-  a.series <- rdat$a.series
-  a.series.names <- names(a.series)
-  names(a.series) <- find_replace(names(a.series.key),a.series.key,a.series.names)
+  # a_series
+  a_series <- rdat$a.series
+  a_series_names <- names(a_series)
+  names(a_series) <- find_replace(names(a_series_key),a_series_key,a_series_names)
 
-  # If a.series includes prop.male instead of prop.female, compute prop.female
-  if(!"prop.female"%in%names(a.series)&"prop.male"%in%names(a.series)){
-    a.series$prop.female <- 1-a.series$prop.male
+  # If a_series includes prop.male instead of prop.female, compute prop.female
+  if(!"prop.female"%in%names(a_series)&"prop.male"%in%names(a_series)){
+    a_series$prop.female <- 1-a_series$prop.male
   }
-  rdat$a.series <- a.series
+  rdat$a.series <- a_series
 
-  # t.series
-  t.series <- rdat$t.series
-  t.series.names <- names(t.series)
-  names(t.series) <- find_replace(names(t.series.key),t.series.key,t.series.names)
-  rdat$t.series <- t.series
+  # t_series
+  t_series <- rdat$t.series
+  t_series_names <- names(t_series)
+  names(t_series) <- find_replace(names(t_series_key),t_series_key,t_series_names)
+  rdat$t.series <- t_series
 
   return(rdat)
 }

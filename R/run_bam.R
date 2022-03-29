@@ -76,7 +76,7 @@ run_bam <- function(CommonName = NULL, fileName = "bam", dir_bam = NULL,
 
   # Change name of cxx file included in tpl to fileName_cxx
   lineno_tpl_cxx <- which(grepl("^\\s.*(#include).*(.cxx)",tpl))
-  tpl[lineno_tpl_cxx] <- gsub("[\"'].*?[\"]",paste0("\"",fileName_cxx,"\""), tpl[lineno_tpl_cxx])
+  tpl[lineno_tpl_cxx] <- gsub("([a-zA-Z_0-9.])*\\.cxx",fileName_cxx, tpl[lineno_tpl_cxx])
 
   writeLines(text=dat, con=fileName_dat)
   writeLines(text=tpl, con=fileName_tpl)

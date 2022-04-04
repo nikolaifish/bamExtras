@@ -25,7 +25,6 @@ library(stringr)
 
 # Create vignette (only run to create vignette)
 #usethis::use_vignette("intro")
-#usethis::use_vignette("workWithopenMSE")
 
 # Add dependencies
 #usethis::use_package("stringr","Suggests")

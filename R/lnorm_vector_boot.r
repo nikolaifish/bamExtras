@@ -6,7 +6,7 @@
 #' @param cv observed cv for x
 #' @param bootN number of bootstrap replicates. Allows multiple bootstrapped vectors to be calculated without looping
 #' @param standardize divide resulting vectors by their own mean so that they have a mean of 1
-#' @param digits
+#' @param digits Number of significant digits to round output to. If NULL, output is not rounded.
 #' @keywords bam stock assessment fisheries
 #' @author Nikolai Klibansky, Kyle Shertzer, Erik Williams
 #' @export

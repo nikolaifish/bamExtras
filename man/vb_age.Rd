@@ -18,9 +18,6 @@ vb_age(L, Linf, K, t0)
 \description{
 Converts age to length with a Von Bertalanffy function
 }
-\examples{
-vb_age()
-}
 \author{
 Nikolai Klibansky
 }

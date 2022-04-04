@@ -4,21 +4,58 @@
 \alias{standardize_bam}
 \title{Standardize object names in bam files (dat, tpl, and cxx)}
 \usage{
-standardize_bam(dat_file, tpl_file, cxx_file)
+standardize_bam(
+  CommonName = NULL,
+  L_init_user = NULL,
+  dat_file = NULL,
+  tpl_file = NULL,
+  cxx_file = NULL,
+  dat_obj = NULL,
+  tpl_obj = NULL,
+  cxx_obj = NULL
+)
 }
 \arguments{
+\item{CommonName}{Common name of species modeled in BAM files. Only used when accessing dat, tpl, and cxx character vectors named as e.g. dat_CommonName}
+
+\item{L_init_user}{user supplied L_init object (list of tpl "init" object names defined in tpl Data Section. If missing, the function builds one from values in the dat and tpl files.}
+
 \item{dat_file}{dat file path}
 
 \item{tpl_file}{tpl file path}
 
 \item{cxx_file}{cxx file path}
+
+\item{dat_obj}{dat file read in as a character vector with readLines(con=dat_file)}
+
+\item{tpl_obj}{tpl file read in as a character vector with readLines(con=tpl_file)}
+
+\item{cxx_obj}{cxx file read in as a character vector with readLines(con=cxx_file)}
 }
 \description{
 This script reads in BAM dat, tpl, and cxx files, and converts them to R objects (character vectors of each line of the code). It then runs a set of gsub() functions to
 replace object names with preferred naming conventions and returns dat, tpl, and cxx character vectors to use to rewrite the corresponding files with writeLines)
 }
 \examples{
-standardize_bam()
+\dontrun{
+# Read in and standardize of the current BAM models
+bam_AtMe <- standardize_bam("AtlanticMenhaden")
+bam_BlSB <- standardize_bam("BlackSeaBass")
+bam_BlTi <- standardize_bam("BluelineTilefish")
+bam_Cobi <- standardize_bam("Cobia")
+bam_GagG <- standardize_bam("GagGrouper")
+bam_GrTr <- standardize_bam("GrayTriggerfish")
+bam_GrAm <- standardize_bam("GreaterAmberjack")
+bam_ReGr <- standardize_bam("RedGrouper")
+bam_RePo <- standardize_bam("RedPorgy")
+bam_ReSn <- standardize_bam("RedSnapper")
+bam_SnGr <- standardize_bam("SnowyGrouper")
+bam_Tile <- standardize_bam("Tilefish")
+bam_VeSn <- standardize_bam("VermilionSnapper")
+
+# Run a bam model and assign rdat output to object
+rdat_RePo <- run_bam(bam=bam_RePo,fileName="RePo")
+}
 }
 \keyword{assessment}
 \keyword{bam}

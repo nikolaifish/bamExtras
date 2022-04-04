@@ -13,10 +13,13 @@ geomean(x)
 Simple geometric mean function using only is.finite values of log(x).
 }
 \examples{
+\dontrun{
 x <- c(1,2,10)
 geomean(x)
 geomean2(x)
 mean(x)
+}
+
 }
 \author{
 Nikolai Klibansky

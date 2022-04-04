@@ -7,10 +7,13 @@
 #' @references Bolker, B. M. 2008. Ecological Models and Data in R. Princeton University Press, Princeton, NJ. Page 137
 #' @export
 #' @examples
+#' \dontrun{
 #' set.seed(1234)
 #' x <- rnorm(1000,mean=100,sd=3)
 #' s <- sd(log(x))
 #' lnorm_cv(sigma=s)
+#' }
+#'
 
 lnorm_cv <- function(sigma){
   function(sigma){sqrt(exp(sigma^2)-1)}

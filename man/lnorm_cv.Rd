@@ -13,10 +13,13 @@ lnorm_cv(sigma)
 Coefficient of variation (cv) of lognormal distribution x, given the standard deviation (sigma) of log(x). Bolker 2008 page 137
 }
 \examples{
+\dontrun{
 set.seed(1234)
 x <- rnorm(1000,mean=100,sd=3)
 s <- sd(log(x))
 lnorm_cv(sigma=s)
+}
+
 }
 \references{
 Bolker, B. M. 2008. Ecological Models and Data in R. Princeton University Press, Princeton, NJ. Page 137

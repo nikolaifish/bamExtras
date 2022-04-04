@@ -13,7 +13,25 @@
 #' @author Nikolai Klibansky
 #' @export
 #' @examples
-#' comp_complete()
+#' \dontrun{
+#' # Combine age comp matrices for Red Porgy
+#' cm <- rdat_RedPorgy$comp.mats
+#' cma <- cm[grepl("^acomp.*ob$",names(cm))]
+#'
+#' cman <- rdat_RedPorgy$t.series[,gsub("ob$","n",names(cma))]
+#' cmanfish <- rdat_RedPorgy$t.series[,gsub("ob$","nfish",names(cma))]
+#'
+#' # Output proportions at age
+#' comp_complete(cma,output_type="prop")
+#'
+#' # Output numbers of fish at age
+#' names(cma) <- gsub(".ob$","",names(cma))
+#' comp_complete(cma,cmanfish,output_type="nfish",n_tag=".nfish")
+#'
+#' # Output age comps in data input format
+#' comp_complete(cma,cbind(cman,cmanfish),output_type="input")
+#' }
+#'
 
 comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
                           n_tag= c(".n",".nfish"),

@@ -7,7 +7,14 @@
 #' @author Nikolai Klibansky
 #' @export
 #' @examples
-#' find_replace()
+#' \dontrun{
+#' # Find and replace names of multiple parameters
+#' rdat <- rdat_BlackSeaBass
+#' parms <- rdat$parms
+#' parms_names <- names(parms)
+#' parms_key <- c("R0"="BH.R0", "M.msst"="M.constant", "M.MSST"="M.constant")
+#' find_replace(names(parms_key),parms_key,parms_names)
+#' }
 
 find_replace <- function(pattern,replacement,x)  {
   found   <- match(x, pattern)

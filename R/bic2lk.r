@@ -7,7 +7,11 @@
 #' @keywords bam stock assessment fisheries
 #' @export
 #' @examples
-#' bic2lk()
+#' \dontrun{
+#' bic2lk(bic=10,k=3,n=100)
+#' bic2lk(bic=10,k=5,n=100)
+#' }
+#'
 
 bic2lk <- function(bic,k,n){exp((k*log(n)-bic)/2)}
 

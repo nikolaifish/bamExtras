@@ -28,7 +28,7 @@ oldest age class is often a plus group.}
 Simple geometric mean function using only is.finite values of log(x).
 }
 \examples{
-#' \dontrun{
+\dontrun{
 # read in black ses bass age comps used in the recent stock assessment
 rdat <- rdat_BlackSeaBass
 comp <- rdat$comp.mats # List of composition matrices

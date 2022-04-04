@@ -20,7 +20,11 @@ bic_to_lk(bic, k, n)
 Converts Bayesian Information Criterion (BIC) to likelihood (lk) value
 }
 \examples{
-bic2lk()
+\dontrun{
+bic2lk(bic=10,k=3,n=100)
+bic2lk(bic=10,k=5,n=100)
+}
+
 }
 \keyword{assessment}
 \keyword{bam}

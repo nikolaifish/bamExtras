@@ -6,10 +6,13 @@
 #' @author Nikolai Klibansky
 #' @export
 #' @examples
+#' \dontrun{
 #' x <- c(1,2,10)
 #' geomean(x)
 #' geomean2(x)
 #' mean(x)
+#' }
+#'
 
 geomean <- function(x) {
   log.x <- log(x)

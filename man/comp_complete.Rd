@@ -41,7 +41,25 @@ comp_complete(
 Complete each data frame in  a list of comp data frames so that all have the same dimensions
 }
 \examples{
-comp_complete()
+\dontrun{
+# Combine age comp matrices for Red Porgy
+cm <- rdat_RedPorgy$comp.mats
+cma <- cm[grepl("^acomp.*ob$",names(cm))]
+
+cman <- rdat_RedPorgy$t.series[,gsub("ob$","n",names(cma))]
+cmanfish <- rdat_RedPorgy$t.series[,gsub("ob$","nfish",names(cma))]
+
+# Output proportions at age
+comp_complete(cma,output_type="prop")
+
+# Output numbers of fish at age
+names(cma) <- gsub(".ob$","",names(cma))
+comp_complete(cma,cmanfish,output_type="nfish",n_tag=".nfish")
+
+# Output age comps in data input format
+comp_complete(cma,cbind(cman,cmanfish),output_type="input")
+}
+
 }
 \author{
 Nikolai Klibansky

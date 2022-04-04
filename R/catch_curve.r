@@ -13,18 +13,18 @@
 #' @author Nikolai Klibansky
 #' @export
 #' @examples
-#' #' \dontrun{
+#' \dontrun{
 #' # read in black ses bass age comps used in the recent stock assessment
 #' rdat <- rdat_BlackSeaBass
 #' comp <- rdat$comp.mats # List of composition matrices
 #' acomp <- comp[grepl("^acomp.*.ob$",names(comp))] # list of observed age composition matrices
-#' 
+#'
 #' comp_i <- acomp$acomp.Mcvt.ob
 #' cc_i <- catch_curve(comp_i)
-#' 
+#'
 #' # Plot comps and add catch curves (note the log-tranformation of the composition data)
 #' comp_plot(log(comp_i),cc=cc_i,fillComp = FALSE,ylab= "log(proportion)",xlab="age",title="black sea bass commercial handline catch curves")
-#' 
+#'
 #' # Plot Z estimates over time for multiple sets of age compositions
 #' par(mfrow=c(1,1),mgp=c(1,.2,0),mar=c(2,2,1,1),oma=c(0,0,0,0),tck=0.01)
 #' M <- rdat$parms$M.msst
@@ -46,9 +46,9 @@
 #' # Add reference line for natural mortality
 #' abline(h=M,lty=2,lwd=2)
 #' text(par("usr")[1]+0.05*diff(par("usr")[1:2]),M,labels="M",pos=3)
-#' 
+#'
 #' legend("bottomleft",legend=abb,col=cols,pch=1,lty=1,bty="n")
-#' 
+#'
 #' }
 
 
@@ -63,13 +63,13 @@ catch_curve <- function(M,age_min=NULL,age_max=NULL,nobs_min=3,age_min_method="p
     y <- as.numeric(colSums(M,na.rm=TRUE))
     age_min <- x[which(y==max(y))[1]]
   }
-  
+
   for(i in 1:nrow(M)){
     usable_elements <- M[i,which(M[i,]>0)] # Determine which elements from row i or matrix M are usable
     if(length(usable_elements)>=nobs_min){ # Determine if there are enough observations to use
       x <- as.numeric(names(usable_elements))
       y <- as.numeric(usable_elements)
-      
+
       if(is.null(age_min)){
         if(age_min_method=="peak_by_year"){
           x_min <- x[which(y==max(y))[1]]
@@ -77,7 +77,7 @@ catch_curve <- function(M,age_min=NULL,age_max=NULL,nobs_min=3,age_min_method="p
       }else{
         x_min <- age_min
       }
-      
+
       if(is.null(age_max)){
         x_max <- rev(sort(unique(x)))[2] # Set to second oldest age class to avoid potential plus group
       }else{
@@ -85,10 +85,10 @@ catch_curve <- function(M,age_min=NULL,age_max=NULL,nobs_min=3,age_min_method="p
       }
       x_sub <- x[which(x%in%(x_min:x_max))] # Subset x based on x range
       y_sub <- y[which(x%in%x_sub)]       # Subset y to match x
-      
+
       if(length(x_sub)>=nobs_min){  # Again, determine if there are enough observations to use
         lm1 <- lm(log(y_sub)~x_sub)
-        
+
         out[i,"age_min"] <- x_min
         out[i,"age_max"] <- x_max
         out[i,"intercept"] <- coef(lm1)[[1]]

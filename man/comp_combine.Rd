@@ -21,7 +21,13 @@ comp_combine(
 Complete and combine age or length comps
 }
 \examples{
-comp_combine()
+\dontrun{
+# Combine age comp matrices for Red Porgy
+cm <- rdat_RedPorgy$comp.mats
+cma <- cm[grepl("^acomp.*ob$",names(cm))]
+comp_combine(cma)
+}
+
 }
 \author{
 Nikolai Klibansky

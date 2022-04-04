@@ -29,9 +29,6 @@ comp_complete_bam(
 \description{
 Complete a length or age composition data frame so that all have desired dimensions. This is a modified version of comp_complete. The two functions should probably be combined with options to choose between sub-functions.
 }
-\examples{
-comp_complete_bam()
-}
 \author{
 Nikolai Klibansky
 }

@@ -11,6 +11,7 @@ tseries_plot(
   ErrUnits = "",
   NErrUnits = 2,
   ylim = NULL,
+  plotLabel = NULL,
   ...
 )
 }
@@ -27,13 +28,23 @@ tseries_plot(
 
 \item{ylim}{range of y on plot}
 
+\item{plotLabel}{character string for labeling plot}
+
 \item{...}{pass additional arguments to matplot}
 }
 \description{
 Complete a length or age composition data frame so that all have desired dimensions. This is a modified version of comp_complete. The two functions should probably be combined with options to choose between sub-functions.
 }
 \examples{
+\dontrun{
 tseries_plot()
+rdat <- rdat_BlackSeaBass
+tser <- rdat$t.series
+U <- tser[,grepl("^U.*ob$",names(tser))]
+Ucv <- tser[,grepl("^cv.U.",names(tser))]
+tseries_plot(U,Ucv,xlab="year",ylab="index of abundance",plotLabel=rdat$info$species)
+}
+
 }
 \author{
 Nikolai Klibansky

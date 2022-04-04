@@ -7,7 +7,13 @@
 #' @author Nikolai Klibansky
 #' @export
 #' @examples
-#' comp_combine()
+#' \dontrun{
+#' # Combine age comp matrices for Red Porgy
+#' cm <- rdat_RedPorgy$comp.mats
+#' cma <- cm[grepl("^acomp.*ob$",names(cm))]
+#' comp_combine(cma)
+#' }
+#'
 
 # scale_prop_min_n: integer. The assumed minimum number of fish in a row of each comp matrix. Used when approximating numbers.
 comp_combine <- function(comp_list, FUN=function(x){sum(x,na.rm=TRUE)},scale_rows=TRUE){

@@ -14,6 +14,8 @@ lnorm_vector_boot(x, cv, bootN = 1, standardize = TRUE, digits = NULL)
 \item{bootN}{number of bootstrap replicates. Allows multiple bootstrapped vectors to be calculated without looping}
 
 \item{standardize}{divide resulting vectors by their own mean so that they have a mean of 1}
+
+\item{digits}{Number of significant digits to round output to. If NULL, output is not rounded.}
 }
 \description{
 This function was designed to be used with time series of indices of abundance or removals. Based on code from previous BAM

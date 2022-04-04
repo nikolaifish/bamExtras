@@ -2,25 +2,67 @@
 #'
 #' This script reads in BAM dat, tpl, and cxx files, and converts them to R objects (character vectors of each line of the code). It then runs a set of gsub() functions to
 #' replace object names with preferred naming conventions and returns dat, tpl, and cxx character vectors to use to rewrite the corresponding files with writeLines)
+#' @param CommonName Common name of species modeled in BAM files. Only used when accessing dat, tpl, and cxx character vectors named as e.g. dat_CommonName
 #' @param dat_file dat file path
 #' @param tpl_file tpl file path
 #' @param cxx_file cxx file path
+#' @param dat_obj dat file read in as a character vector with readLines(con=dat_file)
+#' @param tpl_obj tpl file read in as a character vector with readLines(con=tpl_file)
+#' @param cxx_obj cxx file read in as a character vector with readLines(con=cxx_file)
+#' @param L_init_user user supplied L_init object (list of tpl "init" object names defined in tpl Data Section. If missing, the function builds one from values in the dat and tpl files.
 #' @keywords bam stock assessment fisheries
 #' @export
 #' @examples
-#' standardize_bam()
+#' \dontrun{
+#' # Read in and standardize of the current BAM models
+#' bam_AtMe <- standardize_bam("AtlanticMenhaden")
+#' bam_BlSB <- standardize_bam("BlackSeaBass")
+#' bam_BlTi <- standardize_bam("BluelineTilefish")
+#' bam_Cobi <- standardize_bam("Cobia")
+#' bam_GagG <- standardize_bam("GagGrouper")
+#' bam_GrTr <- standardize_bam("GrayTriggerfish")
+#' bam_GrAm <- standardize_bam("GreaterAmberjack")
+#' bam_ReGr <- standardize_bam("RedGrouper")
+#' bam_RePo <- standardize_bam("RedPorgy")
+#' bam_ReSn <- standardize_bam("RedSnapper")
+#' bam_SnGr <- standardize_bam("SnowyGrouper")
+#' bam_Tile <- standardize_bam("Tilefish")
+#' bam_VeSn <- standardize_bam("VermilionSnapper")
+#'
+#' # Run a bam model and assign rdat output to object
+#' rdat_RePo <- run_bam(bam=bam_RePo,fileName="RePo")
+#' }
 
-standardize_bam <- function(dat_file,tpl_file,cxx_file){
+standardize_bam <- function(CommonName=NULL,L_init_user=NULL,
+                            dat_file=NULL,tpl_file=NULL,cxx_file=NULL,
+                            dat_obj=NULL, tpl_obj=NULL,cxx_obj=NULL
+){
+  if(!is.null(CommonName)){
+    dat <- get(paste0("dat_",CommonName))
+    tpl <- get(paste0("tpl_",CommonName))
+    cxx <- get(paste0("cxx_",CommonName))
+  }
+
+  if(!is.null(dat_obj)&!is.null(tpl_obj)&!is.null(cxx_obj)){
+    dat <- dat_obj
+    tpl <- tpl_obj
+    cxx <- cxx_obj
+  }
+
   # Read in dat, tpl, and cxx files
-  dat <- readLines(con=dat_file)
-  dat <- trimws(dat) # Remove leading and/or trailing whitespace from character strings
-  tpl <- readLines(con=tpl_file)
-  cxx <- readLines(con=cxx_file)
+  if(!is.null(dat_file)&!is.null(tpl_file)&!is.null(cxx_file)){
+    dat <- readLines(con=dat_file)
+    tpl <- readLines(con=tpl_file)
+    cxx <- readLines(con=cxx_file)
+  }
 
+  dat <- trimws(dat) # Remove leading and/or trailing whitespace from character strings
+
+  # Run bam_to_r to generated L_init
   bamr <- bam_to_r(
-    dat_file = dat_file,
-    tpl_file = tpl_file,
-    cxx_file = cxx_file)
+    dat_obj = dat,
+    tpl_obj = tpl,
+    cxx_obj = cxx)
 
   dat <- bamr$dat
   dat <- trimws(dat) # Remove leading and/or trailing whitespace from character strings
@@ -309,6 +351,12 @@ standardize_bam <- function(dat_file,tpl_file,cxx_file){
 
   }
 
+  # Rerun bam_to_r to regenerate output
+  bamr <- bam_to_r(
+    dat_obj = dat,
+    tpl_obj = tpl,
+    cxx_obj = cxx)
 
-  return(list("dat"=dat,"tpl"=tpl,"cxx"=cxx))
+
+  return(bamr)
 }

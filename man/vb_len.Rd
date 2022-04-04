@@ -20,12 +20,6 @@ vb_len(a, Linf, K, t0, aP = 0)
 \description{
 Converts age to length with a Von Bertalanffy function
 }
-\examples{
-\dontrun{
-# Length at age for Black Sea Bass
-vb_len(a=0:11,Linf = 502, K = 0.173, t0 = -0.97)
-}
-}
 \author{
 Nikolai Klibansky
 }

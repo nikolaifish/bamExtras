@@ -32,3 +32,4 @@ library(stringr)
 # Install package
 devtools::document(file.path(dirname(getwd()),"bamExtras")) # Important for updating package
 devtools::install(file.path(dirname(getwd()),"bamExtras"),build_vignettes = TRUE)
+#devtools::build_manual(pkg=getwd()) # Didn't work when I tried it

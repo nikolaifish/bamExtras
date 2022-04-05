@@ -24,7 +24,8 @@ knitr::opts_chunk$set(
 
 `bamExtras` is an R package that contains functions and data to support
 stock assessments of fish stocks in the Southeast US Atlantic using the Beaufort
-Assessment Model (BAM)
+Assessment Model (BAM). It provides support and organization for data and functions used to run stock assessments and diagnostics with BAM. Currently it contains all of the most recent versions of BAM for 14 stocks and can be used to modify and run BAM, if ADMB is installed. It also contains various support and plotting functions
+
 
 ## Example usage
 
@@ -40,33 +41,135 @@ library(bamExtras)
 library(stringr)
 ```
 
-### Work with results of BAM assessments
+### Data
+`bamExtras` contains BAM input files: `dat` (data), `tpl` (template model code), `cxx` (convert C++ output to R objects), and `rdat` (R output) files for the most recent models. The `dat`, `tpl`, and `cxx` files are stores as character vectors with each item representing a line of the original file. Other files like "admb2r.cpp" and "cleanup.bat" are also stored in `bamExtras` for running BAM.
+
+```{r, echo=TRUE}
+# see all data objects in bamExtras
+data(package="bamExtras")$result[,"Item"]
+```
+
+Since different naming conventions are sometimes used in BAM, the function `standardize_rdat()` can be used to modify names to follow common naming conventions. Common naming conventions are important for some functions in `bamExtras` and allow for general analysis.
 
 ```{r, echo=TRUE, message=FALSE}
-# see all data objects in bamExtras
-# data(package="bamExtras")$result[,"Item"]
-# standardize naming conventions and assign shorter name
 rdat_BS <- standardize_rdat(rdat_BlackSeaBass)
 rdat_RP <- standardize_rdat(rdat_RedPorgy)
 ```
 
-## Plot results from one assessment
+We can simply use the stored data to plot results from an assessment
 
 ```{r}
-with(rdat_BS$t.series,
-     plot(year,B,type="o",col="black"))
+par(mfrow=c(3,2),mar=c(2,2,1,1),mgp=c(1,0.2,0),tck=-0.01)
+with(rdat_BS$t.series,{
+     plot(year,N,type="o")
+     plot(year,recruits,type="o")  
+     plot(year,SSB,type="o")
+     plot(year,F.full,type="o")
+     plot(year,SSB.msst,type="o")
+     plot(year,F.Fmsy,type="o")
+  })
 ```
 
-## Plot results from multiple assessments
+We can plot results from multiple assessments
 
 ```{r}
-ylim <- range(c(0,rdat_BS$t.series$B,rdat_RP$t.series$B))
-with(rdat_BS$t.series,
-     plot(year,B,type="o",col="black",ylim=ylim)
-     )
-with(rdat_RP$t.series,
-     points(year,B,type="o",col="red")
-     )
+spcol <- c("BS"="black","RP"="red")
+
+par(mfrow=c(3,2),mar=c(2,2,1,1),mgp=c(1,0.2,0),tck=-0.01)
+ylim <- range(c(0,rdat_BS$t.series$N,rdat_RP$t.series$N),na.rm=TRUE)
+with(rdat_BS$t.series,plot(year,N,type="o",col=spcol["BS"],ylim=ylim))
+with(rdat_RP$t.series,points(year,N,type="o",col=spcol["RP"]))
+
+legend("top",legend=c("Black Sea Bass","Red Porgy"),
+       pch=1,col=spcol,lty=1)
+
+ylim <- range(c(0,rdat_BS$t.series$recruits,rdat_RP$t.series$recruits),na.rm=TRUE)
+with(rdat_BS$t.series,plot(year,recruits,type="o",col=spcol["BS"],ylim=ylim))
+with(rdat_RP$t.series,points(year,recruits,type="o",col=spcol["RP"]))
+
+ylim <- range(c(0,rdat_BS$t.series$SSB,rdat_RP$t.series$SSB),na.rm=TRUE)
+with(rdat_BS$t.series,plot(year,SSB,type="o",col=spcol["BS"],ylim=ylim))
+with(rdat_RP$t.series,points(year,SSB,type="o",col=spcol["RP"]))
+
+ylim <- range(c(0,rdat_BS$t.series$F.full,rdat_RP$t.series$F.full),na.rm=TRUE)
+with(rdat_BS$t.series,plot(year,F.full,type="o",col=spcol["BS"],ylim=ylim))
+with(rdat_RP$t.series,points(year,F.full,type="o",col=spcol["RP"]))
+
+ylim <- range(c(0,rdat_BS$t.series$SSB.msst,rdat_RP$t.series$SSB.msst),na.rm=TRUE)
+with(rdat_BS$t.series,plot(year,SSB.msst,type="o",col=spcol["BS"],ylim=ylim))
+with(rdat_RP$t.series,points(year,SSB.msst,type="o",col=spcol["RP"]))
+
+ylim <- range(c(0,rdat_BS$t.series$F.Fmsy,rdat_RP$t.series$F.Fmsy),na.rm=TRUE)
+with(rdat_BS$t.series,plot(year,F.Fmsy,type="o",col="black",ylim=ylim))
+with(rdat_RP$t.series,points(year,F.Fmsy,type="o",col=spcol["RP"]))
+```
+
+## Functions
+
+One of core functions in this package is `bam2R`. is a helpful function compares corresponding `dat` and `tpl` files from an assessment, and builds an R list `L_init` of all the `init` objects initialized in the `DATA_SECTION` of the `tpl`. It then combines `L_init` and the BAM files `dat`, `tpl`, and `cxx` into an output list.
+
+```{r, echo=TRUE}
+bam_RP <- bam2r(dat_obj=dat_RedPorgy,tpl_obj=tpl_RedPorgy,cxx_obj=cxx_RedPorgy)
+```
+
+Drawing upon data objects stored in the package, `bam2R` can also be used in a simpler way with the `CommonName` argument
+
+```{r}
+bam_RP <- bam2r("RedPorgy")
+```
+
+## Running BAM
+If ADMB is installed, we can then rerun the stock assessment. The code in this section is provided by commented out for the vignette.
+
+```{r}
+# Run a bam model and assign rdat output to object
+#rdat_RP <- run_bam(bam=bam_RP,fileName="RP")
+```
+
+And `bam2r` lets us modify the data inputs. Then we can rerun BAM.
+
+
+```{r}
+# Modify data input from a BAM model and incorporate it back into the dat file object
+# L_init2 <- bam_RP$L_init
+# L_init2$set_steep[c(1,5)] <- paste(0.6) # Change steepness
+# L_init2$set_steep[4] <- paste(-abs(as.numeric(L_init2$set_steep[4]))) # Fix steepness
+# bam_RP2 <- bam2r("RedPorgy",L_init_user=L_init2)
+# rdat_RP2 <- run_bam(bam=bam_RP2,fileName="RP2")
+```
+
+Then we can compare the two models
+
+```{r}
+# spcol <- c("RP"="black","RP2"="red")
+# 
+# par(mfrow=c(3,2),mar=c(2,2,1,1),mgp=c(1,0.2,0),tck=-0.01)
+# ylim <- range(c(0,rdat_RP$t.series$N,rdat_RP2$t.series$N),na.rm=TRUE)
+# with(rdat_RP$t.series,plot(year,N,type="o",col=spcol["RP"],ylim=ylim))
+# with(rdat_RP2$t.series,points(year,N,type="o",col=spcol["RP2"]))
+# 
+# legend("top",legend=c("Red Porgy","Red Porgy2"),
+#        pch=1,col=spcol,lty=1)
+# 
+# ylim <- range(c(0,rdat_RP$t.series$recruits,rdat_RP2$t.series$recruits),na.rm=TRUE)
+# with(rdat_RP$t.series,plot(year,recruits,type="o",col=spcol["RP"],ylim=ylim))
+# with(rdat_RP2$t.series,points(year,recruits,type="o",col=spcol["RP2"]))
+# 
+# ylim <- range(c(0,rdat_RP$t.series$SSB,rdat_RP2$t.series$SSB),na.rm=TRUE)
+# with(rdat_RP$t.series,plot(year,SSB,type="o",col=spcol["RP"],ylim=ylim))
+# with(rdat_RP2$t.series,points(year,SSB,type="o",col=spcol["RP2"]))
+# 
+# ylim <- range(c(0,rdat_RP$t.series$F.full,rdat_RP2$t.series$F.full),na.rm=TRUE)
+# with(rdat_RP$t.series,plot(year,F.full,type="o",col=spcol["RP"],ylim=ylim))
+# with(rdat_RP2$t.series,points(year,F.full,type="o",col=spcol["RP2"]))
+# 
+# ylim <- range(c(0,rdat_RP$t.series$SSB.msst,rdat_RP2$t.series$SSB.msst),na.rm=TRUE)
+# with(rdat_RP$t.series,plot(year,SSB.msst,type="o",col=spcol["RP"],ylim=ylim))
+# with(rdat_RP2$t.series,points(year,SSB.msst,type="o",col=spcol["RP2"]))
+# 
+# ylim <- range(c(0,rdat_RP$t.series$F.Fmsy,rdat_RP2$t.series$F.Fmsy),na.rm=TRUE)
+# with(rdat_RP$t.series,plot(year,F.Fmsy,type="o",col="black",ylim=ylim))
+# with(rdat_RP2$t.series,points(year,F.Fmsy,type="o",col=spcol["RP2"]))
 ```
 
 

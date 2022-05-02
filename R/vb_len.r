@@ -29,5 +29,6 @@
 #' # Note that vb_age is not quite the inverse of vb_len unless t0 = 0
 #' # Convert length to age
 #' with(parest,{vb_age(L=with(parest,{vb_len(a=age,Linf=Linf,K=K,t0=0)}),Linf=Linf,K=K,t0=0)})
-
+#'}
+#'
 vb_len <- function(a,Linf,K,t0,aP=0)  {Linf*(1-exp(-K*(a+aP-t0)))}

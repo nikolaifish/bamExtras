@@ -29,7 +29,35 @@ Calls a shell script to run a bam model
 }
 \examples{
 \dontrun{
+# Read in any of the current BAM models
+bam_AtMe <- bam2r("AtlanticMenhaden")
+bam_BlSB <- bam2r("BlackSeaBass")
+bam_BlTi <- bam2r("BluelineTilefish")
+bam_Cobi <- bam2r("Cobia")
+bam_GagG <- bam2r("GagGrouper")
+bam_GrTr <- bam2r("GrayTriggerfish")
+bam_GrAm <- bam2r("GreaterAmberjack")
+bam_ReGr <- bam2r("RedGrouper")
+bam_RePo <- bam2r("RedPorgy")
+bam_ReSn <- bam2r("RedSnapper")
+bam_SnGr <- bam2r("SnowyGrouper")
+bam_Tile <- bam2r("Tilefish")
+bam_VeSn <- bam2r("VermilionSnapper")
 
+# Run a bam model and assign rdat output to object
+rdat_RePo <- run_bam(bam=bam_RePo,fileName="RePo")
+
+# Modify data input from a BAM model and incorporate it back into the dat file object
+L_init2 <- bam_RePo$L_init
+L_init2$set_steep[c(1,5)] <- paste(0.6) # Change steepness
+L_init2$set_steep[4] <- paste(-abs(as.numeric(L_init2$set_steep[4]))) # Fix steepness
+bam_RePo2 <- bam2r("RedPorgy",L_init_user=L_init2)
+rdat_RePo2 <- run_bam(bam=bam_RePo2,fileName="RePo2")
+
+# Compare models
+plot(rdat_RePo$t.series$year, rdat_RePo$t.series$SSB.msst,type="o", ylim=range(c(rdat_RePo$t.series$SSB.msst,rdat_RePo2$t.series$SSB.msst),na.rm=TRUE), xlab="year",ylab="SSB.msst")
+points(rdat_RePo2$t.series$year,rdat_RePo2$t.series$SSB.msst,type="o",col="blue")
+legend("topright",legend=c("RePo","RePo2"),pch=1,lty=1,col=c("black","blue"),bty="n")
 }
 }
 \keyword{assessment}

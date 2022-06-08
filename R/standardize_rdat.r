@@ -9,6 +9,7 @@
 #' @param parms_key named vector where values are patterns (character strings) to find in names(rdat$parms) and the names in parms_key are replacements
 #' @param a_series_key named vector where values are patterns (character strings) to find in names(a.series$parms) and the names in a_series_key are replacements
 #' @param t_series_key named vector where values are patterns (character strings) to find in names(t.series$parms) and the names in t_series_key are replacements
+#' @param na_values Other values to change to NA
 #' @keywords bam stock assessment fisheries
 #' @author Nikolai Klibansky
 #' @export
@@ -24,7 +25,7 @@ standardize_rdat <- function(rdat,
                              separator_key_x = names(rdat),
                              fleet_replace = TRUE,
                              fleet_key=list("sCT"=c("CVT"),              # Chevron trap (could possibly include video)
-                                            "sTV"=c("CVID","Mcvt","sCT"),# Combined chevron trap/video data (sCT in Red Porgy; Mcvt used in Black Seabass bass for the combined index but also for the comps which are really only from the trap)
+                                            "sTV"=c("CVID","Mcvt"),# Combined chevron trap/video data (sCT in Red Porgy; Mcvt used in Black Seabass bass for the combined index but also for the comps which are really only from the trap)
                                             "sVD"=c("VID"),              # Video data (from chevron trap survey)
                                             "sBT"=c("Mbft"),             # MARMAP blackfish trap (see Black Seabass)
                                             "sBL"=c("sM"),               # MARMAP bottom longline survey (see Tilefish)
@@ -50,16 +51,17 @@ standardize_rdat <- function(rdat,
                                           "mat.fem.endyr"="mat.female",
                                           "prop.female.endyr"="prop.female"
                                           ),
-                           t_series_key=c("total.L.wgt.klb"="total.L.klb")
+                           t_series_key=c("total.L.wgt.klb"="total.L.klb"),
+                           na_values="-99999"
                            ){
-  # # rdat
-  # rdat_char <- deparse(rdat) # Convert rdat list into character vector preserving list structure
-  # for(i in 1:length(fleet_key)){
-  #   replacement <- names(fleet_key)[i]
-  #   pattern <- paste(fleet_key[[i]],collapse="|")
-  #   rdat_char <- gsub(pattern=pattern,replacement = replacement,x=rdat_char)
-  # }
-  # rdat <- eval(parse(text=rdat_char))
+  # rdat
+  rdat_char <- deparse(rdat) # Convert rdat list into character vector preserving list structure
+  for(i in na_values){
+    replacement <- "NA"
+    pattern <- i
+    rdat_char <- gsub(pattern=pattern,replacement = replacement,x=rdat_char)
+  }
+  rdat <- eval(parse(text=rdat_char))
 
   # Replace "_" with "." in all rdat element names
 

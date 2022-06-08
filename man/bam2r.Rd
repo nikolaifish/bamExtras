@@ -7,7 +7,7 @@
 \usage{
 bam2r(
   CommonName = NULL,
-  L_init_user = NULL,
+  init = NULL,
   dat_file = NULL,
   tpl_file = NULL,
   cxx_file = NULL,
@@ -18,7 +18,7 @@ bam2r(
 
 bam_to_r(
   CommonName = NULL,
-  L_init_user = NULL,
+  init = NULL,
   dat_file = NULL,
   tpl_file = NULL,
   cxx_file = NULL,
@@ -30,7 +30,7 @@ bam_to_r(
 \arguments{
 \item{CommonName}{Common name of species modeled in BAM files. Only used when accessing dat, tpl, and cxx character vectors named as e.g. dat_CommonName}
 
-\item{L_init_user}{user supplied L_init object (list of tpl "init" object names defined in tpl Data Section. If missing, the function builds one from values in the dat and tpl files.}
+\item{init}{user supplied list of tpl "init" object names defined in tpl Data Section. If missing, the function builds one from values in the dat and tpl files.}
 
 \item{dat_file}{dat file path}
 
@@ -68,10 +68,10 @@ bam_VeSn <- bam2r("VermilionSnapper")
 rdat_RePo <- run_bam(bam=bam_RePo,fileName="RePo")
 
 # Modify data input from a BAM model and incorporate it back into the dat file object
-L_init2 <- bam_RePo$L_init
-L_init2$set_steep[c(1,5)] <- paste(0.6) # Change steepness
-L_init2$set_steep[4] <- paste(-abs(as.numeric(L_init2$set_steep[4]))) # Fix steepness
-bam_RePo2 <- bam2r("RedPorgy",L_init_user=L_init2)
+init2 <- bam_RePo$init
+init2$set_steep[c(1,5)] <- paste(0.6) # Change steepness
+init2$set_steep[4] <- paste(-abs(as.numeric(init2$set_steep[4]))) # Fix steepness
+bam_RePo2 <- bam2r("RedPorgy",init=init2)
 rdat_RePo2 <- run_bam(bam=bam_RePo2,fileName="RePo2")
 
 # Compare models

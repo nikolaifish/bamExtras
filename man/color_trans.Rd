@@ -2,7 +2,7 @@
 % Please edit documentation in R/color_trans.r
 \name{color_trans}
 \alias{color_trans}
-\title{Geometric mean: logarithm form}
+\title{Make opaque color transparent}
 \usage{
 color_trans(hexcolor, alpha = 0.25)
 }
@@ -10,21 +10,19 @@ color_trans(hexcolor, alpha = 0.25)
 \item{x}{numeric vector}
 }
 \description{
-Simple geometric mean function using only is.finite values of log(x).
+This function allows you to modify opaque colors you are already using and make transparent versions. It's handy for adding confidence bands around mean values.
 }
 \examples{
 \dontrun{
-n <- 5
-mycol <- rainbow(n)
-mycol_tr <- color_trans(mycol,alpha=0.5)
-mycol2 <- rgb(1,seq(0,1,length=n),0)
-mycol2_tr <- color_trans(mycol2)
-
+n <- 7
+myalpha <- 0.25
+mycol <- rainbow(n) # Opaque rainbow
+mycol_tr <- rainbow(n,alpha=myalpha) # Transparent rainbow using alpha argument
+mycol_tr2 <- color_trans(mycol,alpha=myalpha) # Transparent rainbow modifing mycol, using alpha argument from color_trans
 par(cex=2,pch=16)
 plot(1:n,rep(1,n),col=mycol,ylim=c(0,5))
 points(1:n,rep(2,n),col=mycol_tr)
-points(1:n,rep(3,n),col=mycol2)
-points(1:n,rep(4,n),col=mycol2_tr)
+points(1:n,rep(3,n),col=mycol_tr2)
 }
 }
 \author{

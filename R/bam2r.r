@@ -8,7 +8,7 @@
 #' @param dat_obj dat file read in as a character vector with readLines(con=dat_file)
 #' @param tpl_obj tpl file read in as a character vector with readLines(con=tpl_file)
 #' @param cxx_obj cxx file read in as a character vector with readLines(con=cxx_file)
-#' @param L_init_user user supplied L_init object (list of tpl "init" object names defined in tpl Data Section. If missing, the function builds one from values in the dat and tpl files.
+#' @param init user supplied list of tpl "init" object names defined in tpl Data Section. If missing, the function builds one from values in the dat and tpl files.
 #' @keywords bam stock assessment fisheries
 #' @export
 #' @examples
@@ -32,10 +32,10 @@
 #' rdat_RePo <- run_bam(bam=bam_RePo,fileName="RePo")
 #'
 #' # Modify data input from a BAM model and incorporate it back into the dat file object
-#' L_init2 <- bam_RePo$L_init
-#' L_init2$set_steep[c(1,5)] <- paste(0.6) # Change steepness
-#' L_init2$set_steep[4] <- paste(-abs(as.numeric(L_init2$set_steep[4]))) # Fix steepness
-#' bam_RePo2 <- bam2r("RedPorgy",L_init_user=L_init2)
+#' init2 <- bam_RePo$init
+#' init2$set_steep[c(1,5)] <- paste(0.6) # Change steepness
+#' init2$set_steep[4] <- paste(-abs(as.numeric(init2$set_steep[4]))) # Fix steepness
+#' bam_RePo2 <- bam2r("RedPorgy",init=init2)
 #' rdat_RePo2 <- run_bam(bam=bam_RePo2,fileName="RePo2")
 #'
 #' # Compare models
@@ -46,10 +46,12 @@
 
 
 
-bam2r <- function(CommonName=NULL,L_init_user=NULL,
+bam2r <- function(CommonName=NULL,init=NULL,
                      dat_file=NULL,tpl_file=NULL,cxx_file=NULL,
                      dat_obj=NULL, tpl_obj=NULL,cxx_obj=NULL
                      ){
+  fcn_args <- as.list(environment()) # Gets function arguments
+
   if(!is.null(CommonName)){
     dat <- get(paste0("dat_",CommonName))
     tpl <- get(paste0("tpl_",CommonName))
@@ -139,15 +141,15 @@ bam2r <- function(CommonName=NULL,L_init_user=NULL,
   dat_vals <- unlist(D_dat_num$value) %>% paste(collapse=" ") %>% gsub(pattern="\t",replacement = " ") %>% strsplit(split="\\s+") %>% unlist()
 
 
-  #### Build L_init ####
+  #### Build init ####
   # Build R list with names equal to BAM tpl init object names and values equal to init objects from dat file
   initNames <- D_tplVar[,"name"]
-  L_init <- vector("list", length(initNames))
-  names(L_init) <- initNames
+  init <- vector("list", length(initNames))
+  names(init) <- initNames
   # Row of dat file associated with the first row of each init object
   datRowInit <- local({
-    a <- rep(NA,length(L_init))
-    names(a) <- names(L_init)
+    a <- rep(NA,length(init))
+    names(a) <- names(init)
     return(a)
   })
 
@@ -260,47 +262,47 @@ bam2r <- function(CommonName=NULL,L_init_user=NULL,
     varValue_i <- trimws(varValue_i) # Remove extra whitespace from values
 
     assign(name_i,varValue_i) # Assign object to global environment (important for defining some later objects)
-    L_init[[name_i]] <- varValue_i # Assign value to L_init
+    init[[name_i]] <- varValue_i # Assign value to init
   }
 
-  # If L_init_user is supplied, override L_init.
-  if(!is.null(L_init_user)){
-    L_init <- L_init_user
+  # If init was supplied in the function call, override init.
+  if(!is.null(fcn_args$init)){
+    init <- fcn_args$init
   }
 
-  #### Create L_dat ####
-  # Create new list of dat file elements incorporating L_init
+  #### Create dat_list ####
+  # Create new list of dat file elements incorporating init
 
-  L_dat <- local({
+  dat_list <- local({
 
-    L_init2 <- L_init
-    names(L_init2) <- paste("datRow",sprintf("%05.0f", datRowInit[names(L_init)]))
+    init2 <- init
+    names(init2) <- paste("datRow",sprintf("%05.0f", datRowInit[names(init)]))
 
-    L_dat <- c(L_init2,L_nonInit)
+    dat_list <- c(init2,L_nonInit)
 
-    L_dat <- L_dat[order(names(L_dat))]
+    dat_list <- dat_list[order(names(dat_list))]
 
     # convert all items to make one long character vector
-    L_dat <- lapply(L_dat,FUN=function(x){
+    dat_list <- lapply(dat_list,FUN=function(x){
       if("matrix"%in%class(x)){
         out <- apply(x,1,FUN=function(x){paste(x,collapse="\t")})
       }else{
         out <- paste(x,collapse="\t")
       }
     })
-    return(L_dat)
+    return(dat_list)
   })
   # Add available comments back to rows with numeric values
-  L_dat <- local({
+  dat_list <- local({
     datRowsWithComments <- D_dat_num[which(D_dat_num$comment!=""),"datRow"]
     datRowsWithCommentsNames <- paste("datRow",sprintf("%05.0f", datRowsWithComments)) # numeric dat rows with comments
     datRowsWithCommentsComments <- D_dat_num$comment[D_dat_num$datRow%in%datRowsWithComments]
-    L_dat[datRowsWithCommentsNames] <- paste(L_dat[datRowsWithCommentsNames],datRowsWithCommentsComments,sep=" # ")
+    dat_list[datRowsWithCommentsNames] <- paste(dat_list[datRowsWithCommentsNames],datRowsWithCommentsComments,sep=" # ")
 
-    L_dat
+    dat_list
   })
 
-  return(list("dat"=unlist(L_dat),"tpl"=tpl,"cxx"=cxx,"L_init"=L_init,"L_dat"=L_dat))
+  return(list("dat"=unlist(dat_list),"tpl"=tpl,"cxx"=cxx,"init"=init,"dat_list"=dat_list))
 }
 
 #' @rdname bam2r

@@ -5,39 +5,54 @@
 \title{Complete a length or age composition data frame so that all have desired dimensions. This is a modified version of comp_complete. The two functions should probably be combined with options to choose between sub-functions.}
 \usage{
 tseries_plot(
-  D,
-  DErr,
-  ErrStyle = "bands",
-  ErrUnits = "",
-  NErrUnits = 2,
-  ylim = NULL,
+  x,
+  err,
+  errType = "sd",
+  errStyle = "bands",
+  errUnits = "SE",
+  nErrUnits = 2,
+  errLim = c(0, Inf),
   plotLabel = NULL,
+  matplot_args = list(col = rainbow(ncol(x)), type = "o", lty = 1, lwd = 2, pch = 16,
+    ylim = NULL),
+  polygon_args = list(border = NA, lwd = matplot_args$lwd),
+  col_band_alpha = 0.3,
+  pt_buffer = 0.1,
   ...
 )
 }
 \arguments{
-\item{D}{data frame of mean observations by year, where columns are different groups (e.g. fleets)}
+\item{x}{data frame of mean observations by year, where columns are different groups (e.g. fleets)}
 
-\item{DErr}{error values for each value in D. Must be same dimensions as D}
+\item{err}{error values for each value in x. Must be same dimensions as x}
 
-\item{ErrStyle}{Style of displaying error around the central tendency time series D. Can be"bars" or "bands"}
+\item{errType}{type of error provided: "cv"= coefficient of variation or "sd"=standard deviation. If "cv" then x is multiplied by err to compute sd.}
 
-\item{ErrUnits}{Units of DErr. Used only for displaying text on plot (e.g. "SE")}
+\item{errStyle}{Style of displaying error around the central tendency time series x. Can be"bars" or "bands"}
 
-\item{NErrUnits}{Multiplied by DErr to determine how far above and below D to to plot the errors}
+\item{errUnits}{Units of err. Used only for displaying text on plot (e.g. "SE")}
 
-\item{ylim}{range of y on plot}
+\item{nErrUnits}{Multiplied by err to determine how far above and below x to to plot the errors}
+
+\item{errLim}{Range for limiting the plotting of error bars or bands.}
 
 \item{plotLabel}{character string for labeling plot}
 
+\item{matplot_args}{list of additional arguments passed to \code{matplot}, which plots x.}
+
+\item{polygon_args}{list of additional arguments passed to \code{polygon}, which plots error bands when errStyle="bands".}
+
+\item{col_band_alpha}{alpha (transparency) value between 0 and 1 to adjust opacity of color bands}
+
 \item{...}{pass additional arguments to matplot}
+
+\item{ylim}{range of y on plot}
 }
 \description{
 Complete a length or age composition data frame so that all have desired dimensions. This is a modified version of comp_complete. The two functions should probably be combined with options to choose between sub-functions.
 }
 \examples{
 \dontrun{
-tseries_plot()
 rdat <- rdat_BlackSeaBass
 tser <- rdat$t.series
 U <- tser[,grepl("^U.*ob$",names(tser))]

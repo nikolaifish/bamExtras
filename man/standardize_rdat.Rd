@@ -9,8 +9,8 @@ standardize_rdat(
   separator_key = c(. = "_"),
   separator_key_x = names(rdat),
   fleet_replace = TRUE,
-  fleet_key = list(sCT = c("CVT"), sTV = c("CVID", "Mcvt", "sCT"), sVD = c("VID"), sBT
-    = c("Mbft"), sBL = c("sM"), sVL = c("vll"), sFT = c("FST"), cDV = c("cD"), cHL =
+  fleet_key = list(sCT = c("CVT"), sTV = c("CVID", "Mcvt"), sVD = c("VID"), sBT =
+    c("Mbft"), sBL = c("sM"), sVL = c("vll"), sFT = c("FST"), cDV = c("cD"), cHL =
     c("cH", "cHl"), cLL = c("cL"), cOT = c("cO"), cPT = c("cp", "cP"), cTW = c("cT",
     "cTw", "cHTR"), cGN = c("comm"), rHB = c("HB", "hb", "rHb"), rHB.D = c("hbd", "HBD"),
     rGN = c("GR", "mrip", "rGe", "rA")),
@@ -19,7 +19,8 @@ standardize_rdat(
   parms_key = c(R0 = "BH.R0", M.msst = "M.constant", M.MSST = "M.constant"),
   a_series_key = c(mat.male.endyr = "mat.male", mat.fem.endyr = "mat.female",
     prop.female.endyr = "prop.female"),
-  t_series_key = c(total.L.wgt.klb = "total.L.klb")
+  t_series_key = c(total.L.wgt.klb = "total.L.klb"),
+  na_values = "-99999"
 )
 }
 \arguments{
@@ -40,6 +41,8 @@ standardize_rdat(
 \item{a_series_key}{named vector where values are patterns (character strings) to find in names(a.series$parms) and the names in a_series_key are replacements}
 
 \item{t_series_key}{named vector where values are patterns (character strings) to find in names(t.series$parms) and the names in t_series_key are replacements}
+
+\item{na_values}{Other values to change to NA}
 }
 \description{
 Change non-standard names of rdat objects to standard naming conventions. Compute standard objects.

@@ -18,16 +18,16 @@
 #' @examples
 #' \dontrun{
 #' # read in commercial handline age comps used in the recent stock assessment
-#' x <- rdat_BlackSeaBass$comp.mats$acomp.cl.ob
-#' n <- rdat_BlackSeaBass$t.series[rownames(x),c("acomp.cl.n","acomp.cl.nfish")]
+#' x <- rdat_BlackSeaBass$comp.mats$acomp.cH.ob
+#' n <- rdat_BlackSeaBass$t.series[rownames(x),c("acomp.cH.n","acomp.cH.nfish")]
 #' # Plot comps by year
 #' comp_plot(x)
 #' # Add sample sizes
 #' comp_plot(x,n1=n[,1],n2=n[,2])
-#' #' # Plot comps and add catch curves (note the log-tranformation of the composition data)
+#' # Plot comps and add catch curves (note the log-tranformation of the composition data)
 #' comp_plot(log(x),cc=catch_curve(x),fillComp = FALSE,ylab= "log(proportion)",xlab="age",title="black sea bass commercial handline catch curves")
 #' }
-#'  
+#'
 
 comp_plot <- function(data_ob,data_pr=NULL,n1=NULL,n2=NULL,cc=NULL,data_type="proportion",year_type="year",
                       title="",xlab="",ylab=NULL,ylim=NULL,
@@ -37,15 +37,15 @@ comp_plot <- function(data_ob,data_pr=NULL,n1=NULL,n2=NULL,cc=NULL,data_type="pr
                       fillComp=TRUE, colFill=rgb(0,0,0,0.5), vlines=NULL,
                       signif_cc=3,
                       ...){
-  
+
   #ellipse.list <- list(...) # Assign stuff from ellipse to a list
-  
+
   # Calculate dimensions of plot matrix
   nr <- ceiling(sqrt(nrow(data_ob))) # Determine number of rows in figure
   nc <- ceiling(nrow(data_ob)/nr)    # Determine number of columns in figure
   n.panels <- nr*nc # Calculate the number of panels in figure
   n.empty <- n.panels-nrow(data_ob) # Calculate number of empty panels in figure
-  
+
   # Plot comps by year
   if(byrow){
     par(mfrow=c(nr,nc),mar=c(0,0,0,0),oma=c(3,3,2,0),mgp=c(0.8,.3,0),tck=-0.01)
@@ -54,19 +54,19 @@ comp_plot <- function(data_ob,data_pr=NULL,n1=NULL,n2=NULL,cc=NULL,data_type="pr
   }else{
     par(mfcol=c(nr,nc),mar=c(0,0,0,0),oma=c(3,3,2,0),mgp=c(0.8,.3,0),tck=-0.01)
     xaxt <- rep(c(rep("n",nr-1),"s"),nc) # Set up vector so that x axes plot only on the bottom row
-    yaxt <- c(rep("s",nr),rep("n",n.panels-nr)) # Set up vector so that y axes plot only on the leftmost column 
+    yaxt <- c(rep("s",nr),rep("n",n.panels-nr)) # Set up vector so that y axes plot only on the leftmost column
   }
-  
+
   x <- as.numeric(colnames(data_ob))
-  
+
   if(is.null(ylim)){
     ylim <- local({ # This stupid thing makes it so that -Inf is not included in ylim when y is log transformed
-      V <- as.vector(as.matrix((data_ob[,paste(x)]))) 
+      V <- as.vector(as.matrix((data_ob[,paste(x)])))
       return(range(V[V>-Inf],na.rm=TRUE))
     })
-    
+
   }
-  
+
   for(i in 1:n.panels){
     if(i<=n.empty){ # Plot empty panels
       plot(x,rep(NA,length(x)),
@@ -81,21 +81,21 @@ comp_plot <- function(data_ob,data_pr=NULL,n1=NULL,n2=NULL,cc=NULL,data_type="pr
            ylim=ylim,...)
       if(fillComp){
         polygon(x=c(x,rev(x)),y=c(data_ob[r,paste(x)],rep(par("usr")[3],length(x))),
-                border=NA,col=colFill)  
+                border=NA,col=colFill)
       }
       if(!is.null(data_pr)){ # add predicted values from comp matrix of same dimensions
         points(x,data_pr[r,paste(x)],type="l",lwd=2)
       }
-      
+
       # Add fitted catch curve
       if(!is.null(cc)){
         with(cc[r,],{
           if(!any(is.na(c(age_min,age_max)))){ # Basically, if the catch curve was fit to the data, plot it.
             x_pr <<- age_min:age_max
             y_pr <<- intercept + slope*x_pr
-            
+
             points(x_pr,y_pr,type="l",lwd=2,col="red")
-            
+
             # Print regression statistics on plot
             legend("right",legend=c(paste("Z =",signif(-slope,signif_cc)),paste("P =",(signif(slope_pval,signif_cc)))),
                    bty="n",text.col="blue")
@@ -104,21 +104,21 @@ comp_plot <- function(data_ob,data_pr=NULL,n1=NULL,n2=NULL,cc=NULL,data_type="pr
       }
       if(addGrid){
         grid()
-      }  
-      
+      }
+
       # Add year to plot
       legend("topright",legend=rownames(data_ob)[r],
              cex=cex_year,bty="n",text.col="blue")
-      
+
       # Add sample size to plot
       # n1 and n2
       if(!is.null(n1)){
         if(is.null(n2)){
-          leg_text <- paste("n =",n1[r])  
+          leg_text <- paste("n =",n1[r])
         }else{
-          leg_text <- c(paste("n1 =",n1[r]),paste("n2 =",n2[r]))      
+          leg_text <- c(paste("n1 =",n1[r]),paste("n2 =",n2[r]))
         }
-        
+
         if(any(!is.na(c(n1[r],n2[r])))){ # If the value of n1 is not NA
           legend("right",legend=leg_text,
                  cex=cex_n,bty="n",text.col="blue")
@@ -127,12 +127,12 @@ comp_plot <- function(data_ob,data_pr=NULL,n1=NULL,n2=NULL,cc=NULL,data_type="pr
       if(!is.null(vlines)&any(!is.na(y))){
         abline(v=vlines,lty=2)
       }
-      
+
     }
   }
   if(is.null(ylab)){
     ylab <- paste(data_type," by ",year_type,sep="")}
-  
+
   mtext(side=2,line=1.5,text=ylab,outer=TRUE) # y-axis label
   mtext(side=1,line=1.5,text=xlab,outer=TRUE) # x-axis label
   mtext(side=3,line=0.2,text=title,cex=1.5,outer=TRUE) # title of figure

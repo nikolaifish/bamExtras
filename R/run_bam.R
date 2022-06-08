@@ -1,46 +1,54 @@
 #' Run bam model
 #'
-#' Calls a shell script to run a bam model
+#' Creates a folder in a directory \code{dir_bam} to write BAM files including model-specific files
+#' (.dat, .tpl, and .cxx) a standard \code{admb2r.cpp} file stored in \code{bamExtras}, and a standard
+#' but customizable \code{cleanup.bat} file. Model-specific files are supplied by the user in any one of several different ways
+#' (see Arguments). It temporarily changes the working directory to \code{dir_bam}
+#' then calls a shell script to run the BAM model, and changes the working directory back to the previous path.
+#' The function invisibly returns the rdat object created by the cxx file, which can be assigned an object name.
 #' @param CommonName Common name of species associated with dat, tpl, and cxx files
+#' @param fileName Name given to BAM files, not including file extensions.
+#' @param dir_bam Name of directory to write BAM files to, relative to the working directory.
+#' @param bam Output of \code{bam2r}.
+#' @param dat_file dat file path
+#' @param tpl_file tpl file path
+#' @param cxx_file cxx file path
+#' @param dat_obj dat file read in as a character vector with readLines(con=dat_file)
+#' @param tpl_obj tpl file read in as a character vector with readLines(con=tpl_file)
+#' @param cxx_obj cxx file read in as a character vector with readLines(con=cxx_file)
+#' @param standardize Should \code{\link[bamExtras]{standardize_bam}} be run by the function before running the BAM
+#' @param unlink_dir_bam Should \code{dir_bam} be deleted after this function is run?
+#' @param admb_switch Character string pasted to fileName to build \code{run_command} when running BAM with \code{shell(run_command)}
+#' (i.e. \code{run_command <- paste(fileName, admb_switch)})
+#' @param admb2r_obj Character string containing admb2r C++ code, which is written with \code{base::writeLines} to \code{dir_bam}
+#' @param cleanup List object written to \code{cleanup.bat} file in \code{dir_bam}.
 #' @keywords bam stock assessment fisheries
 #' @export
 #' @examples
 #' \dontrun{
-#' # Read in any of the current BAM models
-#' bam_AtMe <- bam2r("AtlanticMenhaden")
-#' bam_BlSB <- bam2r("BlackSeaBass")
-#' bam_BlTi <- bam2r("BluelineTilefish")
-#' bam_Cobi <- bam2r("Cobia")
-#' bam_GagG <- bam2r("GagGrouper")
-#' bam_GrTr <- bam2r("GrayTriggerfish")
-#' bam_GrAm <- bam2r("GreaterAmberjack")
-#' bam_ReGr <- bam2r("RedGrouper")
-#' bam_RePo <- bam2r("RedPorgy")
-#' bam_ReSn <- bam2r("RedSnapper")
-#' bam_SnGr <- bam2r("SnowyGrouper")
-#' bam_Tile <- bam2r("Tilefish")
-#' bam_VeSn <- bam2r("VermilionSnapper")
+#' Run a bam model and assign rdat output to object
+#' rdat_AtMe <- run_bam("AtlanticMenhaden")
+#' rdat_BlSB <- run_bam("BlackSeaBass")
+#' rdat_BlTi <- run_bam("BluelineTilefish")
+#' rdat_Cobi <- run_bam("Cobia")
+#' rdat_GagG <- run_bam("GagGrouper")
+#' rdat_GrTr <- run_bam("GrayTriggerfish")
+#' rdat_GrAm <- run_bam("GreaterAmberjack")
+#' rdat_ReGr <- run_bam("RedGrouper")
+#' rdat_RePo <- run_bam("RedPorgy")
+#' rdat_ReSn <- run_bam("RedSnapper")
+#' rdat_SnGr <- run_bam("SnowyGrouper")
+#' rdat_Tile <- run_bam("Tilefish")
+#' rdat_VeSn <- run_bam("VermilionSnapper")
 #'
-#' # Run a bam model and assign rdat output to object
-#' rdat_RePo <- run_bam(bam=bam_RePo,fileName="RePo")
-#'
-#' # Modify data input from a BAM model and incorporate it back into the dat file object
-#' L_init2 <- bam_RePo$L_init
-#' L_init2$set_steep[c(1,5)] <- paste(0.6) # Change steepness
-#' L_init2$set_steep[4] <- paste(-abs(as.numeric(L_init2$set_steep[4]))) # Fix steepness
-#' bam_RePo2 <- bam2r("RedPorgy",L_init_user=L_init2)
-#' rdat_RePo2 <- run_bam(bam=bam_RePo2,fileName="RePo2")
-#'
-#' # Compare models
-#' plot(rdat_RePo$t.series$year, rdat_RePo$t.series$SSB.msst,type="o", ylim=range(c(rdat_RePo$t.series$SSB.msst,rdat_RePo2$t.series$SSB.msst),na.rm=TRUE), xlab="year",ylab="SSB.msst")
-#' points(rdat_RePo2$t.series$year,rdat_RePo2$t.series$SSB.msst,type="o",col="blue")
-#' legend("topright",legend=c("RePo","RePo2"),pch=1,lty=1,col=c("black","blue"),bty="n")
 #' }
 
 run_bam <- function(CommonName = NULL, fileName = "bam", dir_bam = NULL,
                     bam=NULL,
                     dat_file=NULL,tpl_file=NULL,cxx_file=NULL,
                     dat_obj=NULL, tpl_obj=NULL,cxx_obj=NULL,
+                    standardize=TRUE,
+                    unlink_dir_bam=TRUE,
                     admb_switch = '-nox',
                     admb2r_obj = admb2r.cpp,
                     cleanup = list(del=c("*.r0*","*.p0*","*.b0*","*.log","*.rpt","*.obj",
@@ -74,6 +82,14 @@ run_bam <- function(CommonName = NULL, fileName = "bam", dir_bam = NULL,
     dat <- readLines(con=dat_file)
     tpl <- readLines(con=tpl_file)
     cxx <- readLines(con=cxx_file)
+  }
+
+  if(standardize){
+    message("Running bamExtras::standardize_bam()")
+    bam <- standardize_bam(dat_obj=dat, tpl_obj=tpl,cxx_obj=cxx)
+    dat <- bam$dat
+    tpl <- bam$tpl
+    cxx <- bam$cxx
   }
 
   if(is.null(dir_bam)){
@@ -126,6 +142,11 @@ run_bam <- function(CommonName = NULL, fileName = "bam", dir_bam = NULL,
   rdat <- dget(fileName_rdat)
   setwd(wd)
   message(paste("Working directory changed back to:",wd))
+
+  if(unlink_dir_bam){
+    # delete a directory -- must add recursive = TRUE
+    unlink(dir_bam, recursive = TRUE)
+  }
 
   invisible(rdat)
 }

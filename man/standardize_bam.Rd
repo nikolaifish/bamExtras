@@ -6,19 +6,25 @@
 \usage{
 standardize_bam(
   CommonName = NULL,
-  L_init_user = NULL,
   dat_file = NULL,
   tpl_file = NULL,
   cxx_file = NULL,
   dat_obj = NULL,
   tpl_obj = NULL,
-  cxx_obj = NULL
+  cxx_obj = NULL,
+  nm_pattern = NULL,
+  nm_replace = NULL,
+  match_whole_words = TRUE,
+  fleet_key = list(sCT = c("CVT"), sTV = c("CVID", "Mcvt", "mcvt"), sVD = c("VID"), sBT
+    = c("Mbft"), sBL = c("sM"), sVL = c("vll"), sFT = c("FST"), cDV = c("cD"), cHL =
+    c("cH", "cHl"), cLL = c("cL"), cOT = c("cO"), cPT = c("cp", "cP"), cTW = c("cT",
+    "cTw", "cHTR"), cGN = c("comm"), rHB = c("HB", "hb", "rHb"), rHB_D = c("hbd", "HBD"),
+    rGN = c("GR", "mrip", "rGe", "rA")),
+  fleet_replace = TRUE
 )
 }
 \arguments{
 \item{CommonName}{Common name of species modeled in BAM files. Only used when accessing dat, tpl, and cxx character vectors named as e.g. dat_CommonName}
-
-\item{L_init_user}{user supplied L_init object (list of tpl "init" object names defined in tpl Data Section. If missing, the function builds one from values in the dat and tpl files.}
 
 \item{dat_file}{dat file path}
 
@@ -31,6 +37,12 @@ standardize_bam(
 \item{tpl_obj}{tpl file read in as a character vector with readLines(con=tpl_file)}
 
 \item{cxx_obj}{cxx file read in as a character vector with readLines(con=cxx_file)}
+
+\item{nm_pattern}{Character vector of additional object names (i.e. patterns) to be replaced}
+
+\item{nm_replace}{Character vector of of replacements for nm1}
+
+\item{match_whole_words}{Should patterns replace whole words only (pattern is regex enclosed by \\b)}
 }
 \description{
 This script reads in BAM dat, tpl, and cxx files, and converts them to R objects (character vectors of each line of the code). It then runs a set of gsub() functions to

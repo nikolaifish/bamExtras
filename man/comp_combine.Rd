@@ -6,7 +6,9 @@
 \usage{
 comp_combine(
   comp_list,
-  FUN = function(x) {     sum(x, na.rm = TRUE) },
+  FUN = function(x) {
+     sum(x, na.rm = TRUE)
+ },
   scale_rows = TRUE
 )
 }

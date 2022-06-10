@@ -27,9 +27,6 @@ to a single fleet.}
 \description{
 Add elements to rdat
 }
-\details{
-
-}
 \examples{
 \dontrun{
 # Add to any of the current BAM models

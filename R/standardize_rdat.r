@@ -25,12 +25,17 @@ standardize_rdat <- function(rdat,
                              separator_key_x = names(rdat),
                              fleet_replace = TRUE,
                              fleet_key=list("sCT"=c("CVT"),              # Chevron trap (could possibly include video)
-                                            "sTV"=c("CVID","Mcvt"),# Combined chevron trap/video data (sCT in Red Porgy; Mcvt used in Black Seabass bass for the combined index but also for the comps which are really only from the trap)
+                                            "sTV"=c("CVID","Mcvt"),      # Combined chevron trap/video data (sCT in Red Porgy; Mcvt used in Black Seabass bass for the combined index but also for the comps which are really only from the trap)
                                             "sVD"=c("VID"),              # Video data (from chevron trap survey)
                                             "sBT"=c("Mbft"),             # MARMAP blackfish trap (see Black Seabass)
                                             "sBL"=c("sM"),               # MARMAP bottom longline survey (see Tilefish)
                                             "sVL"=c("vll"),              # MARMAP vertical longline survey (see Snowy Grouper)
                                             "sFT"=c("FST"),              # MARMAP Florida Snapper Trap (see Vermilion Snapper)
+                                            "sAN"=c("nad"),              # Northern Adult composite survey index (Menhaden)
+                                            "sAM"=c("mad"),              # Middle Adult composite survey index (Menhaden)
+                                            "sAS"=c("sad"),              # Southern Adult composite survey index (Menhaden)
+                                            "sJA"=c("jai"),              # Juvenile Abundance composite survey index (Menhaden)
+                                            "sME"=c("mareco"),           # MARMAP and ECOMON survey index (Menhaden)
                                             "cDV"=c("cD"),               # Commercial diving (see Gag)
                                             "cHL"=c("cH","cHl"),         # Commercial handlines (a.k.a. commercial lines)
                                             "cLL"=c("cL"),               # Commercial longlines (see Blueline Tilefish)
@@ -38,8 +43,12 @@ standardize_rdat <- function(rdat,
                                             "cPT"=c("cp","cP"),          # Commercial pots (see Black Seabass)
                                             "cTW"=c("cT","cTw", "cHTR"), # Commercial trawl (see Black Seabass, Red Porgy, Vermilion Snapper)
                                             "cGN"=c("comm"),             # Commercial all. general commercial (see Black Seabass "D.comm.ob")
+                                            "cRN"=c("cRn"),              # Commercial Reduction fishery, North  (Menhaden)
+                                            "cRS"=c("cRs"),              # Commercial Reduction fishery, South  (Menhaden)
+                                            "cBN"=c("cBn"),              # Commercial Bait fishery, North  (Menhaden)
+                                            "cBS"=c("cBs"),              # Commercial Reduction fishery, South  (Menhaden)
                                             "rHB"=c("HB","hb","rHb"),    # Recreational headboat
-                                            "rHB.D"=c("hbd","HBD"),      # Recreational headboat discards (atypical abbreviation found in Black Sea Bass selectivity parameters)
+                                            "rHD"=c("hbd","HBD"),        # Recreational headboat discards (atypical abbreviation found in Black Sea Bass selectivity parameters)
                                             "rGN"=c("GR","mrip","rGe","rA")  # Recreational all (a.k.a. general recreational (i.e. not headboat)
                              ),
                            fleet_key_x=c("parms","parm.cons","t.series","comp.mats","sel.age","sel.parms"),

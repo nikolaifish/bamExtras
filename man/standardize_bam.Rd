@@ -15,11 +15,13 @@ standardize_bam(
   nm_pattern = NULL,
   nm_replace = NULL,
   match_whole_words = TRUE,
-  fleet_key = list(sCT = c("CVT"), sTV = c("CVID", "Mcvt", "mcvt"), sVD = c("VID"), sBT
-    = c("Mbft"), sBL = c("sM"), sVL = c("vll"), sFT = c("FST"), cDV = c("cD"), cHL =
+  fleet_key = list(sCT = c("CVT"), sTV = c("CVID", "Mcvt", "mcvt"), sVD = c("VID"), sBT =
+    c("Mbft"), sBL = c("sM"), sVL = c("vll"), sFT = c("FST"), sAN = c("nad"), sAM =
+    c("mad"), sAS = c("sad"), sJA = c("jai"), sME = c("mareco"), cDV = c("cD"), cHL =
     c("cH", "cHl"), cLL = c("cL"), cOT = c("cO"), cPT = c("cp", "cP"), cTW = c("cT",
-    "cTw", "cHTR"), cGN = c("comm"), rHB = c("HB", "hb", "rHb"), rHB_D = c("hbd", "HBD"),
-    rGN = c("GR", "mrip", "rGe", "rA")),
+    "cTw", "cHTR"), cGN = c("comm"), cRN = c("cRn"), cRS = c("cRs"), cBN = c("cBn"), cBS
+    = c("cBs"), rHB = c("HB", "hb", "rHb"), rHD = c("hbd", "HBD"), rGN = c("GR", "mrip",
+    "rGe", "rA")),
   fleet_replace = TRUE
 )
 }
@@ -61,6 +63,7 @@ bam_GrAm <- standardize_bam("GreaterAmberjack")
 bam_ReGr <- standardize_bam("RedGrouper")
 bam_RePo <- standardize_bam("RedPorgy")
 bam_ReSn <- standardize_bam("RedSnapper")
+bam_ScGr <- standardize_bam("ScampGrouper")
 bam_SnGr <- standardize_bam("SnowyGrouper")
 bam_Tile <- standardize_bam("Tilefish")
 bam_VeSn <- standardize_bam("VermilionSnapper")

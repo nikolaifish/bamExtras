@@ -10,12 +10,13 @@ standardize_rdat(
   separator_key_x = names(rdat),
   fleet_replace = TRUE,
   fleet_key = list(sCT = c("CVT"), sTV = c("CVID", "Mcvt"), sVD = c("VID"), sBT =
-    c("Mbft"), sBL = c("sM"), sVL = c("vll"), sFT = c("FST"), cDV = c("cD"), cHL =
+    c("Mbft"), sBL = c("sM"), sVL = c("vll"), sFT = c("FST"), sAN = c("nad"), sAM =
+    c("mad"), sAS = c("sad"), sJA = c("jai"), sME = c("mareco"), cDV = c("cD"), cHL =
     c("cH", "cHl"), cLL = c("cL"), cOT = c("cO"), cPT = c("cp", "cP"), cTW = c("cT",
-    "cTw", "cHTR"), cGN = c("comm"), rHB = c("HB", "hb", "rHb"), rHB.D = c("hbd", "HBD"),
-    rGN = c("GR", "mrip", "rGe", "rA")),
-  fleet_key_x = c("parms", "parm.cons", "t.series", "comp.mats", "sel.age",
-    "sel.parms"),
+    "cTw", "cHTR"), cGN = c("comm"), cRN = c("cRn"), cRS = c("cRs"), cBN = c("cBn"), cBS
+    = c("cBs"), rHB = c("HB", "hb", "rHb"), rHD = c("hbd", "HBD"), rGN = c("GR", "mrip",
+    "rGe", "rA")),
+  fleet_key_x = c("parms", "parm.cons", "t.series", "comp.mats", "sel.age", "sel.parms"),
   parms_key = c(R0 = "BH.R0", M.msst = "M.constant", M.MSST = "M.constant"),
   a_series_key = c(mat.male.endyr = "mat.male", mat.fem.endyr = "mat.female",
     prop.female.endyr = "prop.female"),

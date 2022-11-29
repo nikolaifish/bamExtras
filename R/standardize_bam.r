@@ -27,6 +27,7 @@
 #' bam_ReGr <- standardize_bam("RedGrouper")
 #' bam_RePo <- standardize_bam("RedPorgy")
 #' bam_ReSn <- standardize_bam("RedSnapper")
+#' bam_ScGr <- standardize_bam("ScampGrouper")
 #' bam_SnGr <- standardize_bam("SnowyGrouper")
 #' bam_Tile <- standardize_bam("Tilefish")
 #' bam_VeSn <- standardize_bam("VermilionSnapper")
@@ -46,6 +47,11 @@ standardize_bam <- function(CommonName=NULL,
                                            "sBL"=c("sM"),               # MARMAP bottom longline survey (see Tilefish)
                                            "sVL"=c("vll"),              # MARMAP vertical longline survey (see Snowy Grouper)
                                            "sFT"=c("FST"),              # MARMAP Florida Snapper Trap (see Vermilion Snapper)
+                                           "sAN"=c("nad"),              # Northern Adult composite survey index (Menhaden)
+                                           "sAM"=c("mad"),              # Middle Adult composite survey index (Menhaden)
+                                           "sAS"=c("sad"),              # Southern Adult composite survey index (Menhaden)
+                                           "sJA"=c("jai"),              # Juvenile Abundance composite survey index (Menhaden)
+                                           "sME"=c("mareco"),           # MARMAP and ECOMON survey index (Menhaden)
                                            "cDV"=c("cD"),               # Commercial diving (see Gag)
                                            "cHL"=c("cH","cHl"),         # Commercial handlines (a.k.a. commercial lines)
                                            "cLL"=c("cL"),               # Commercial longlines (see Blueline Tilefish)
@@ -53,9 +59,13 @@ standardize_bam <- function(CommonName=NULL,
                                            "cPT"=c("cp","cP"),          # Commercial pots (see Black Seabass)
                                            "cTW"=c("cT","cTw", "cHTR"), # Commercial trawl (see Black Seabass, Red Porgy, Vermilion Snapper)
                                            "cGN"=c("comm"),             # Commercial all. general commercial (see Black Seabass "D.comm.ob")
+                                           "cRN"=c("cRn"),              # Commercial Reduction fishery, North  (Menhaden)
+                                           "cRS"=c("cRs"),              # Commercial Reduction fishery, South  (Menhaden)
+                                           "cBN"=c("cBn"),              # Commercial Bait fishery, North  (Menhaden)
+                                           "cBS"=c("cBs"),              # Commercial Reduction fishery, South  (Menhaden)
                                            "rHB"=c("HB","hb","rHb"),    # Recreational headboat
-                                           "rHB_D"=c("hbd","HBD"),      # Recreational headboat discards (atypical abbreviation found in Black Sea Bass selectivity parameters)
-                                           "rGN"=c("GR","mrip","rGe","rA")  # Recreational all (a.k.a. general recreational (i.e. not headboat)
+                                           "rHD"=c("hbd","HBD"),      # Recreational headboat discards (atypical abbreviation found in Black Sea Bass selectivity parameters)
+                                           "rGN"=c("GR","mrip","rGe","rA")  # Recreational all (a.k.a. general recreational, i.e. not headboat)
                             ),
                             fleet_replace = TRUE
 ){
@@ -114,18 +124,18 @@ standardize_bam <- function(CommonName=NULL,
 
   ## Discards
   # styr_D
-  nm1_styr_D <- inm[grepl("^styr_.*_D$",inm)]
+  nm1_styr_D <- inm[grepl("^styr(?!.*(cpue|lenc|agec)).*_D$",inm,perl=TRUE)]
   nm2_styr_D <- paste0("styr_D_",gsub("^styr_|_D$","",nm1_styr_D))
 
   # endyr_D
-  nm1_endyr_D <- inm[grepl("^endyr_.*_D$",inm)]
+  nm1_endyr_D <- inm[grepl("^endyr(?!.*(cpue|lenc|agec)).*_D$",inm,perl=TRUE)]
   nm2_endyr_D <- paste0("endyr_D_",gsub("^endyr_|_D$","",nm1_endyr_D))
 
   # obs_released (undead discards)
   nm1_obs_D <- inm[grepl("^obs_.*_released$",inm)]
   nm2_obs_D <- paste0("obs_released_",gsub("^obs_|_released$","",nm1_obs_D))
 
-  # obs_cv_D (landings cvs)
+  # obs_cv_D (discards cvs)
   nm1_obs_cv_D <- inm[grepl("_D_cv",inm)]
   nm2_obs_cv_D <- paste0("obs_cv_D_",gsub("_D_cv","",nm1_obs_cv_D))
 
@@ -188,28 +198,28 @@ standardize_bam <- function(CommonName=NULL,
 
   ## Length comps pooled (not in most assessments)
   # nyr_lenc_pool
-  nm1_nyr_lenc_pool <- inm[grepl("^nyr_.*_lenc_pool$",inm)]
-  nm2_nyr_lenc_pool <- paste0("nyr_lenc_pool_",gsub("^nyr_|_lenc_pool$","",nm1_nyr_lenc_pool))
+  nm1_nyr_lenc_pool <- inm[grepl("^nyr.*lenc.*pool",inm)]
+  nm2_nyr_lenc_pool <- paste0("nyr_lenc_pool_",gsub("nyr|lenc|pool|_","",nm1_nyr_lenc_pool))
 
   # yrs_lenc_pool
-  nm1_yrs_lenc_pool <- inm[grepl("^yrs_.*_lenc_pool$",inm)]
-  nm2_yrs_lenc_pool <- paste0("yrs_lenc_pool_",gsub("^yrs_|_lenc_pool$","",nm1_yrs_lenc_pool))
+  nm1_yrs_lenc_pool <- inm[grepl("^yrs.*lenc.*pool",inm)]
+  nm2_yrs_lenc_pool <- paste0("yrs_lenc_pool_",gsub("yrs|lenc|pool|_","",nm1_yrs_lenc_pool))
 
   # nsamp_lenc_pool
-  nm1_nsamp_lenc_pool <- inm[grepl("^nsamp_.*_lenc_pool$",inm)]
-  nm2_nsamp_lenc_pool <- paste0("nsamp_lenc_pool_",gsub("^nsamp_|_lenc_pool$","",nm1_nsamp_lenc_pool))
+  nm1_nsamp_lenc_pool <- inm[grepl("^nsamp.*lenc.*pool",inm)]
+  nm2_nsamp_lenc_pool <- paste0("nsamp_lenc_pool_",gsub("nsamp|lenc|pool|_","",nm1_nsamp_lenc_pool))
 
   # nfish_lenc_pool
-  nm1_nfish_lenc_pool <- inm[grepl("^nfish_.*_lenc_pool$",inm)]
-  nm2_nfish_lenc_pool <- paste0("nfish_lenc_pool_",gsub("^nfish_|_lenc_pool$","",nm1_nfish_lenc_pool))
+  nm1_nfish_lenc_pool <- inm[grepl("^nfish.*lenc.*pool",inm)]
+  nm2_nfish_lenc_pool <- paste0("nfish_lenc_pool_",gsub("nfish|lenc|pool|_","",nm1_nfish_lenc_pool))
 
   # obs_lenc_pool
-  nm1_obs_lenc_pool <- inm[grepl("^obs_.*_lenc_pool$",inm)]
-  nm2_obs_lenc_pool <- paste0("obs_lenc_pool_",gsub("^obs_|_lenc_pool$","",nm1_obs_lenc_pool))
+  nm1_obs_lenc_pool <- inm[grepl("^obs.*lenc.*pool",inm)]
+  nm2_obs_lenc_pool <- paste0("obs_lenc_pool_",gsub("obs|lenc|pool|_","",nm1_obs_lenc_pool))
 
   # pred_lenc_pool (not in dat, but in tpl and cxx)
-  nm1_pred_lenc_pool <- inm[grepl("^pred_.*_lenc_pool$",inm)]
-  nm2_pred_lenc_pool <- paste0("pred_lenc_pool_",gsub("^pred_|_lenc_pool$","",nm1_pred_lenc_pool))
+  nm1_pred_lenc_pool <- inm[grepl("^pred.*lenc.*pool",inm)]
+  nm2_pred_lenc_pool <- paste0("pred_lenc_pool_",gsub("pred|lenc|pool|_","",nm1_pred_lenc_pool))
 
   ## Age comps
   # nyr_agec
@@ -294,7 +304,7 @@ standardize_bam <- function(CommonName=NULL,
 
   # set_log_dev_vals_F_L
   nm1_set_log_dev_vals_F_L <- inm[grepl("^set_log_F_dev(?!.*_D_)(?!.*_D$).*(?=.*vals)",inm,perl=TRUE)]
-  nm2_set_log_dev_vals_F_L <- paste("set_log_dev_vals_F_L",gsub("^set_log_F_dev|_L[_$]|_D[$_]|(_vals)","",nm1_set_log_dev_vals_F_L),sep="_")
+  nm2_set_log_dev_vals_F_L <- paste0("set_log_dev_vals_F_L_",gsub("^set_log_F_dev|[^a-zA-Z0-9][LD][^a-zA-Z0-9]|(vals)|_","",nm1_set_log_dev_vals_F_L,perl=TRUE))
 
   # set_log_dev_F_L
   # nm1_set_log_dev_F_L <- inm[grepl("^set_log_F_dev_.*[^_vals|_D]$",inm)]
@@ -311,7 +321,7 @@ standardize_bam <- function(CommonName=NULL,
 
   # set_log_dev_vals_F_D
   nm1_set_log_dev_vals_F_D <- inm[grepl("^set_log_F_dev(?=.*vals)(?=.*_D)",inm,perl = TRUE)]
-  nm2_set_log_dev_vals_F_D <- paste0("set_log_dev_vals_F_D_",gsub("^set_log_F_dev|L_|_D[$_]|(_vals)","",nm1_set_log_dev_vals_F_D))
+  nm2_set_log_dev_vals_F_D <- paste0("set_log_dev_vals_F_D_",gsub("^set_log_F_dev|[^a-zA-Z0-9][LD][^a-zA-Z0-9]|(vals)|_","",nm1_set_log_dev_vals_F_D,perl=TRUE))
 
   # set_log_dev_F_D
   # nm1_set_log_dev_F_D <- inm[grepl("^set_log_F_dev_.*_D$",inm)]
@@ -430,7 +440,7 @@ standardize_bam <- function(CommonName=NULL,
     nm2 <- c(nm2,nm_replace)
   }
 
-  # Identify which elements on nm1 were found in inm and remove those elements from nm1 and nm2
+  # Identify which elements in nm1 were found in inm and remove those elements from nm1 and nm2
   ef <- unlist(lapply(nm1,function(x){length(x)!=0}))
   nm1 <- unlist(nm1[ef])
   nm2 <- unlist(nm2[ef])

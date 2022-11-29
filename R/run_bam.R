@@ -37,6 +37,7 @@
 #' rdat_ReGr <- run_bam("RedGrouper")
 #' rdat_RePo <- run_bam("RedPorgy")
 #' rdat_ReSn <- run_bam("RedSnapper")
+#' rdat_ScGr <- run_bam("ScampGrouper")
 #' rdat_SnGr <- run_bam("SnowyGrouper")
 #' rdat_Tile <- run_bam("Tilefish")
 #' rdat_VeSn <- run_bam("VermilionSnapper")

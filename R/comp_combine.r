@@ -15,7 +15,6 @@
 #' }
 #'
 
-# scale_prop_min_n: integer. The assumed minimum number of fish in a row of each comp matrix. Used when approximating numbers.
 comp_combine <- function(comp_list, FUN=function(x){sum(x,na.rm=TRUE)},scale_rows=TRUE){
   # Identify the complete set of row and column names for all comp matrices
   all.rownames <- sort(unique(unlist(lapply(comp_list,rownames))))

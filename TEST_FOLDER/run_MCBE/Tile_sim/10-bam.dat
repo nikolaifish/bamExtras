@@ -1,0 +1,456 @@
+##  Author: NMFS, Beaufort Lab, Sustainable Fisheries Branch
+##  Analyst: Nikolai Klibansky
+##  Species: Golden Tilefish
+##  Region: US South Atlantic
+##  SEDAR: 66
+##  Date: 2022-10-25 15:21:35
+
+
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+###################################################################
+##  BAM Data Input File ###########################################
+###################################################################
+##  Author: NMFS, Beaufort Lab, Sustainable Fisheries Branch
+##  Analyst: Nikolai Klibansky
+##  Species: Golden Tilefish
+##  Region: US South Atlantic
+##  SEDAR: 66
+##  Date: 2021-05-12 17:25:37
+###################################################################
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+##-- BAM DATA SECTION: set-up section
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+
+1972 # styr: Start year of model
+2018 # endyr: End year of model
+
+1982 # styr_rec_dev: Start year to estimate recruitment deviation from S-R curve
+2011 # endyr_rec_dev: End year to estimate recruitment deviation from S-R curve
+
+## Periods of constraints on recruitment deviations ##
+1985 # endyr_rec_phase1: end year of recruitment phase 1
+2008 # endyr_rec_phase2: end year of recruitment phase 2
+
+## Period for averaging recruitment values, when specifying alternative recruitment values for end of assessment ##
+2006 # styr_rec_alt1
+2011 # endyr_rec_alt1
+0 # rec_alt1_switch (0 = don't use alternative recruitment values, 1 = use alternative recruitment values
+
+## Ending years for selectivity periods
+2008 # endyr_selex_phase1
+
+## <> Section of tpl initializing nyrs and nyrs_rec  <> ##
+# Number of assessment years (calculated below)
+# number nyrs;
+# number nyrs_rec;
+
+# Note: LOCAL_CALCS sections MUST BE INDENTED
+# LOCAL_CALCS
+#   nyrs=endyr-styr+1.;
+#   nyrs_rec=endyr_rec_dev-styr_rec_dev+1.;
+# END_CALCS
+## <><><><><><><><><><><><><><><><><><><><><><><><><><> ##
+
+## Ages setup ##
+20 # nages: Total number of ages in population model
+# agebins: Vector of ages in population model
+1.0	2.0	3.0	4.0	5.0	6.0	7.0	8.0	9.0	10.0	11.0	12.0	13.0	14.0	15.0	16.0	17.0	18.0	19.0	20.0 # LINETAG: agebins
+# nages_agec: Total number of ages used to match age comps (plus group may differ from popn, first age must not)
+20 # LINETAG: nages_agec
+# nages_agec_sBL: Total number of ages used to match age comps (plus group may differ from popn, first age must not)
+16 # LINETAG: nages_agec_sBL
+# agebins_agec: Vector of ages in age comps
+1.0	2.0	3.0	4.0	5.0	6.0	7.0	8.0	9.0	10.0	11.0	12.0	13.0	14.0	15.0	16.0	17.0	18.0	19.0	20.0 # LINETAG: agebins_agec
+# agebins_agec_sBL: Vector of ages in age comps
+1.0	2.0	3.0	4.0	5.0	6.0	7.0	8.0	9.0	10.0	11.0	12.0	13.0	14.0	15.0	16.0 # LINETAG: agebins_agec_sBL
+
+## Lengths setup ##
+23 # nlenbins: Number of length bins used to match length comps
+30 # lenbins_width: Width of length bins used to match length comps
+# lenbins: Vector of lengths for length bins
+340	370	400	430	460	490	520	550	580	610	640	670	700	730	760	790	820	850	880	910	940	970	1000 # LINETAG: lenbins
+
+3 # max_F_spr_msy: Max F used in spr and msy calcs
+
+1001 # n_iter_spr: Total number of iterations for spr calcs
+
+1001 # n_iter_msy: Total number of iterations for msy calcs
+
+1982 # styr_rec_spr: Start year to compute arithmetic average recruitment for SPR-related values
+2018 # endyr_rec_spr: End year to compute arithmetic average recruitment for SPR-related values
+
+## <> Section of tpl initializing nyrs_rec_spr   <> ##
+# nyrs_rec_spr: Number of years to compute arithmetic average recruitment for SPR-related values
+#number nyrs_rec_spr;
+# LOCAL_CALCS
+#   nyrs_rec_spr=endyr_rec_spr-styr_rec_spr+1.;
+# END_CALCS
+## <><><><><><><><><><><><><><><><><><><><><><><><> ##
+
+3 # selpar_n_yrs_wgted: Number years at end of time series over which to average sector F-values, for weighted selectivities
+
+-1 # set_BiasCor: Multiplicative bias correction of recruitment (may set to 1.0 for none or negative to compute from recruitment variance)
+
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+##-- BAM DATA SECTION: observed data section
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+
+## cHL ##
+## LANDINGS ##
+1972 # styr_L_cHL: Start year of landings
+2018 # endyr_L_cHL: End year of landings
+# obs_L_cHL: Observed landings
+0.4219	2.1620	5.1710	9.4200	9.2920	8.4180	22.3200	15.2900	44.5800	130.4000	245.8000	96.7500	69.3400	64.0800	60.4100	21.3100	33.7400	52.4800	47.2100	53.1900	47.7800	13.1400	94.7500	76.1100	37.4300	41.5400	34.1300	30.4700	47.1700	130.4000	118.4000	68.5600	38.2300	35.4800	37.6700	36.3000	20.6400	12.1600	21.7500	9.3830	53.8300	37.8600	114.5000	116.3000	98.7100	106.5000	50.0200 # LINETAG: obs_L_cHL
+# obs_cv_L_cHL: Observed landings CV
+0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500 # LINETAG: obs_cv_cHL_L
+
+
+
+# CHUNKTAG_BEGIN: agec_cHL
+## AGE COMPOSITION ##
+# nyr_agec_cHL: Number of years of age composition data
+16
+# yrs_agec_cHL: Vector of years of age composition data
+1997	1998	1999	2000	2001	2002	2004	2005	2006	2007	2012	2013	2014	2015	2016	2017
+# nsamp_agec_cHL: sample sizes (number of trips) for age comps by year
+5	5	5	11	5	20	9	10	6	12	21	18	35	25	39	21
+# nfish_agec_cHL: sample sizes (number of fish) for age comps by year
+102	39	34	237	44	195	241	255	196	272	454	262	462	177	197	115
+# obs_agec_cHL:  age composition by year (matrix where rows = year and col = agebin)
+0.0000	0.0000	0.0000	0.0098	0.0784	0.0588	0.2157	0.1373	0.2451	0.1667	0.0490	0.0098	0.0098	0.0098	0.0098	0.0000	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0000	0.0256	0.2051	0.0256	0.0000	0.2564	0.3333	0.1026	0.0256	0.0256	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0294	0.0882	0.1765	0.2059	0.0294	0.0882	0.2059	0.1471	0.0000	0.0000	0.0000	0.0000	0.0294	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0084	0.0506	0.1308	0.3797	0.1899	0.0591	0.0295	0.0675	0.0380	0.0295	0.0000	0.0084	0.0042	0.0000	0.0000	0.0042	0.0000
+0.0000	0.0000	0.0682	0.0682	0.1364	0.1136	0.1591	0.1818	0.0682	0.0682	0.0909	0.0000	0.0227	0.0227	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0103	0.1744	0.2000	0.1436	0.0718	0.0821	0.0872	0.0872	0.0256	0.0359	0.0308	0.0051	0.0051	0.0205	0.0103	0.0000	0.0000	0.0103
+0.0000	0.0000	0.0000	0.0083	0.0456	0.1743	0.3444	0.2282	0.0622	0.0581	0.0332	0.0332	0.0083	0.0000	0.0041	0.0000	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0039	0.0745	0.1333	0.2314	0.2706	0.0902	0.0431	0.0431	0.0235	0.0078	0.0314	0.0196	0.0118	0.0078	0.0000	0.0000	0.0078
+0.0000	0.0000	0.0000	0.0153	0.1531	0.2398	0.2245	0.1480	0.1327	0.0408	0.0051	0.0153	0.0102	0.0051	0.0000	0.0000	0.0000	0.0000	0.0000	0.0102
+0.0000	0.0000	0.0000	0.0000	0.0551	0.2096	0.2904	0.2022	0.0699	0.0294	0.0110	0.0331	0.0404	0.0221	0.0000	0.0000	0.0037	0.0000	0.0037	0.0294
+0.0000	0.0000	0.0220	0.1145	0.2621	0.0859	0.0551	0.1388	0.1189	0.0903	0.0374	0.0308	0.0242	0.0022	0.0088	0.0022	0.0066	0.0000	0.0000	0.0000
+0.0000	0.0115	0.0458	0.0916	0.1412	0.0534	0.0802	0.0649	0.1069	0.1183	0.0649	0.0954	0.0382	0.0153	0.0382	0.0191	0.0000	0.0115	0.0038	0.0000
+0.0000	0.0000	0.0022	0.0368	0.0952	0.0952	0.0476	0.1169	0.1407	0.0887	0.1061	0.0649	0.0649	0.0433	0.0195	0.0281	0.0043	0.0000	0.0043	0.0411
+0.0000	0.0000	0.0000	0.0056	0.0339	0.0904	0.2655	0.0904	0.1017	0.0395	0.0734	0.1017	0.0395	0.0621	0.0226	0.0000	0.0113	0.0169	0.0000	0.0452
+0.0000	0.0000	0.0000	0.0102	0.0660	0.1117	0.1574	0.1117	0.0812	0.0609	0.0914	0.0812	0.0406	0.0203	0.0558	0.0355	0.0305	0.0102	0.0152	0.0203
+0.0000	0.0000	0.0000	0.0000	0.0087	0.0783	0.2348	0.1043	0.1304	0.1478	0.0870	0.0522	0.0087	0.0783	0.0000	0.0174	0.0348	0.0174	0.0000	0.0000
+# CHUNKTAG_END: agec_cHL
+
+
+## cLL ##
+## CPUE ##
+1993 # styr_cpue_cLL: Start year of index
+2006 # endyr_cpue_cLL: Start year of index
+# obs_cpue_cLL: Observed index
+0.9014	0.8342	0.7990	0.5361	0.7953	1.0080	0.9143	1.3260	0.8442	0.8949	0.7985	0.9038	1.8640	1.5800 # LINETAG: obs_cpue_cLL
+# obs_cv_cpue_cLL: Observed index CV
+0.053	0.069	0.072	0.062	0.060	0.076	0.079	0.078	0.065	0.117	0.089	0.085	0.104	0.093 # LINETAG: obs_cv_cpue_cLL
+
+## LANDINGS ##
+1972 # styr_L_cLL: Start year of landings
+2018 # endyr_L_cLL: End year of landings
+# obs_L_cLL: Observed landings
+5.0230	24.0200	59.0100	107.2000	109.7000	40.5200	56.2400	85.4900	139.4000	696.2000	2470.0000	1357.0000	912.5000	895.2000	941.7000	251.6000	456.5000	714.2000	711.2000	692.4000	842.2000	840.9000	648.7000	550.5000	283.5000	277.7000	278.9000	428.9000	590.9000	225.1000	197.0000	133.8000	193.1000	217.6000	354.9000	230.9000	274.2000	312.8000	318.2000	313.8000	408.1000	471.2000	496.1000	397.3000	389.6000	399.3000	234.6000 # LINETAG: obs_L_cLL
+# obs_cv_L_cLL: Observed landings CV
+0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500 # LINETAG: obs_cv_cHL_L
+
+
+# CHUNKTAG_BEGIN: agec_cLL
+## AGE COMPOSITION ##
+# nyr_agec_cLL: Number of years of age composition data
+22
+# yrs_agec_cLL: Vector of years of age composition data
+1992	1993	1995	1997	2000	2001	2003	2004	2005	2006	2007	2008	2009	2010	2011	2012	2013	2014	2015	2016	2017	2018
+# nsamp_agec_cLL: sample sizes (number of trips) for age comps by year
+7	15	25	7	16	11	10	5	6	39	46	27	26	30	22	48	25	16	21	31	35	35
+# nfish_agec_cLL: sample sizes (number of fish) for age comps by year
+100	186	374	186	270	223	148	119	110	796	1115	681	749	863	528	1264	531	387	446	656	591	651
+# obs_agec_cLL: age composition by year (matrix where rows = year and col = agebin)
+0.0000	0.0000	0.0000	0.0000	0.0300	0.0800	0.3100	0.1900	0.1800	0.1100	0.0400	0.0000	0.0000	0.0200	0.0200	0.0200	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0000	0.1022	0.2419	0.1774	0.0968	0.0860	0.0323	0.0484	0.0484	0.0161	0.0161	0.0108	0.0699	0.0484	0.0000	0.0000	0.0054
+0.0000	0.0000	0.0000	0.0000	0.0294	0.1176	0.2246	0.2380	0.2086	0.1123	0.0107	0.0160	0.0053	0.0134	0.0080	0.0080	0.0000	0.0027	0.0027	0.0027
+0.0000	0.0000	0.0000	0.0108	0.0753	0.0645	0.0968	0.1129	0.1989	0.1828	0.1344	0.0645	0.0215	0.0108	0.0161	0.0000	0.0000	0.0000	0.0054	0.0054
+0.0000	0.0000	0.0000	0.0296	0.0148	0.1407	0.1852	0.1778	0.1074	0.0778	0.0444	0.0519	0.0519	0.0259	0.0222	0.0111	0.0111	0.0000	0.0037	0.0444
+0.0000	0.0000	0.0000	0.0000	0.0628	0.0942	0.1659	0.1480	0.1031	0.1166	0.0583	0.0628	0.0000	0.0538	0.0045	0.0000	0.0224	0.0179	0.0090	0.0807
+0.0000	0.0000	0.0000	0.0000	0.0000	0.1014	0.1284	0.3581	0.1622	0.0878	0.0473	0.0270	0.0405	0.0203	0.0000	0.0270	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0336	0.1008	0.1429	0.2101	0.2437	0.0672	0.1176	0.0504	0.0000	0.0252	0.0000	0.0084	0.0000	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0000	0.0000	0.0091	0.1455	0.1364	0.1909	0.0636	0.1000	0.1818	0.0455	0.0182	0.0364	0.0364	0.0000	0.0273	0.0000	0.0091
+0.0000	0.0000	0.0038	0.0025	0.0251	0.0704	0.1420	0.1621	0.1796	0.1407	0.0829	0.0741	0.0364	0.0364	0.0063	0.0088	0.0013	0.0088	0.0000	0.0188
+0.0000	0.0000	0.0000	0.0000	0.0063	0.0529	0.1632	0.1184	0.1462	0.1722	0.0897	0.0897	0.0547	0.0350	0.0099	0.0170	0.0072	0.0081	0.0099	0.0197
+0.0000	0.0000	0.0000	0.0000	0.0000	0.0426	0.1057	0.2129	0.1336	0.1821	0.1410	0.0690	0.0162	0.0323	0.0132	0.0206	0.0044	0.0029	0.0103	0.0132
+0.0000	0.0000	0.0000	0.0000	0.0000	0.0214	0.1575	0.2056	0.1669	0.1068	0.1268	0.0734	0.0534	0.0240	0.0080	0.0147	0.0053	0.0040	0.0067	0.0254
+0.0000	0.0000	0.0000	0.0000	0.0000	0.0070	0.0545	0.0927	0.1321	0.1530	0.1367	0.1170	0.0753	0.0730	0.0475	0.0324	0.0058	0.0185	0.0081	0.0463
+0.0000	0.0000	0.0000	0.0000	0.0000	0.0246	0.0795	0.1742	0.2273	0.1420	0.1174	0.0511	0.0814	0.0568	0.0189	0.0095	0.0057	0.0038	0.0000	0.0076
+0.0000	0.0000	0.0000	0.0032	0.0119	0.0285	0.0625	0.1155	0.1551	0.1812	0.1725	0.1005	0.0538	0.0514	0.0174	0.0206	0.0047	0.0095	0.0024	0.0095
+0.0000	0.0000	0.0000	0.0038	0.0245	0.0282	0.0320	0.1017	0.1205	0.1525	0.1318	0.1055	0.0866	0.0659	0.0452	0.0358	0.0188	0.0151	0.0019	0.0301
+0.0000	0.0000	0.0000	0.0000	0.0207	0.0310	0.0207	0.1034	0.1111	0.1344	0.1499	0.1447	0.0724	0.0413	0.0284	0.0336	0.0233	0.0129	0.0207	0.0517
+0.0000	0.0000	0.0000	0.0022	0.0112	0.0314	0.0471	0.0874	0.0852	0.0942	0.1188	0.1413	0.1166	0.0762	0.0269	0.0381	0.0448	0.0247	0.0090	0.0448
+0.0000	0.0000	0.0000	0.0000	0.0000	0.0229	0.0305	0.0884	0.0960	0.0930	0.1220	0.1250	0.0808	0.0823	0.0945	0.0396	0.0244	0.0290	0.0290	0.0427
+0.0000	0.0000	0.0000	0.0000	0.0034	0.0423	0.0964	0.1692	0.1218	0.1794	0.0863	0.0964	0.0474	0.0491	0.0440	0.0288	0.0017	0.0085	0.0017	0.0237
+0.0000	0.0000	0.0000	0.0000	0.0169	0.0384	0.0476	0.1536	0.1198	0.1582	0.1521	0.0891	0.0584	0.0445	0.0261	0.0292	0.0123	0.0092	0.0092	0.0353
+# CHUNKTAG_BEGIN: agec_cLL
+
+## rGN ##
+## LANDINGS ##
+1981 # styr_L_rGN: Start year of landings
+2018 # endyr_L_rGN: End year of landings
+# obs_L_rGN: Observed landings
+891.0000	0.2299	1.8470	34.8700	172.4000	0.3065	13.8500	2.3850	0.2554	1.7750	0.6229	15.9900	0.2481	8.9910	0.2535	6.3500	52.9000	1.6540	5.4260	13.0700	18.7600	11.3400	29.9300	26.5900	126.7000	26.0400	7.1940	0.2386	122.6000	59.3600	47.4100	26.2900	19.8700	20.4800	62.3400	75.1900	19.4300	50.8400 # LINETAG: obs_L_rGN
+# obs_cv_L_rGN: Observed landings CV
+0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500	0.0500 # LINETAG: obs_cv_L_rGN
+
+# CHUNKTAG_BEGIN: lenc_rGN
+## LENGTH COMPOSITION ##
+# nyr_lenc_rGN: Number of years of length composition data
+7
+# yrs_lenc_rGN: Vector of years of length composition data
+2002	2003	2005	2013	2015	2016	2018
+# nsamp_lenc_rGN: sample sizes (number of trips) for length comps by year
+6	7	11	8	19	14	16
+# nfish_lenc_rGN: sample sizes (number of fish) for length comps by year
+28	64	132	27	39	30	27
+# obs_lenc_rGN: length composition by year (matrix where rows = year and col = lenbin)
+0.0000	0.0000	0.0000	0.0000	0.0357	0.1786	0.0357	0.0714	0.1429	0.1786	0.0714	0.0357	0.0714	0.0714	0.0000	0.0000	0.0357	0.0714	0.0000	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0000	0.1250	0.2031	0.2656	0.0938	0.1094	0.0938	0.0938	0.0156	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0303	0.0530	0.1591	0.3409	0.1288	0.1212	0.0455	0.0758	0.0152	0.0303	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0370	0.0000	0.0370	0.0741	0.1852	0.0370	0.1111	0.0741	0.0741	0.0741	0.0370	0.0000	0.0000	0.0000	0.0741	0.0000	0.0000	0.0370	0.0741	0.0741	0.0000
+0.0000	0.0000	0.0000	0.0000	0.0769	0.2051	0.3077	0.1538	0.0256	0.0000	0.0000	0.0513	0.0000	0.0513	0.0513	0.0000	0.0000	0.0256	0.0000	0.0000	0.0000	0.0000	0.0513
+0.0000	0.0000	0.0000	0.0000	0.0333	0.1000	0.1333	0.1000	0.1667	0.0667	0.1667	0.0333	0.0333	0.0000	0.0000	0.0333	0.0333	0.0333	0.0667	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0741	0.0370	0.0370	0.0000	0.1111	0.1111	0.0741	0.2222	0.1111	0.0000	0.0741	0.0000	0.0370	0.0000	0.0000	0.0370	0.0000	0.0000	0.0741	0.0000
+# CHUNKTAG_END: lenc_rGN
+
+## sBL ##
+## CPUE ##
+12 # nyr_cpue_sBL: Number of years of index
+1996	1997	1998	1999	2000	2001	2007	2009	2010	2011	2015	2016 # yrs_cpue_sBL: Years of index
+# obs_cpue_sBL: Observed index
+1.1790	1.8880	1.0960	1.7940	0.5213	1.9130	0.3388	1.7130	0.4710	0.8609	0.1213	0.1034 # LINETAG: obs_cpue_sBL
+# obs_cv_cpue_sBL: Observed index CV
+0.570	0.390	0.570	0.320	0.380	0.360	0.400	0.230	0.240	0.360	0.560	0.520 # LINETAG: obs_cv_cpue_sBL
+
+# CHUNKTAG_BEGIN: agec_sBL
+## AGE COMPOSITION ##
+# nyr_agec_sBL: Number of years of age composition data
+8
+# yrs_agec_sBL: Vector of years of age composition data
+1997	1999	2001	2007	2009	2010	2011	2016
+# nsamp_agec_sBL: sample sizes (number of trips) for age comps by year
+11	19	8	5	21	24	17	9
+# nfish_agec_sBL: sample sizes (number of fish) for age comps by year
+120	156	48	33	206	128	130	25
+# obs_agec_sBL: age composition by year (matrix where rows = year and col = agebin)
+0.0000	0.0000	0.0083	0.0583	0.2083	0.2667	0.0667	0.1083	0.1083	0.0833	0.0833	0.0083	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0000	0.0449	0.1282	0.2500	0.2564	0.1474	0.0385	0.1026	0.0192	0.0128	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0000	0.0208	0.0000	0.0208	0.1042	0.1667	0.2917	0.0833	0.1458	0.0417	0.0208	0.0000	0.1042
+0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.1212	0.2727	0.3333	0.0000	0.1212	0.1515	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0000	0.0000	0.0340	0.1553	0.2282	0.1990	0.1165	0.1019	0.0971	0.0243	0.0049	0.0000	0.0049	0.0340
+0.0000	0.0000	0.0000	0.0000	0.0156	0.0391	0.1250	0.2500	0.1172	0.1641	0.0781	0.1562	0.0078	0.0000	0.0078	0.0391
+0.0000	0.0000	0.0000	0.0000	0.0000	0.0154	0.0538	0.1231	0.1308	0.1692	0.1846	0.0923	0.0923	0.0538	0.0231	0.0615
+0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.1200	0.0000	0.0000	0.2000	0.1200	0.2000	0.1600	0.0800	0.0000	0.1200
+# CHUNKTAG_END: agec_sBL
+
+###--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+###-- BAM DATA SECTION: parameter section
+###--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+######## Point values #########################################
+### prior PDF (1=none, 2=lognormal, 3=normal, 4=beta)
+###############################################################
+##initial # lower # upper #       #  prior  # prior   # prior #
+## guess  # bound # bound # phase #  mean   # var/-CV #  PDF  #
+##--------#-------#-------#-------#---------#---------#-------#
+
+## von Bertalanffy Growth Parameters (population)
+825.1	600	1500	-4	825.1	-0.25	1 # set_Linf: VonBert Linf
+0.189	0.03	0.5	-4	0.189	-0.25	1 # set_K: VonBert K
+-0.47	-4	-0.001	-4	-0.48	-0.25	1 # set_t0: VonBert t0
+
+## von Bertalanffy Growth Parameters (population; females)
+806.3	600	1500	-4	825.1	-0.25	1 # set_Linf_f: VonBert Linf (females)
+0.167	0.03	0.5	-4	0.167	-0.25	1 # set_K_f: VonBert K (females)
+-0.47	-4	-0.001	-4	-0.47	-0.25	1 # set_t0_f: VonBert t0 (females)
+
+0.15	0.05	0.4	1	0.15	-1	1 # set_len_cv: CV of length at age
+
+0.0962	0.08	0.14	-3	0.0962	0.03	1 # set_M_constant: Constant M. Scalar used only for computing MSST
+
+## Spawner-recruit parameters (Initial guesses or fixed values)
+0.8611	0.21	0.99	-4	0.8611	0.14	1 # set_steep: recruitment steepness
+13	8	18	1	13	-0.5	1 # set_log_R0: recruitment log(R0)
+0	-1	1	-4	0	-0.5	1 # set_R_autocorr: recruitment autocorrelation
+0.6381	0.01	1.2	-4	0.6381	0.0225	1 # set_rec_sigma: recruitment standard deviation in log space
+
+## Dirichlet-multinomial overdispersion parameters
+0	-10	10	4	0	-2	3 # set_log_dm_lenc_rGN
+0	-10	10	4	0	-2	3 # set_log_dm_agec_cHL
+0	-10	10	4	0	-2	3 # set_log_dm_agec_cLL
+0	-10	10	4	0	-2	3 # set_log_dm_agec_sBL
+
+## Selectivity parameters (Initial guesses or fixed values)
+6	1	10	3	6	-1	1 # set_selpar_L50_cHL
+6	1	10	3	6	-1	1 # set_selpar_L50_cHL2
+1	0.5	12	4	1	-0.15	1 # set_selpar_slope_cHL
+1	0.05	12	4	1	-0.15	1 # set_selpar_slope_cHL2
+
+7	1	10	3	7	-1	1 # set_selpar_L50_cLL
+8	1	10	3	8	-1	1 # set_selpar_L50_cLL2
+1	0.5	12	4	1	-0.15	1 # set_selpar_slope_cLL
+1	0.1	12	4	1	-0.15	1 # set_selpar_slope_cLL2
+
+4	1	10	3	4	-1	1 # set_selpar_L50_rGN
+5	0.5	12	4	5	-0.15	3 # set_selpar_slope_rGN
+
+6	1	10	3	6	-1	1 # set_selpar_L50_sBL
+1	0.5	12	4	1	-0.15	1 # set_selpar_slope_sBL
+
+## Index catchability parameters (log q)
+-7	-14	-4	1	-8	-0.15	1 # set_log_q_cpue_cLL
+-8	-14	-4	1	-8	-0.15	1 # set_log_q_cpue_sBL
+
+## Initial F
+0.01	0	0.9	-4	0.01	-0.2	1 # set_F_init: F used to initialize population, distributed among fleets in proportion to their early Fs
+
+## mean F values in log space
+-6	-10	0	1	-6	-0.5	1 # set_log_avg_F_L_cHL
+-6	-10	0	1	-6	-0.5	1 # set_log_avg_F_L_cLL
+-6	-10	0	1	-6	-0.5	1 # set_log_avg_F_L_rGN
+
+## Dev vectors: bounds and phases ##
+#########################
+# lower # upper #       #
+# bound # bound # phase #
+#-------#-------#-------#
+-10	10	2 # set_log_dev_F_L_cHL
+-10	10	2 # set_log_dev_F_L_cLL
+-10	10	2 # set_log_dev_F_L_rGN
+
+-5	5	3 # set_log_dev_rec
+-5	3	-3 # set_log_dev_Nage
+
+## Dev vectors: initial values ##
+
+# set_log_dev_vals_F_L_cHL
+0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0 # LINETAG: set_log_dev_vals_F_L_cHL
+# set_log_dev_vals_F_L_cLL
+0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0 # LINETAG: set_log_dev_vals_F_L_cLL
+# set_log_dev_vals_F_L_rGN
+0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0 # LINETAG: set_log_dev_vals_F_L_rGN
+# set_log_dev_vals_rec
+0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0 # LINETAG: set_log_dev_vals_rec
+# set_log_dev_vals_Nage
+0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0 # LINETAG: set_log_dev_vals_Nage
+
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+##-- BAM DATA SECTION: likelihood weights section
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+
+###################Likelihood Component Weighting#################################################################################
+1 # set_w_L: landings
+
+1 # set_w_cpue_cLL
+1 # set_w_cpue_sBL
+
+1 # set_w_lenc_rGN
+
+1 # set_w_agec_cHL
+1 # set_w_agec_cLL
+1 # set_w_agec_sBL
+
+1 # set_w_Nage_init: for fitting initial abundance at age (excluding first age)
+
+1 # set_w_rec: for fitting S-R curve
+0 # set_w_rec_early: additional constraint on early years recruitment
+0 # set_w_rec_end: additional constraint on ending years recruitment
+
+0 # set_w_fullF: penalty for any Fapex>3 (removed in final phase of optimization)
+
+0 # set_w_Ftune: weight applied to tuning F (removed in final phase of optimization)
+
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+##-- BAM DATA SECTION: miscellaneous stuff section
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+
+# length-weight (TL-whole wgt (mt)) coefficients a and b, W=aL^b, (W in mt, TL in mm)
+4.04e-12 # wgtpar_a
+3.155 # wgtpar_b
+
+# weight-gonad weight (whole wgt-gonad weight) coefficients a and b, log(GW)=a+b*log(W) (units=g)
+-9.16802 # gwgtpar_a
+1.70498 # gwgtpar_b
+
+# gutted weight to whole weight conversion WW=c*GW
+1.05893 # gut2whole
+
+# obs_maturity_f: proportion females mature at age
+0.10	0.25	0.50	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00
+
+# obs_maturity_m: proportion males mature at age
+1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00	1.00
+
+# obs_prop_f: proportion female at age
+0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50	0.50
+
+# spawn_time_frac: time of year of peak spawning, as a fraction of the year
+0.42
+
+# set_M: Age-dependent natural mortality (used in model)
+0.275	0.2014	0.1652	0.1439	0.1301	0.1206	0.1137	0.1085	0.1046	0.1017	0.0993	0.0974	0.0959	0.0947	0.0937	0.093	0.0923	0.0918	0.0914	0.091
+
+# max observed age, used to scale M, if estimated
+40 # max_obs_age
+
+# Switch for spawner-recruit function (integer 1=Beverton-Holt, 2=Ricker, 3=None (constant average recruitment))
+1 # SR_switch
+
+# Switch for rate increase in q: Integer value (choose estimation phase, negative value turns it off)
+-1 # set_q_rate_phase
+
+# annual positive rate of increase on all fishery dependent q's due to technology creep
+0 # q_rate
+
+# density dependence on fishery q
+-1 # set_q_DD_phase: value sets estimation phase of random walk, negative value turns it off
+0 # set_q_DD_beta: density dependent catchability exponent, value of zero is density independent, est range is (0.1,0.9)
+0.128 # set_q_DD_beta_se: SE of density dependent catchability exponent (0.128 provides 95% CI in range 0.5)
+4 # set_q_DD_stage: Age to begin counting biomass and D-D q. Should be near full exploitation
+
+# Random walk switch:Integer value (choose estimation phase, negative value turns it off)
+-3 # set_q_RW_phase
+# Variance (sd^2) of fishery dependent random walk catchabilities (0.03 is near the sd=0.17 of Wilberg and Bence
+0.03 # set_q_RW_rec_var
+
+# Tuning F (not applied in last phase of optimization, or not applied at all if penalty weight=0)
+0.2 # set_Ftune: tuning F
+2010 # set_Ftune_yr: Year for tuning F
+
+# threshold sample sizes for length comps
+1 # minSS_lenc_rGN
+
+# threshold sample sizes for age comps
+1 # minSS_agec_cHL
+1 # minSS_agec_cLL
+1 # minSS_agec_sBL
+
+# age_error: Ageing error matrix (columns are true age, rows are ages as read for age comps: columns should sum to one)
+1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0	0
+0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0	0
+0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0	0
+0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0	0
+0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0	0
+0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0	0
+0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0	0
+0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0	0
+0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0	0
+0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0	0
+0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0	0
+0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0	0
+0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1	0
+0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	1
+
+999 # end of data file flag

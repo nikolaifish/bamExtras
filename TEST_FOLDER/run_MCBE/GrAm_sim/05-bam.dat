@@ -1,0 +1,335 @@
+##  Author: NMFS, Beaufort Lab, Sustainable Fisheries Branch
+##  Analyst: Kevin Craig
+##  Species: Greater Amberjack
+##  Region: US South Atlantic
+##  SEDAR: 59
+##  Date: 2022-10-21 13:48:18
+
+
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+##
+##  Data Input File
+##  GAJ for SEDAR 59
+##
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+##-- BAM DATA SECTION: set-up section
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+
+#Starting and ending year of model
+1980
+2017
+#Starting year to estimate recruitment deviation from S-R curve
+1990
+#Ending year to estimate recruitment deviation from S-R curve
+2017
+#3 phases of constraints on recruitment deviations:
+#allows possible heavier constraint (weights defined later) in early and late period, with lighter constraint in the middle
+#ending years of recruitment constraint phases
+1990
+2017
+#ending years(s) of regulation period
+1991
+#Size limits
+914.4 # 36 inch limit in mm
+711.2 # 28 inch limit in mm
+#Number of ages in population model(16 classes are 1,...,N+) //assumes last age is plus group
+10
+#Vector of agebins, last is a plus group
+1.0	2.0	3.0	4.0	5.0	6.0	7.0	8.0	9.0	10.0
+#Number of ages used to match age comps: first age must be same as popn, plus group may differ
+10
+#Vector of agebins for fitting, last is a plus group
+1.0	2.0	3.0	4.0	5.0	6.0	7.0	8.0	9.0	10.0
+#Number length bins used to match length comps and width of bins
+25 # number bins
+50 # width of bins (mm)
+#Vector of length bins (mm)(midpoint of bin) used to match length comps and bins used to compute plus group
+200	250	300	350	400	450	500	550	600	650	700	750	800	850	900	950	1000	1050	1100	1150	1200	1250	1300	1350	1400
+#Max value of F used in spr and msy calculations
+1
+#Number of iterations in spr and msy calculations
+10001
+#Starting year to compute arithmetic average recruitment for SPR-related values
+1980
+#Ending year to compute arithmetic average recruitment for SPR-related values
+2017
+#Number years at end of time series over which to average sector Fs, for weighted selectivities
+3
+#Multiplicative bias correction of recruitment (may set to 1.0 for none or negative to compute from recruitment variance)
+-1
+
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+##-- BAM DATA SECTION: observed data section
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+
+##########################Fishery independent sampling #####################################################
+##SERFS video index
+#Starting and ending years of the index
+2011
+2017
+#Observed index (numbers) and CVs
+0.7771	1.8120	0.6962	1.1490	0.9054	0.8755	0.7849
+0.21	0.17	0.15	0.12	0.12	0.13	0.15
+
+#########################################Commercial Handline #######################################################
+##Comm handline Index
+##Starting and ending years of CPUE index
+1993
+2017
+##Observed CPUE and CVs
+0.6804	0.8863	0.5846	0.5368	0.8011	0.9085	0.2917	0.5762	0.6896	1.0910	0.9326	1.0390	1.0630	1.4160	0.7041	0.8016	0.7768	1.4110	1.4050	1.4160	1.1330	1.3730	1.0580	1.6640	1.7600
+0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2
+#0.086	0.073	0.064	0.067	0.066	0.077	0.082	0.082	0.064	0.069	0.071	0.071	0.070	0.069	0.077	0.081	0.072	0.064	0.055	0.061	0.055	0.059	0.062	0.055	0.060
+###Starting and ending years for landings time series
+1980
+2017
+##commercial handline landings vector (1000 lb whole weight) and assumed CVs includes other and diving in whole weight-
+62.8900	87.3900	150.7000	104.6000	153.9000	149.2000	401.1000	1029.0000	985.6000	1228.0000	1366.0000	1823.0000	1894.0000	1423.0000	1589.0000	1315.0000	1180.0000	1161.0000	961.1000	765.3000	767.8000	793.2000	744.2000	645.7000	899.1000	891.2000	589.7000	575.7000	770.9000	895.1000	1016.0000	1098.0000	957.2000	823.6000	942.7000	843.6000	874.9000	878.6000
+0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05
+
+#Number and vector of years of age compositions for commercial handline fleet
+14
+2000	2001	2002	2003	2004	2009	2010	2011	2012	2013	2014	2015	2016	2017
+#Sample size of age comp data (first row observed Ntrips, second row Nfish)
+15	26	36	30	15	23	22	18	21	23	39	18	8	12
+68	145	382	344	49	48	62	52	34	61	177	55	36	29
+#commercial handline age comps
+0.0000	0.2206	0.4118	0.1618	0.0735	0.1324	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0759	0.2966	0.4069	0.0966	0.0759	0.0207	0.0207	0.0000	0.0069
+0.0157	0.1230	0.2147	0.3796	0.1466	0.0340	0.0393	0.0314	0.0105	0.0052
+0.0145	0.0523	0.4826	0.2238	0.1134	0.0698	0.0145	0.0145	0.0058	0.0087
+0.0000	0.0408	0.1837	0.6939	0.0000	0.0408	0.0408	0.0000	0.0000	0.0000
+0.0000	0.0208	0.1667	0.5833	0.0417	0.1667	0.0208	0.0000	0.0000	0.0000
+0.0161	0.0000	0.2097	0.5645	0.1774	0.0161	0.0000	0.0000	0.0000	0.0161
+0.0000	0.0385	0.0962	0.2115	0.4038	0.0577	0.1538	0.0385	0.0000	0.0000
+0.0000	0.1765	0.5294	0.0882	0.0882	0.0588	0.0588	0.0000	0.0000	0.0000
+0.0328	0.0000	0.3770	0.5246	0.0328	0.0164	0.0164	0.0000	0.0000	0.0000
+0.0000	0.0056	0.4181	0.1525	0.2260	0.1073	0.0508	0.0339	0.0000	0.0056
+0.0000	0.0000	0.1091	0.4909	0.0909	0.1273	0.0545	0.0727	0.0545	0.0000
+0.0000	0.0000	0.1944	0.5833	0.1389	0.0833	0.0000	0.0000	0.0000	0.0000
+0.0000	0.0000	0.0690	0.2759	0.6552	0.0000	0.0000	0.0000	0.0000	0.0000
+#Commercial handline discards
+#Starting and ending years of discards time series, respectively
+1992
+2017
+#Observed discards (1000s) and assumed CVs
+9.6420	14.2400	18.4100	18.0000	18.0600	17.1600	13.3400	10.9800	11.3200	13.6000	6.8660	1.5970	0.1781	1.3560	0.6841	10.2900	6.4850	0.5515	1.8670	0.7116	2.1170	0.3860	0.5915	2.0050	3.2120	2.2860
+0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05
+
+#########################headboat####################################################################
+#Headboat Index
+#Starting and ending years of CPUE index
+1980
+2017
+#Observed CPUE and CVs
+0.6211	0.5001	0.6311	0.8308	0.6498	0.9624	0.8638	1.2670	0.7691	0.5441	0.7031	0.6979	0.5073	0.7373	0.6691	0.5596	0.7520	0.6865	0.5789	0.8474	1.5240	1.0700	1.1610	1.9660	0.9565	0.6030	0.7912	2.0210	1.8350	1.4590	0.6074	0.4764	0.6859	1.3230	1.3360	1.8250	2.5010	1.4800
+0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2	0.2
+
+#########################Recreational (MRFSS/MRIP)####################################################################
+#Recreational landings
+#Starting and ending years of landings time series, respectively
+1980
+2017
+#Observed general recreational landings (1000s of fish) and assumed CVs general rec + headboat landings
+102.1000	171.0000	86.3400	57.5100	76.8800	102.5000	204.2000	94.9800	149.4000	126.0000	301.1000	89.3600	98.5100	64.3100	89.1100	43.9500	97.6200	22.1500	30.7600	87.9600	51.5700	115.9000	95.1700	85.1300	41.6700	30.4000	122.3000	97.3600	121.9000	95.8700	120.1000	38.9500	87.8700	76.2100	92.9700	172.0000	166.3000	135.4000
+0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05
+#Gen rec Discards
+#Starting and ending years of discards time series, respectively
+1980
+2017
+#Observed discards (1000s) and assumed CVs  general rec + headboat discards
+110.2000	60.7300	61.1000	11.3600	91.5400	79.0600	494.7000	206.0000	48.8700	37.1600	71.2600	275.1000	183.5000	126.3000	36.3000	74.2000	132.5000	27.9700	65.5700	150.8000	89.9500	42.5900	99.6500	116.3000	86.2500	90.5800	83.5300	76.1100	296.6000	187.1000	103.2000	65.7000	97.4300	124.2000	248.7000	302.6000	291.8000	274.1000
+0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05	0.05
+#Number and vector of years of rGN age composition data
+10
+2002	2003	2004	2005	2006	2009	2010	2012	2015	2017
+
+#sample sizes of age comps by year (first row number of trip, second row number of fish)
+71	117	108	87	22	10	11	13	12	20
+216	587	377	358	133	17	11	23	32	17
+#rGN age composition by year (year,age)
+0.1620	0.4306	0.2315	0.1019	0.0417	0.0278	0.0000	0.0046	0.0000	0.0000
+0.0971	0.2794	0.3731	0.1806	0.0239	0.0221	0.0204	0.0017	0.0017	0.0000
+0.0027	0.0716	0.1141	0.4324	0.1857	0.0955	0.0716	0.0027	0.0133	0.0106
+0.0000	0.3073	0.1201	0.1453	0.2039	0.1089	0.0615	0.0531	0.0000	0.0000
+0.0000	0.3910	0.2481	0.2180	0.0451	0.0752	0.0150	0.0075	0.0000	0.0000
+0.0588	0.0000	0.0000	0.2941	0.0000	0.0000	0.6471	0.0000	0.0000	0.0000
+0.0000	0.4545	0.5455	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000
+0.3043	0.0000	0.0000	0.2609	0.1739	0.1304	0.1304	0.0000	0.0000	0.0000
+0.0000	0.4375	0.4375	0.1250	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000
+0.0000	0.2353	0.4706	0.2941	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000
+###rGN discard length comps - comes from the headboat fleet
+## Number and vector of years of length compositions to pool
+5
+2013	2014	2015	2016	2017
+# Annual sample size (ntrips) of length comp data; used to weight years for pooling
+29.0	28.0	28.0	34.0	10.0
+## Number and vector of years of length compositions after pooled
+1
+2013 # for fishgraph only; comps are pooled across years
+## Sample size of length comp data (first row observed n.trips, second row n.fish)
+129.0
+129.0
+## Observed length comps (3cm bins; proportions by year)
+0.0000	0.0000	0.0078	0.0853	0.0543	0.1705	0.1085	0.0155	0.1550	0.2558	0.1318	0.0000	0.0078	0.0078	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000
+
+###--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+###-- BAM DATA SECTION: parameter section
+###--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+#
+###################Parameter values and initial guesses##############################################################################
+#####################################################
+###prior PDF (1=none, 2=lognormal, 3=normal, 4=beta)
+###############################################################
+##initial # lower # upper #       #  prior  # prior   # prior #
+## guess  # bound # bound # phase #  mean   # var/-CV #  PDF  #
+##--------#-------#-------#-------#---------#---------#-------#
+######Population                                               ###### Biological input ####################################
+1204.0	600.0	1500.0	-4	1194	-0.25	1 # VonBert Linf (units in mm TL)
+0.284	0.03	0.5	-4	0.213	-0.25	1 # VonBert K (units in mm TL)
+-0.786	-3.0	-0.01	-4	-0.67	-0.25	1 # VonBert t0 (units in mm TL)
+0.164	0.05	0.3	5	0.09	-0.25	1 # CV of length at age
+##Constant M
+0.1364	0.02	0.5	-3	0.1364	-0.25	1 # constant M (used only to compute MSST=(1-M)SSBmsy)
+###### SR parameters #######################################
+0.8282	0.21	0.99	-3	0.8282	0.021	1 # mu=0.75, var=0.021 provides alpha=5.94 and beta=1.97 estimates from Shertzer and Conn (2012) for beta distn prior
+12.9	10.0	20.0	1	12.9	-0.5	1 # SR log_R0 parameter
+0.0	-1.0	1.0	-3	0.0	-0.5	1 # SR recruitment autocorrelation (lag 1)
+0.5757	0.2	1.2	2	0.5757	0.0225	1 # s.d. of recruitment in log space [SD=0.15=(0.6-0.3)/1.96, puts closest bound at 95%CI: Mertz & Myers report range of (0.3,1.0)]
+0.0	-10.0	10.0	7	0.0	-1.0	1 # Dirichlet-multinomial overdispersion parameter (log-space): rGN disc length comps
+0.0	-10.0	10.0	7	0.0	-2.0	3 # Needed or goes to upper bound Dirichlet-multinomial overdispersion parameter (log-space): cHL age comps
+0.0	-10.0	10.0	7	0.0	-1.0	1 # Dirichlet-multinomial overdispersion parameter (log-space): rGN age comps
+##### Selectivity parameters ########################
+######Commercial lines
+2.0	0.1	8.0	3	3.12	-1.0	1 # BLOCK 1:  cGN handline age at 50% selectivity  ***before size reg
+1.0	0.1	8.0	2	2.70	-1.0	1 # cGN longline slope of ascending limb
+####General rec
+3.0	0.1	10.0	5	1.87	-1.0	1 # BLOCK 1: rGN ONLY  A50
+1.0	0.1	10.0	5	3.21	-1.0	1 # slope of ascending limb
+###commercial handline discards (logit space)
+0.0	-8.0	8.0	-5	0.0	4.0	1
+###Recreational discards
+#-3.0		   -8.0	      8.0	 5	      0.0		4.0	     3
+0	-1.0	10.0	-3	2.0	-0.5	1 # A50
+3	0.1	10	-3	3.0	-0.25	1 # slope
+3	0.0	10.0	4	2.0	-1.0	1 # A502
+1	0.1	10	-4	3.0	-0.25	1 # slope2
+###### Index catchability parameters ########################
+-8.0	-13	-4	1	-8.0	-0.5	1 # cGN handline CPUE (log q)
+-13.0	-20	-8	1	-13.0	-0.5	1 # rHB CPUE (log q)
+-13.0	-20	-4	1	-8.0	-0.5	1 # sVD CPUE (log q)
+###### Fishing mortality parameters #########################
+-3.0	-10.0	1.0	2	-3.0	-0.5	1 # cGN handlines log mean F
+-3.0	-10.0	1.0	2	-3.0	-0.5	1 # rGN log mean F
+-5.0	-10.0	1.0	2	-5.0	-0.5	1 # cGN handline discards log mean F
+-3.0	-10.0	1.0	2	-3.0	-0.5	1 # rGN discards log mean F
+
+##### Dev vectors #####################################################################################
+#########################
+# lower # upper #       #
+# bound # bound # phase #
+#-------#-------#-------#
+-10.0	5.0	2 # cGN handline F devs
+-10.0	5.0	2 # rGN F devs
+-10.0	5.0	2 # cGN handline discard F devs
+-10.0	5.0	2 # rGN discard F devs
+-3.0	3.0	-4 # Random walk on q
+-5.0	5.0	2 # recruitment devs
+-5.0	5.0	-3 # Nage devs
+# commercial handline F dev initial guesses (1980-2017)
+0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+# rGN F dev initial guesses (1980-2017)
+0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+# commercial handline discard F dev initial guesses (1992-2017)
+0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+# rGN discard F dev initial guesses (1980-2017)
+0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+# rec devs  (1990-2017)
+0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0	0
+# initial N age devs, all ages but the first one (10-1)
+0	0	0	0	0	0	0	0	0
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+##-- BAM DATA SECTION: likelihood weights section
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+##################Likelihood Component Weighting#################################################################################
+1 # landings
+1 # discards
+1.92 # cHL index
+0.57 # rHB index
+0.62 # sCT/sVD index
+1 # cHL len comps
+1 # rGN len comps
+1 # rHB disc len comps
+1 # cHL age comps
+1 # rGN age comps
+1 # log N.age.dev residuals (initial abundance)
+1 # S-R residuals
+1 # constraint on early recruitment deviations
+0 # constraint on ending recruitment deviations
+0 # penalty if F exceeds 3.0 (reduced by factor of 10 each phase, not applied in final phase of optimization) fULL F summed over fisheries
+0 # weight on tuning F (penalty not applied in final phase of optimization)
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+##-- BAM DATA SECTION: miscellaneous stuff section
+##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
+#length-weight (TL-whole wgt) coefficients a and b, W=aL^b, (W in g, TL in mm)--sexes combined
+3e-05
+2.815
+#vector of maturity-at-age for females (ages 1-10+)
+0.527	0.890	0.992	1.000	1.000	1.000	1.000	1.000	1.000	1.000
+#0.143	0.627	0.904	0.993	0.994	1.0	1.0	1.0	1.0	1.0
+#vector of maturity-at-age for males (ages 1-10+)
+0.0	1.0	1.0	1.0	1.0	1.0	1.0	1.0	1.0	1.0
+#Proportion female by age
+0.5	0.5	0.5	0.5	0.5	0.5	0.5	0.5	0.5	0.5
+#time of year (as fraction) for spawning: mid-April=115d/365d
+0.315
+#age-dependent natural mortality at age (ages 1-10+)
+0.7987	0.5552	0.448	0.3799	0.3409	0.3214	0.3019	0.2922	0.2825	0.2825
+#Discard mortality constants
+0.1819 # cHL
+0.1858 # rGN
+#Spawner-recruit parameters
+# SR function switch (integer 1=Beverton-Holt, 2=Ricker)
+1
+#switch for rate increase in q: Integer value (choose estimation phase, negative value turns it off)
+-1
+#annual positive rate of increase on all fishery dependent q's due to technology creep
+0
+# DD q switch: Integer value (choose estimation phase, negative value turns it off)
+-1
+#density dependent catchability exponent, value of zero is density independent, est range is (0.1,0.9)
+0
+#SE of density dependent catchability exponent (0.128 provides 95% CI in range 0.5)
+0.128
+#Age to begin counting D-D q (should be age near full exploitation)
+3
+#Variance (sd^2) of fishery dependent random walk catchabilities (0.03 is near the sd=0.17 of Wilberg and Bence)
+0.03
+#Tuning F (not applied in last phase of optimization, or not applied at all if penalty weight=0)
+0.35
+#Year for tuning F
+2012
+#threshold sample sizes ntrips (>=)for length comps (set to 99999.0 if sel is fixed):
+1 # rHB disc len comps
+#threshold sample sizes ntrips (>=) for age comps (set to 99999.0 if sel is fixed)
+1 # cHL age comps
+1 # rGN age comps
+# Projection input
+2026 # Projection end year, must be later than assessment endyr
+2021 # New management start year, must be later than assessment endyr
+3 # Switching indicating value to use for defining projection F: 1=Fcurrent, 2=Fmsy, 3=F30, 4=F40
+1 # Multiplier "c" applied to compute projection F, for example Fproj=cFmsy
+#Ageing error matrix (columns are true age 1-10+, rows are ages as read for age comps: columns should sum to one)
+1.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+0.0	1.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+0.0	0.0	1.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0
+0.0	0.0	0.0	1.0	0.0	0.0	0.0	0.0	0.0	0.0
+0.0	0.0	0.0	0.0	1.0	0.0	0.0	0.0	0.0	0.0
+0.0	0.0	0.0	0.0	0.0	1.0	0.0	0.0	0.0	0.0
+0.0	0.0	0.0	0.0	0.0	0.0	1.0	0.0	0.0	0.0
+0.0	0.0	0.0	0.0	0.0	0.0	0.0	1.0	0.0	0.0
+0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	1.0	0.0
+0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	0.0	1.0
+999 # end of data file flag

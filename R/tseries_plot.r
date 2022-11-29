@@ -1,5 +1,6 @@
-#' Complete a length or age composition data frame so that all have desired dimensions. This is a modified version of comp_complete. The two functions should probably be combined with options to choose between sub-functions.
+#' Time series plot
 #'
+#' This is a simple plotting fucntion that is useful when plotting time series typically found in stock assessments (e.g. catch, indices)
 #' @param x data frame of mean observations by year, where columns are different groups (e.g. fleets)
 #' @param err error values for each value in x. Must be same dimensions as x
 #' @param errType type of error provided: "cv"= coefficient of variation or "sd"=standard deviation. If "cv" then x is multiplied by err to compute sd.

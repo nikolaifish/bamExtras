@@ -9,6 +9,7 @@
 #' @param tpl_obj tpl file read in as a character vector with readLines(con=tpl_file)
 #' @param cxx_obj cxx file read in as a character vector with readLines(con=cxx_file)
 #' @param init user supplied list of tpl "init" object names defined in tpl Data Section. If missing, the function builds one from values in the dat and tpl files.
+#' @param object_labels list of labels for bounded points and vectors
 #' @keywords bam stock assessment fisheries
 #' @export
 #' @examples
@@ -24,6 +25,7 @@
 #' bam_ReGr <- bam2r("RedGrouper")
 #' bam_RePo <- bam2r("RedPorgy")
 #' bam_ReSn <- bam2r("RedSnapper")
+#' bam_ScGr <- bam2r("ScampGrouper")
 #' bam_SnGr <- bam2r("SnowyGrouper")
 #' bam_Tile <- bam2r("Tilefish")
 #' bam_VeSn <- bam2r("VermilionSnapper")
@@ -47,9 +49,13 @@
 
 
 bam2r <- function(CommonName=NULL,init=NULL,
-                     dat_file=NULL,tpl_file=NULL,cxx_file=NULL,
-                     dat_obj=NULL, tpl_obj=NULL,cxx_obj=NULL
-                     ){
+                  dat_file=NULL,tpl_file=NULL,cxx_file=NULL,
+                  dat_obj=NULL, tpl_obj=NULL,cxx_obj=NULL,
+                  object_labels=list("bounded_point"=c("init","lower","upper","phase","prior_mean","prior_var","prior_pdf"),
+                                     "bounded_vector"=c("lower","upper","phase")
+                                     )
+
+){
   fcn_args <- as.list(environment()) # Gets function arguments
 
   if(!is.null(CommonName)){
@@ -188,16 +194,30 @@ bam2r <- function(CommonName=NULL,init=NULL,
     if(type_i%in%c("init_vector","init_ivector")){
       datRow_i <- datRow_first
       # Initialize vector
-      varValueLength_i <- local({
+      varValueNames_i <- local({
         lim1 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][1]
         lim2 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][2]
         lim1 <- type.convert(lim1,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
         lim2 <- type.convert(lim2,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
-        if(is.character(lim1)){lim1 <- get(lim1)}
-        if(is.character(lim2)){lim2 <- get(lim2)}
-        out <- length(lim1:lim2)
-        return(as.numeric(out))
+        if(type_i=="init_vector"&grepl("^set_(?!log_dev_vals)",name_i,perl=TRUE)&lim1==1&lim2%in%c(3,7)){
+          if(lim2==7){
+            out <- object_labels$bounded_point
+          } else if(lim2==3){
+            out <- object_labels$bounded_vector
+          }
+        } else if (grepl("^nyr",lim2)&exists(gsub("nyr","yrs",lim2))){
+        out <- get(gsub("nyr","yrs",lim2))
+          } else if (grepl("^nages",lim2)&exists(paste0("agebins",gsub("nages","",lim2)))){
+            out <- get(paste0("agebins",gsub("nages","",lim2)))[lim1:get(lim2)]
+            } else {
+          if(is.character(lim1)){lim1 <- get(lim1)}
+          if(is.character(lim2)){lim2 <- get(lim2)}
+        out <- lim1:lim2
+        }
+        return(out)
       })
+
+      varValueLength_i <-  as.numeric(length(varValueNames_i))
 
       if(type_i=="init_vector"){
         varValue_i <- vector(mode = "numeric", length = varValueLength_i)
@@ -211,39 +231,51 @@ bam2r <- function(CommonName=NULL,init=NULL,
       #varValue_i <- as.character(strsplit(D_dat_num$value[datRow_i], "\\s+")[[1]])
 
       dat_vals_i <- dat_vals_read_i+(1:varValueLength_i)
-      varValue_i <- dat_vals[dat_vals_i]
+      varValue_i <- setNames(dat_vals[dat_vals_i],varValueNames_i)
       dat_vals_read_i <- tail(dat_vals_i,1) # update value
     }
 
     if(type_i=="init_matrix"){
       datRow_first <- datRow_first # First row of matrix
-      matrix_nrow <- local({
-        rowStart <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][1]
-        rowStart <- type.convert(rowStart,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
-        if(is.character(rowStart)){rowStart <- get(rowStart)}
+      matrix_rownames <- local({
+        rowlim1 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][1]
+        rowlim1 <- type.convert(rowlim1,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
+        if(is.character(rowlim1)){rowlim1 <- get(rowlim1)}
 
-        rowEnd <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][2]
-        rowEnd <- type.convert(rowEnd,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
-        if(is.character(rowEnd)){rowEnd <- get(rowEnd)}
+        rowlim2 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][2]
+        rowlim2 <- type.convert(rowlim2,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
+        if(grepl("^nyr",rowlim2)){
+          out <-  get(gsub("nyr","yrs",rowlim2))
+        } else if (grepl("^nages",rowlim2)&exists(paste0("agebins",gsub("nages","",rowlim2)))){
+          out <- get(paste0("agebins",gsub("nages","",rowlim2)))[rowlim1:get(rowlim2)]
+        } else if(is.character(rowlim2)){
+          rowlim2 <- get(rowlim2)
+          out <- rowlim1:rowlim2
+          }
+      return(out)
+    })
 
-        nrow <- length(rowStart:rowEnd)
+      matrix_nrow <- length(matrix_rownames)
 
-        return(as.numeric(nrow))
+      matrix_colnames <- local({
+        collim1 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][3]
+        collim1 <- type.convert(collim1,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
+        if(is.character(collim1)){collim1 <- get(collim1)}
+
+        collim2 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][4]
+        collim2 <- type.convert(collim2,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
+        if(grepl("^nlenbins",collim2)){
+          out <- get(gsub("^nlenbins","lenbins",collim2))
+        } else if (grepl("^nages",collim2)&exists(paste0("agebins",gsub("nages","",collim2)))){
+          out <- get(paste0("agebins",gsub("nages","",collim2)))[collim1:get(collim2)]
+        } else if(is.character(collim2)&!grepl("^nlenbins",collim2)){
+          collim2 <- get(collim2)
+          out <- collim1:collim2
+        }
+        return(out)
       })
 
-      matrix_ncol <- local({
-        colStart <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][3]
-        colStart <- type.convert(colStart,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
-        if(is.character(colStart)){colStart <- get(colStart)}
-
-        colEnd <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][4]
-        colEnd <- type.convert(colEnd,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
-        if(is.character(colEnd)){colEnd <- get(colEnd)}
-
-        ncol <- length(colStart:colEnd)
-
-        return(as.numeric(ncol))
-      })
+      matrix_ncol <- length(matrix_colnames)
 
       datRow_last <- datRow_first+matrix_nrow-1 # last row of matrix
 
@@ -256,12 +288,13 @@ bam2r <- function(CommonName=NULL,init=NULL,
       varValue_i <- matrix(
         as.character(varValue_i),
         byrow=TRUE,
-        nrow=matrix_nrow, ncol=matrix_ncol)
+        nrow=matrix_nrow, ncol=matrix_ncol,
+        dimnames=list(matrix_rownames,matrix_colnames))
       datRow_i <- datRow_last
     }
     varValue_i <- trimws(varValue_i) # Remove extra whitespace from values
 
-    assign(name_i,varValue_i) # Assign object to global environment (important for defining some later objects)
+    assign(name_i,varValue_i) # Assign object to current environment (important for defining some later objects)
     init[[name_i]] <- varValue_i # Assign value to init
   }
 

@@ -12,13 +12,13 @@
 #' mycol <- rainbow(n) # Opaque rainbow
 #' mycol_tr <- rainbow(n,alpha=myalpha) # Transparent rainbow using alpha argument
 #' mycol_tr2 <- color_trans(mycol,alpha=myalpha) # Transparent rainbow modifing mycol, using alpha argument from color_trans
-
+#'
 #' par(cex=2,pch=16)
 #' plot(1:n,rep(1,n),col=mycol,ylim=c(0,5))
 #' points(1:n,rep(2,n),col=mycol_tr)
 #' points(1:n,rep(3,n),col=mycol_tr2)
-
 #' }
+#'
 
 color_trans <- function(hexcolor,alpha=0.25){
   alpha <- max(min(alpha,1),0) # Constrain alpha between 0 and 1

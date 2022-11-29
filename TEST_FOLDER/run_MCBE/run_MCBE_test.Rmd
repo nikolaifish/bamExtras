@@ -1,0 +1,30 @@
+---
+title: "run_MCBE test"
+author: "Nikolai Klibansky"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: pdf_document
+---
+
+```{r global_options, echo=FALSE, comment=NA, message=FALSE, warning=FALSE}
+library(bamExtras)
+library(knitr)
+
+opts_chunk$set(comment=NA,echo=FALSE,message=FALSE,warning=FALSE,fig.height=6,fig.width=6)
+```
+
+```{r cars}
+run_MCBE("AtlanticMenhaden", dir_bam_base="AtMe_base", dir_bam_sim="AtMe_sim")
+run_MCBE("BlackSeaBass", dir_bam_base="BlSB_base", dir_bam_sim="BlSB_sim")
+run_MCBE("BluelineTilefish", dir_bam_base="BlTi_base", dir_bam_sim="BlTi_sim")
+run_MCBE("Cobia", dir_bam_base="Cobi_base", dir_bam_sim="Cobi_sim")
+run_MCBE("GagGrouper", dir_bam_base="GaGr_base", dir_bam_sim="GaGr_sim")
+run_MCBE("GrayTriggerfish", dir_bam_base="GrTr_base", dir_bam_sim="GrTr_sim")
+run_MCBE("GreaterAmberjack", dir_bam_base="GrAm_base", dir_bam_sim="GrAm_sim")
+run_MCBE("RedGrouper", dir_bam_base="ReGr_base", dir_bam_sim="ReGr_sim")
+run_MCBE("RedPorgy", dir_bam_base="RePo_base", dir_bam_sim="RePo_sim")
+run_MCBE("RedSnapper", dir_bam_base="ReSn_base", dir_bam_sim="ReSn_sim")
+run_MCBE("ScampGrouper", dir_bam_base="ScGr_base", dir_bam_sim="ScGr_sim")
+run_MCBE("SnowyGrouper", dir_bam_base="SnGr_base", dir_bam_sim="SnGr_sim")
+run_MCBE("Tilefish", dir_bam_base="Tile_base", dir_bam_sim="Tile_sim")
+run_MCBE("VermilionSnapper", dir_bam_base="VeSn_base", dir_bam_sim="VeSn_sim")
+```

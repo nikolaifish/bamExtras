@@ -13,7 +13,9 @@ bam2r(
   cxx_file = NULL,
   dat_obj = NULL,
   tpl_obj = NULL,
-  cxx_obj = NULL
+  cxx_obj = NULL,
+  object_labels = list(bounded_point = c("init", "lower", "upper", "phase", "prior_mean",
+    "prior_var", "prior_pdf"), bounded_vector = c("lower", "upper", "phase"))
 )
 
 bam_to_r(
@@ -24,7 +26,9 @@ bam_to_r(
   cxx_file = NULL,
   dat_obj = NULL,
   tpl_obj = NULL,
-  cxx_obj = NULL
+  cxx_obj = NULL,
+  object_labels = list(bounded_point = c("init", "lower", "upper", "phase", "prior_mean",
+    "prior_var", "prior_pdf"), bounded_vector = c("lower", "upper", "phase"))
 )
 }
 \arguments{
@@ -43,6 +47,8 @@ bam_to_r(
 \item{tpl_obj}{tpl file read in as a character vector with readLines(con=tpl_file)}
 
 \item{cxx_obj}{cxx file read in as a character vector with readLines(con=cxx_file)}
+
+\item{object_labels}{list of labels for bounded points and vectors}
 }
 \description{
 This script reads in BAM dat, tpl, and cxx files, and converts them to R objects (character vectors of each line of the code). It also builds an R list on the tpl init objects, from the tpl and dat files.
@@ -60,6 +66,7 @@ bam_GrAm <- bam2r("GreaterAmberjack")
 bam_ReGr <- bam2r("RedGrouper")
 bam_RePo <- bam2r("RedPorgy")
 bam_ReSn <- bam2r("RedSnapper")
+bam_ScGr <- bam2r("ScampGrouper")
 bam_SnGr <- bam2r("SnowyGrouper")
 bam_Tile <- bam2r("Tilefish")
 bam_VeSn <- bam2r("VermilionSnapper")

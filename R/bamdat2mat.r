@@ -48,7 +48,8 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
 
   inm <- names(init)
   inm_return <- c() # Names of objects accounted for in returned object
-  out_list_misc <- list() # Extra stuff to add to the output list
+  out_list_misc <- list() # Extra stuff to add to return from function
+  lh_misc <- list()       # Extra life history stuff to add to out_list_misc
 
   # Data input
   # General
@@ -196,7 +197,7 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
   nm_obs_lenc <- inm[grepl("^obs_lenc",inm)]
   # Assemble obs_lenc data
   abb_lenc <- gsub("obs_lenc_","",nm_obs_lenc) # Fleet abbreviations
-  obs_lenc <- list()
+  obs_lenc <- obs_lenc_nfish <- list()
   nfish_lenc <- matrix(NA,nrow=length(yr),ncol=length(abb_lenc),dimnames=list("year"=yr,"fleet"=abb_lenc))
   nsamp_lenc <- nfish_lenc
   for(i in abb_lenc){
@@ -230,8 +231,16 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
     nfish_lenc[paste(yrs_lenc_i),i] <- as.numeric(nfish_lenc_i)
     nsamp_lenc[paste(yrs_lenc_i),i] <- as.numeric(nsamp_lenc_i)
 
+    # Convert lenc to numbers
+    obs_lenc_nfish_i <- local({
+      a_i <- round(obs_lenc_i*nfish_lenc[,i])
+      a_i[a_i==0] <- 1 # Don't let nfish be less than 1
+      a_i
+    })
+    obs_lenc_nfish[[i]] <- obs_lenc_nfish_i
+
     inm_return <- c(inm_return,nm_obs_lenc_i,nm_yrs_lenc_i,nm_nyr_lenc_i,nm_nfish_lenc_i,nm_nsamp_lenc_i)
-    rm(obs_lenc_matrix_i,obs_lenc_i,yrs_lenc_i,lenbins_i,nfish_lenc_i,nsamp_lenc_i,
+    rm(obs_lenc_matrix_i,obs_lenc_i,obs_lenc_nfish_i,yrs_lenc_i,lenbins_i,nfish_lenc_i,nsamp_lenc_i,
        nm_obs_lenc_i,nm_yrs_lenc_i,nm_nyr_lenc_i,nm_nfish_lenc_i,nm_nsamp_lenc_i)
   }
 
@@ -239,7 +248,7 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
   nm_obs_agec <- inm[grepl("^obs_agec",inm)]
   # Assemble obs_agec data
   abb_agec <- gsub("obs_agec_","",nm_obs_agec) # Fleet abbreviations
-  obs_agec <- list()
+  obs_agec <- obs_agec_nfish <- list()
   nfish_agec <- matrix(NA,nrow=length(yr),ncol=length(abb_agec),dimnames=list("year"=yr,"fleet"=abb_agec))
   nsamp_agec <- nfish_agec
   for(i in abb_agec){
@@ -277,8 +286,16 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
     nfish_agec[paste(yrs_agec_i),i] <- as.numeric(nfish_agec_i)
     nsamp_agec[paste(yrs_agec_i),i] <- as.numeric(nsamp_agec_i)
 
+    # Convert agec to numbers
+    obs_agec_nfish_i <- local({
+      a_i <- round(obs_agec_i*nfish_agec[,i])
+      a_i[a_i==0] <- 1 # Don't let nfish be less than 1
+      a_i
+    })
+    obs_agec_nfish[[i]] <- obs_agec_nfish_i
+
     inm_return <- c(inm_return,nm_obs_agec_i,nm_yrs_agec_i,nm_nyr_agec_i,nm_nfish_agec_i,nm_nsamp_agec_i)
-    rm(obs_agec_matrix_i,obs_agec_i,yrs_agec_i,agebins_i,nfish_agec_i,nsamp_agec_i,
+    rm(obs_agec_matrix_i,obs_agec_i,obs_agec_nfish_i,yrs_agec_i,agebins_i,nfish_agec_i,nsamp_agec_i,
        nm_obs_agec_i,nm_yrs_agec_i,nm_nyr_agec_i,nm_nfish_agec_i,nm_nsamp_agec_i)
   }
 
@@ -300,7 +317,9 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
   nm_set_len1_misc <- nm_set_len1[!nm_set_len1%in%c(nm_set_len1_Dmort,nm_set_len1_q,nm_set_len1_w)]
 
   set_len1_Dmort <- unlist(lapply(init[nm_set_len1_Dmort],as.numeric))
+  if(!is.null(set_len1_Dmort)){
   set_len1_Dmort <- matrix(set_len1_Dmort,ncol=1,dimnames=list(names(set_len1_Dmort),"value"))
+  }
 
   set_len1_q <- unlist(lapply(init[nm_set_len1_q],as.numeric))
   set_len1_q <- matrix(set_len1_q,ncol=1,dimnames=list(names(set_len1_q),"value"))
@@ -328,15 +347,15 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
     for(i in nm_lh_age_avail){
       obj_i <- init[[i]]
       if(is.matrix(obj_i)){
-        out_list_misc[[i]] <- apply(obj_i,2,as.numeric,simplify=TRUE)
+        lh_misc[[i]] <- apply(obj_i,2,as.numeric,simplify=TRUE)
         out_i <- as.numeric(obj_i[nrow(obj_i),])
-        message(paste(i,"is a matrix. lh_age will contain the last row. The full matrix is added to end of output list."))
+        message(paste(i,"is a matrix. lh_age will contain the last row. The full matrix is added to end of the output."))
       }else{
         out_i <- as.numeric(obj_i)
       }
       out[,i] <- out_i
     }
-    out
+    list(lh_age=out,lh_misc=lh_misc)
   })
 
   nm_set_log_F_dev_vals_L <- nm_set_yr[grepl("^set_log_dev_vals_F_L",nm_set_yr)]
@@ -416,7 +435,7 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
     misc_2 <- misc_2[nm_misc_2]
 
   # Build by_age
-    by_age <- cbind(lh_age,set_age,misc_age)
+    by_age <- cbind(lh_age$lh_age,set_age,misc_age)
 
   # Identify any two-dimensional objects in misc_2
     nm_misc_2_mat <- names(misc_2)[unlist(lapply(misc_2,is.matrix))] # Identify matrices
@@ -437,11 +456,13 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
       m
     })
 
+    out_list_misc <- c(out_list_misc,lh_age$lh_misc)
+
   # Output
   out <- c(list(
     init=init,
-    misc_point=misc_1,
-    misc_vector=misc_2_vec_mat,
+    points=misc_1,
+    vectors=misc_2_vec_mat,
     obs_L=obs_L,
     obs_cv_L=obs_cv_L,
     obs_released=obs_released,
@@ -450,6 +471,8 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
     obs_cv_cpue=obs_cv_cpue,
     obs_lenc=obs_lenc,
     obs_agec=obs_agec,
+    obs_lenc_nfish=obs_lenc_nfish,
+    obs_agec_nfish=obs_agec_nfish,
     nfish_lenc=nfish_lenc,
     nsamp_lenc=nsamp_lenc,
     nfish_agec=nfish_agec,

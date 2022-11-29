@@ -2,7 +2,7 @@
 % Please edit documentation in R/tseries_plot.r
 \name{tseries_plot}
 \alias{tseries_plot}
-\title{Complete a length or age composition data frame so that all have desired dimensions. This is a modified version of comp_complete. The two functions should probably be combined with options to choose between sub-functions.}
+\title{Time series plot}
 \usage{
 tseries_plot(
   x,
@@ -49,7 +49,7 @@ tseries_plot(
 \item{ylim}{range of y on plot}
 }
 \description{
-Complete a length or age composition data frame so that all have desired dimensions. This is a modified version of comp_complete. The two functions should probably be combined with options to choose between sub-functions.
+This is a simple plotting fucntion that is useful when plotting time series typically found in stock assessments (e.g. catch, indices)
 }
 \examples{
 \dontrun{

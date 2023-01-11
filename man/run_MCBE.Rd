@@ -20,14 +20,19 @@ run_MCBE(
   par_default = list(cv_U = 0.2, cv_L = 0.2, cv_D = 0.2),
   standardize = TRUE,
   nsim = 10,
-  sc = 0.1,
-  scLim = sc * c(-1, 1) + 1,
-  M_scLim = 0.1 * c(-1, 1) + 1,
-  steep_scLim = scLim,
-  Linf_scLim = scLim,
-  K_scLim = scLim,
-  t0_scLim = scLim,
-  Dmort_scLim = scLim,
+  sclim_gen = c(0.9, 1.1),
+  sclim = list(),
+  data_type_resamp = c("U", "L", "D", "age", "len"),
+  fn_par = list(M = expression(runif(nsim, min(M_lim), max(M_lim))), K =
+    expression(runif(nsim, min(K_lim), max(K_lim))), Linf = expression(runif(nsim,
+    min(Linf_lim), max(Linf_lim))), t0 = expression(runif(nsim, min(t0_lim),
+    max(t0_lim))), steep = expression(runif(nsim, min(steep_lim), max(steep_lim))),
+    rec_sigma = expression(rtnorm(n = nsim, mean = 0.6, sd = 0.15, lower = 0.3, upper =
+    1)), Dmort = expression(apply(Dmort_lim, 2, function(x) {
+     runif(nsim, min(x),
+    max(x))
+ }))),
+  fix_par = c(),
   coresUse = NULL,
   ndigits = 4,
   unlink_dir_bam_base = FALSE,
@@ -72,19 +77,15 @@ run_MCBE(
 
 \item{nsim}{number of simulations to run}
 
-\item{sc}{Scalar (multiplier) to compute upper and lower bounds of random uniform distribution from mean value}
+\item{sclim_gen}{Scalar (multipliers) for computing upper and lower bounds of random uniform distribution from mean value from base run output}
 
-\item{M_scLim}{Scalar for M (constant M) limits. Numeric vector of length 2. If M_constant is not available in the base model output, M_scLim values will be used to scale M at age.}
+\item{sclim}{Optional list of scalars for computing point parameter limits. By default, limits are (generically) computed using sclim_gen. Numeric vectors of length 2, usually centered around 1. e.g. sclim = list(M=c(0.9,1.1), steep=(c(0.8,1.2))). Note that if M_constant is not available in the base model output, sclim$M values will be used to scale M at age.}
 
-\item{steep_scLim}{Scalar for steep limits. Numeric vector of length 2}
+\item{data_type_resamp}{character vector of abbreviations for types of data sets that should be resampled in the MCBE simulations. L = landings, D = discards, U = cpue indices, age = age compositions, len = length compositions. If you don't want to resample any of the data sets, set data_type_resamp = c().}
 
-\item{Linf_scLim}{Scalar for Linf (Von Bertalanffy growth function) limits. Numeric vector of length 2}
+\item{fn_par}{List of unevaluated expressions used to simulate values of fixed parameters. Functions should produce vectors on length nsim, or in some cases}
 
-\item{K_scLim}{Scalar for K (Von Bertalanffy growth function) limits. Numeric vector of length 2}
-
-\item{t0_scLim}{Scalar for t0 (Von Bertalanffy growth function) limits. Numeric vector of length 2}
-
-\item{Dmort_scLim}{Scalar for Dmort limits. Numeric vector of length 2}
+\item{fix_par}{Optional character vector of parameter names to fix in the simulations using tpl init object names with a phase setting (e.g. "set_M_constant", "set_steep"). This is mostly used for running sensitivities and parameter profiles. Note that this has no effect on the base model.}
 
 \item{coresUse}{number of cores to use for parallel processing}
 
@@ -141,8 +142,9 @@ run_MCBE("SnowyGrouper", dir_bam_base="SnGr_base", dir_bam_sim="SnGr_sim")
 run_MCBE("Tilefish", dir_bam_base="Tile_base", dir_bam_sim="Tile_sim")
 run_MCBE("VermilionSnapper", dir_bam_base="VeSn_base", dir_bam_sim="VeSn_sim")
 
-MCBE_ReSn <- run_MCBE("RedSnapper",steep_scLim = c(1,1))
+MCBE_ReSn <- run_MCBE("RedSnapper",steep_sclim = c(1,1))
 }
+
 }
 \keyword{MCBE}
 \keyword{assessment}

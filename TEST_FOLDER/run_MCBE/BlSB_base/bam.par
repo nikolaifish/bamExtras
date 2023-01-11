@@ -95,21 +95,21 @@
 3.43061677673
 # selpar_slope_rHB5:
 2.84849982927
-# selpar_A50_rHB_D4:
+# selpar_A50_rHD4:
 2.54741451721
-# selpar_slope_rHB_D4:
+# selpar_slope_rHD4:
 2.32804876853
-# selpar_A502_rHB_D4:
+# selpar_A502_rHD4:
 0.745544249507
-# selpar_slope2_rHB_D4:
+# selpar_slope2_rHD4:
 3.00000000000
-# selpar_A50_rHB_D5:
+# selpar_A50_rHD5:
 2.79100120259
-# selpar_slope_rHB_D5:
+# selpar_slope_rHD5:
 1.73411872441
-# selpar_A502_rHB_D5:
+# selpar_A502_rHD5:
 0.864178408081
-# selpar_slope2_rHB_D5:
+# selpar_slope2_rHD5:
 3.00000000000
 # selpar_logit_Age0_rHB_D:
 -5.55929934731

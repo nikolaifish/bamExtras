@@ -1,7 +1,7 @@
-CommonName = "ScampGrouper"
+CommonName = "AtlanticMenhaden"
 fileName="bam"
-dir_bam_sim  = "ScGr_sim"
-dir_bam_base = "ScGr_base"
+dir_bam_sim  = "AtMe_sim"
+dir_bam_base = "AtMe_base"
 bam=NULL
 dat_file=NULL
 tpl_file=NULL
@@ -9,39 +9,36 @@ cxx_file=NULL
 dat_obj=NULL
 tpl_obj=NULL
 cxx_obj=NULL
+data_sim =  list(cv_U=NULL,cv_L=NULL,cv_D=NULL)
+par_default = list(cv_U=0.2,cv_L=0.2,cv_D=0.2)
 standardize=TRUE
 nsim=10
-M_FUN="M_Lorenzen"
-M_FUN_args=list(aP=0)
-sc = 0.1
-scLim = sc*c(-1,1)+1
-Mc_scLim = 0.1*c(-1,1)+1
-steep_scLim = c(1,1)
-Linf_scLim = scLim
-K_scLim = scLim
-t0_scLim = scLim
-Dmort_scLim = scLim
+sclim_gen = c(0.9,1.1)
+sclim = list()
+data_type_resamp = c()#c("U","L","D","age","len")
+# fn_par = list(
+#   M = expression(runif(nsim,min(M_lim),max(M_lim))),
+#   K = expression(runif(nsim,min(K_lim),max(K_lim))),
+#   Linf = expression(runif(nsim,min(Linf_lim),max(Linf_lim))),
+#   t0 = expression(runif(nsim,min(t0_lim),max(t0_lim))),
+#   steep = expression(runif(nsim,min(steep_lim),max(steep_lim))),
+#   rec_sigma = expression(rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)),
+#   Dmort = expression(apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))}))
+# )
+# fix_par = c()
+fn_par = list(
+  steep = expression(seq(0.21,0.99,length=nsim))
+)
+fix_par = "set_steep"
+# parallel=TRUE, # Right now it has to be in parallel
 coresUse=NULL
-ndigits=4 # number of digits to round simulated values to
+ndigits=4
 unlink_dir_bam_base=FALSE
-run_bam_base=TRUE # If FALSE, the function will look for an executable named fileName.exe in dir_bam_base and use it as the base model.
-# If TRUE and overwrite_bam_base=TRUE, the function will call run_bam.
-overwrite_bam_base=FALSE
+run_bam_base=TRUE
+overwrite_bam_base=TRUE
+admb_switch_base = '-nox'
+run_sim=TRUE
 admb_switch_sim = '-est -nox -ind'
 prompt_me=FALSE
-run_sim=TRUE # If FALSE, the simulated data will be generated but won't be used in new BAM runs
-admb_switch_base = '-nox'
 subset_rdat=list("eq.series"=101,"pr.series"=101)
-
-data_sim =  list(cv_U=NULL,
-                 cv_L=NULL,
-                 cv_D=NULL)
-
-par_default = list(cv_U=0.2,
-                   cv_L=0.2,
-                   cv_D=0.2)
-
-# data_sim = list(cv_D = read.csv("cv_D_BlSB.csv",row.names = 1),
-#                  cv_L = read.csv("cv_L_BlSB.csv",row.names = 1),
-#                  cv_U = read.csv("cv_U_BlSB.csv",row.names = 1)
-# )
+random_seed=12345

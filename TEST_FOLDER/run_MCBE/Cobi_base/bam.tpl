@@ -1,3 +1,11 @@
+//##  Author: NMFS, Beaufort Lab, Sustainable Fisheries Branch
+//##  Analyst: Kate Siegfried
+//##  Species: Cobia
+//##  Region: US South Atlantic
+//##  SEDAR: 58
+//##  Date: 2022-11-10 14:20:41
+
+
 //##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
 //##
 //##  SEDAR 58  SA Cobia, 2019
@@ -246,11 +254,11 @@ init_vector set_log_dev_Nage(1,3);		// Nage devs
 
 //######## F dev initial guesses ########
 //## cGN (1962 - 2015)
-init_vector set_log_dev_vals_F_L__cGN(styr_L_cGN,endyr_L_cGN);
+init_vector set_log_dev_vals_F_L_cGN(styr_L_cGN,endyr_L_cGN);
 //## cLL (1958 - 2015)
 //init_vector set_log_F_dev_cLL_vals(styr_cLL_L,endyr_cLL_L);
 // ## rGN (1973 - 2015)
-init_vector set_log_dev_vals_F_L__rGN(styr_L_rGN,endyr_L_rGN);
+init_vector set_log_dev_vals_F_L_rGN(styr_L_rGN,endyr_L_rGN);
 
 //######## Rec dev initial guesses (1958 - 2015) ########
 init_vector set_log_dev_vals_rec(styr_rec_dev,endyr_rec_dev);
@@ -1112,10 +1120,10 @@ PRELIMINARY_CALCS_SECTION
   // log_avg_F_rHB=set_log_avg_F_rHB(1); 
   log_avg_F_L_rGN=set_log_avg_F_L_rGN(1); 
     
-  log_dev_F_L_cGN=set_log_dev_vals_F_L__cGN;
+  log_dev_F_L_cGN=set_log_dev_vals_F_L_cGN;
   //log_F_dev_cLL=set_log_F_dev_cLL_vals;
   // log_F_dev_rHB=set_log_F_dev_rHB_vals;
-  log_dev_F_L_rGN=set_log_dev_vals_F_L__rGN;
+  log_dev_F_L_rGN=set_log_dev_vals_F_L_rGN;
  
   selpar_A50_cGN1=set_selpar_A50_cGN1(1);
   selpar_slope_cGN1=set_selpar_slope_cGN1(1);

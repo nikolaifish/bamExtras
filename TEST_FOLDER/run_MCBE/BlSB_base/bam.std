@@ -84,12 +84,12 @@
     83   selpar_slope_rHB4        3.0823e+00 1.8990e-01
     84   selpar_A50_rHB5          3.4306e+00 1.0315e-01
     85   selpar_slope_rHB5        2.8485e+00 2.7773e-01
-    86   selpar_A50_rHB_D4        2.5474e+00 9.5888e-02
-    87   selpar_slope_rHB_D4      2.3280e+00 1.3824e-01
-    88   selpar_A502_rHB_D4       7.4554e-01 8.6359e-02
-    89   selpar_A50_rHB_D5        2.7910e+00 1.9743e-01
-    90   selpar_slope_rHB_D5      1.7341e+00 1.6555e-01
-    91   selpar_A502_rHB_D5       8.6418e-01 1.0208e-01
+    86   selpar_A50_rHD4          2.5474e+00 9.5888e-02
+    87   selpar_slope_rHD4        2.3280e+00 1.3824e-01
+    88   selpar_A502_rHD4         7.4554e-01 8.6359e-02
+    89   selpar_A50_rHD5          2.7910e+00 1.9743e-01
+    90   selpar_slope_rHD5        1.7341e+00 1.6555e-01
+    91   selpar_A502_rHD5         8.6418e-01 1.0208e-01
     92   selpar_logit_Age0_rHB_D -5.5593e+00 6.4844e-01
     93   selpar_logit_Age1_rHB_D -2.4670e+00 3.7185e-01
     94   selpar_logit_Age2_rHB_D  3.5201e+00 9.4507e-01

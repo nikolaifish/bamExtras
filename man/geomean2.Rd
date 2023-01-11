@@ -4,14 +4,18 @@
 \alias{geomean2}
 \title{Geometric mean: product form}
 \usage{
-geomean2(x, na.rm = TRUE)
+geomean2(x, na.rm = TRUE, all.na.result = NA)
 }
 \arguments{
 \item{x}{numeric vector}
+
+\item{na.rm}{as in base R functions "a logical value indicating whether NA values should be stripped before the computation proceeds."}
+
+\item{all.na.result}{Result to return if all values are NA. For some reason prod(numeric(0)) = 1, so the function will return 1 even if all x are NA.}
 }
 \description{
-Simple geometric mean function.This function will fail when x is a large value.
-The logarithm form (geomean) works somewhat better but can't handle negative values.
+Simple geometric mean function.
+The logarithm form (geomean) works somewhat better but can only handle non-zero positive values.
 }
 \examples{
 x <- c(1,2,10)

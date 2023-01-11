@@ -3,7 +3,7 @@
 ##  Species: Black Sea Bass
 ##  Region: US South Atlantic
 ##  SEDAR: 56
-##  Date: 2022-10-19 18:14:05
+##  Date: 2022-11-18 22:17:15
 
 
 ##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
@@ -17,13 +17,15 @@
 2016
 #Starting year to estimate recruitment deviation from S-R curve
 1978
+#Ending year to estimate recruitment deviation from S-R curve
+2016
 #3 phases of constraints on recruitment deviations:
 #allows possible heavier constraint (weights defined later) in early and late period, with lighter constraint in the middle
 #ending years of recruitment constraint phases
 1980 # FI index starts in 1981
 2016
-#Reg blocks -- 3 possible periods of cGN size regs: styr-83 no restrictions, 1984-98 8-inch TL, 1999-2010 10-in TL
-#           -- 4 possible periods of recr size regs: styr-83 no restrictions, 1984-98 8-inch TL, 1999-2006 10-in TL, 2007-2010 12-in TL
+#Reg blocks -- 3 possible selex_phases of cGN size regs: styr-83 no restrictions, 1984-98 8-inch TL, 1999-2010 10-in TL
+#           -- 4 possible selex_phases of recr size regs: styr-83 no restrictions, 1984-98 8-inch TL, 1999-2006 10-in TL, 2007-2010 12-in TL
 #ending years of regulation blocks
 1983
 1998
@@ -299,7 +301,7 @@
 2.17	1.85	2.13	2.19	1.98	1.84	1.99	1.63	1.56	1.50	1.23	1.22	1.01	0.69	0.44	0.49	0.50	0.52	0.57	0.50	0.56	0.41	0.43	0.42	0.48	0.66	0.58	0.62	0.38	0.30	0.46	0.73
 0.54	0.54	0.54	0.54	0.54	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27	0.27
 #0.30 0.30 0.30 0.30 0.30 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15 0.15
-#Headboat discard index -- at-sea observer  (rHB_D)
+#Headboat discard index -- at-sea observer  (rHD)
 #Starting and ending years of time series, respectively
 #2005
 #2010
@@ -423,7 +425,7 @@
 #sample sizes of length comp data by year (first row is ntrips, second row nfish)
 47.0	89.0	34.0	57.0	80.0	128.0	147.0	162.0	192.0	126.0	94.0	152.0	132.0	112.0	89.0	110.0	101.0	111.0	148.0	109.0	177.0	124.0	157.0	220.0	169.0	174.0	128.0	136.0	140.0	156.0	69.0	78.0	102.0	127.0	113.0	102.0
 206.0	408.0	155.0	267.0	413.0	383.0	672.0	647.0	617.0	432.0	387.0	675.0	486.0	346.0	379.0	512.0	338.0	458.0	751.0	550.0	770.0	514.0	1003.0	1291.0	1043.0	1046.0	897.0	623.0	667.0	1123.0	519.0	507.0	528.0	626.0	436.0	312.0
-#rGN length comp samples (year,lengthbin): not pooled by regulation periods
+#rGN length comp samples (year,lengthbin): not pooled by regulation selex_phases
 0.0000	0.0000	0.0014	0.0014	0.0183	0.0254	0.0705	0.1933	0.1875	0.1254	0.0897	0.0760	0.0177	0.0800	0.0094	0.0769	0.0041	0.0069	0.0013	0.0027	0.0000	0.0027	0.0013	0.0013	0.0000	0.0013	0.0000	0.0000	0.0027	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0000	0.0028
 0.0000	0.0011	0.0011	0.0067	0.0154	0.0320	0.0101	0.0178	0.0231	0.0286	0.0289	0.0481	0.0362	0.0481	0.0829	0.1144	0.0557	0.0338	0.0815	0.0434	0.0434	0.0369	0.0402	0.0293	0.0207	0.0456	0.0272	0.0098	0.0098	0.0000	0.0000	0.0076	0.0098	0.0044	0.0000	0.0000	0.0000	0.0000	0.0033	0.0000	0.0033
 0.0000	0.0000	0.0000	0.0094	0.0188	0.0047	0.0651	0.0859	0.0519	0.0625	0.0667	0.0123	0.0212	0.0332	0.1071	0.0625	0.0963	0.0402	0.0564	0.0279	0.0356	0.0499	0.0279	0.0250	0.0000	0.0059	0.0000	0.0000	0.0000	0.0000	0.0088	0.0191	0.0000	0.0029	0.0000	0.0000	0.0000	0.0000	0.0000	0.0029	0.0000
@@ -558,14 +560,14 @@
 -2.028	-8.0	8.0	5	0.0	4.0	3 # selpar_Age1_rHB_D in logistic space val=-log((1.0-x)/x), where x is selex in arithmetic space
 1.023	-8.0	8.0	5	0.0	4.0	3 # selpar_Age2_rHB_D in logistic space val=-log((1.0-x)/x), where x is selex in arithmetic space
 
-1.0	0.1	10.0	6	1.0	-0.5	3 # selpar_A50_rHB_D4
-0.5	0.1	10.0	6	0.5	-0.5	3 # selpar_slope_rHB_D4
-4.0	0.1	10.0	6	4.0	-0.5	3 # selpar_A502_rHB_D4
-3.0	0.1	10.0	-6	3.0	-0.5	3 # selpar_slope2_rHB_D4 or afull
-1.5	0.1	10.0	6	1.5	-0.5	3 # selpar_A50_rHB_D5
-0.5	0.1	10.0	6	0.5	-0.5	3 # selpar_slope_rHB_D5
-4.0	0.1	10.0	6	4.0	-0.5	3 # selpar_A502_rHB_D5
-3.0	0.1	10.0	-6	3.0	-0.5	3 # selpar_slope2_rHB_D5 or afull
+1.0	0.1	10.0	6	1.0	-0.5	3 # selpar_A50_rHD4
+0.5	0.1	10.0	6	0.5	-0.5	3 # selpar_slope_rHD4
+4.0	0.1	10.0	6	4.0	-0.5	3 # selpar_A502_rHD4
+3.0	0.1	10.0	-6	3.0	-0.5	3 # selpar_slope2_rHD4 or afull
+1.5	0.1	10.0	6	1.5	-0.5	3 # selpar_A50_rHD5
+0.5	0.1	10.0	6	0.5	-0.5	3 # selpar_slope_rHD5
+4.0	0.1	10.0	6	4.0	-0.5	3 # selpar_A502_rHD5
+3.0	0.1	10.0	-6	3.0	-0.5	3 # selpar_slope2_rHD5 or afull
 
 #log catchabilities (initial guesses)
 -15.0	-20	-8	3	-15.0	-0.5	1 # sBT (index in numbers)
@@ -573,7 +575,7 @@
 #-15.0    -20  -8   3      -15.0     -0.5      1    #Vid (index in numbers)
 -8.0	-16	-6	3	-8.0	-0.5	1 # commHAL (index in weight)
 -10.0	-16	-8	3	-10.0	-0.5	1 # rHB (index in weight)
-#-15.0    -16  -8   3      -15.0     -0.5      1    #rHB_D (index in numbers)
+#-15.0    -16  -8   3      -15.0     -0.5      1    #rHD (index in numbers)
 
 ##log mean Fs (initial guesses)
 -2.0	-10.0	1.0	1	-2.0	-0.5	1 # cHL
@@ -645,7 +647,7 @@
 #0.26 #SERFS Video index
 2.5 # 0.733 #2.5   #cHL index
 2.5 # 0.6 #2.5   #rHB index
-#1.0#0.33 #rHB_D index
+#1.0#0.33 #rHD index
 
 1 # S-R residuals
 0 # constraint on early recruitment deviations
@@ -706,7 +708,7 @@
 #Variance (sd^2) of fishery dependent random walk catchabilities (0.03 is near the sd=0.17 of Wilberg and Bence
 0.03 # commHAL
 0.03 # rHB
-#0.03  #rHB_D
+#0.03  #rHD
 
 #Initialization F as a proportion of geometric mean F from first three assessment years)
 1 # 1.5 2

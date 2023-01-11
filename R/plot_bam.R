@@ -6,11 +6,12 @@
 #' @param draft from FishGraph help: 'modifies plots for use in a report. When FALSE main titles are omitted.'
 #' @param use.color from FishGraph help: 'plots are made in grayscale when FALSE'
 #' @param years_plot vector of years to plot in time series. If NULL, all years are plotted
+#' @param FGPlot_args set of arguments to pass to all FishGraph plotting functions
 #' @keywords bam MCBE stock assessment fisheries
 #' @export
 #' @examples
 #' \dontrun{
-#' # Run MCBE, writing files to dir_bam_sim
+#' # Make plots
 #' plot_bam(rdat_BlackSeaBass)
 #' }
 
@@ -19,23 +20,25 @@ plot_bam <- function(spp=NULL,
                      draft=FALSE, # draft type
                      use.color=TRUE,   # color type
                      years_plot = NULL,
-                     default_args=list(x=quote(spp), DataName="spp",draft=draft, use.color=use.color, graphics.type=graphics.type),
+                     FGPlot_args=list(x=quote(spp), DataName="spp",draft=draft, use.color=use.color, graphics.type=graphics.type),
+                     windows_args=list(),
                      Bound.vec.plots.args = list(),
                      BSR.time.plots.args = list(),
-                     CLD.total.plots.args = list(),
+                     CLD.total.plots.args = list(CLD.w.references=list("msy.klb", "msy.klb", "Dmsy.klb"),
+                                                 CLD.n.references=list("msy.num","msy.num","Dmsy.num")),
                      Cohort.plots.args = list(),
                      Comp.plots.args = list(),
-                     Comp.yearly.plots.args = list(),
-                     Eq.plots.args = list(),
-                     F.time.plots.args = list(),
-                     Growth.plots.args = list(),
+                     Comp.yearly.plots.args = list(print.neff=TRUE,print.n=TRUE),
+                     Eq.plots.args = list(F.references=list("Fmsy"), user.Eq=list("L.eq.wholeklb", "L.eq.knum", "D.eq.knum")),
+                     F.time.plots.args = list(F.references=list("Fmsy"="Fmsy"), F.additional=c("F.F30.ratio"="F.F30.ratio")),
+                     Growth.plots.args = list(plot.all = TRUE),
                      Index.plots.args = list(),
                      Landings.plots.args = list(),
-                     NFZ.age.plots.args = list(),
+                     NFZ.age.plots.args = list(user.plots="N.age.mdyr"),
                      Parm.plots.args = list(),
-                     PerRec.plots.args = list(),
-                     Phase.plots.args = list(),
-                     Selectivity.plots.args = list(),
+                     PerRec.plots.args = list(user.PR = list("SPR", "ypr.lb.whole"),F.references=list("Fmsy")),
+                     Phase.plots.args = list(Xaxis.F=FALSE),
+                     Selectivity.plots.args = list(compact=TRUE),
                      StockRec.plots.args = list()
                      )
                      {
@@ -53,6 +56,29 @@ library(FishGraph)
     x.out
   }
 
+# Default settings for setting up plot windows for each FishGraph function
+  windows_args_user <- windows_args # Get values specified by the user, if any
+  windows_args_default <- list(
+    Bound.vec =   list(width =  8, height = 8, record = TRUE),
+    BSR.time =    list(width =  8, height = 8, record = TRUE),
+    CLD.total =   list(width =  7, height = 5, record = TRUE),
+    Cohort =      list(width = 10, height = 8, record = TRUE),
+    Comp =        list(width = 10, height = 8, record = TRUE),
+    Comp.yearly = list(width = 10, height = 8, record = TRUE),
+    Eq =          list(width =  7, height = 5, record = TRUE),
+    F.time =      list(width =  7, height = 5, record = TRUE),
+    Growth =      list(width =  7, height = 5, record = TRUE),
+    Index =       list(width =  7, height = 5, record = TRUE),
+    Landings =    list(width =  7, height = 5, record = TRUE),
+    NFZ.age =     list(width =  7, height = 5, record = TRUE),
+    Parm =        list(width =  8, height = 6, record = TRUE),
+    PerRec =      list(width =  7, height = 5, record = TRUE),
+    Phase =       list(width =  7, height = 5, record = TRUE),
+    Selectivity = list(width =  7, height = 5, record = TRUE, xpos = 10, ypos = 10),
+    StockRec =    list(width =  7, height = 5, record = TRUE, xpos = 10, ypos = 10)
+  )
+  windows_args <- modifyList(windows_args_default,windows_args_user)
+
 styr <- spp$parms$styr
 endyr <- spp$parms$endyr
 
@@ -63,7 +89,7 @@ if(is.null(years_plot)){
 
   ### rdat file
   # Modify spp
-  # This sorting is helpful because apparently Fishgraph gives you errors if the observed comps for a fleet aren't immediately followed by the predicted
+  # This sorting is helpful because apparently FishGraph gives you errors if the observed comps for a fleet aren't immediately followed by the predicted
   # comps for that same fleet.
   spp$comp.mats <- spp$comp.mats[sort(names(spp$comp.mats))]
 
@@ -98,8 +124,8 @@ if(is.null(years_plot)){
   plot_fn <- function(fn){
     cs <-   'if(!is.null(fn.args)){
     cat("\nRunning fn\n")
-    default_args <- default_args[names(default_args)%in%names(formals(fn))]
-    tryCatch(expr=do.call(FishGraph::fn,c(default_args,fn.args)),
+    FGPlot_args <- FGPlot_args[names(FGPlot_args)%in%names(formals(fn))]
+    tryCatch(expr=do.call(FishGraph::fn,c(FGPlot_args,fn.args)),
              error = function(e) {message(paste("Error in fn:",e))}
     )
 
@@ -108,60 +134,80 @@ if(is.null(years_plot)){
   }
 
   ### Bound.vec.plots ###
+  do.call(windows,args=windows_args$Bound.vec)
   plot_fn("Bound.vec.plots")
 
   ### BSR ###
+  do.call(windows,args=windows_args$BSR.time)
   plot_fn("BSR.time.plots")
 
   ### CLD ###
+  do.call(windows,args=windows_args$CLD.total)
   plot_fn("CLD.total.plots")
 
   ### comp ###
+  do.call(windows,args=windows_args$Comp)
   plot_fn("Comp.plots")
 
   ### compyr ###
+  do.call(windows,args=windows_args$Comp.yearly)
   plot_fn("Comp.yearly.plots")
+
+  do.call(windows,args=windows_args$Cohort)
   plot_fn("Cohort.plots")
   # if(!is.null(Cohort.plots.args)){
   #   cat("\nRunning Cohort.plots\n")
   #   # only include args that are in the function formals
-  #   default_args_Cohort <- default_args[names(default_args)%in%names(formals(Cohort.plots))]
-  #   tryCatch(expr=do.call(FishGraph::Cohort.plots,c(default_args_Cohort,Cohort.plots.args)),
+  #   FGPlot_args_Cohort <- FGPlot_args[names(FGPlot_args)%in%names(formals(Cohort.plots))]
+  #   tryCatch(expr=do.call(FishGraph::Cohort.plots,c(FGPlot_args_Cohort,Cohort.plots.args)),
   #            error = function(e) {message(paste("Error in Cohort.plots:",e))}
   #   )
   # }
 
   ### EQ ###
+  do.call(windows,args=windows_args$Eq)
   plot_fn("Eq.plots")
 
   ### F ###
+  do.call(windows,args=windows_args$F.time)
   plot_fn("F.time.plots")
 
   ### growth ###
+  do.call(windows,args=windows_args$Growth)
   plot_fn("Growth.plots")
 
   ### index ###
+  do.call(windows,args=windows_args$Index)
   plot_fn("Index.plots")
 
   ### L ###
+  do.call(windows,args=windows_args$Landings)
   plot_fn("Landings.plots")
 
   ### NFZ.age ###
+  do.call(windows,args=windows_args$NFZ.age)
   plot_fn("NFZ.age.plots")
 
   ### parms ###
+  do.call(windows,args=windows_args$Parm)
   plot_fn("Parm.plots")
 
   ### phase ###
+  do.call(windows,args=windows_args$Phase)
   plot_fn("Phase.plots")
 
   ### PR ###
+  do.call(windows,args=windows_args$PerRec)
   plot_fn("PerRec.plots")
 
   ### sel ###
+  do.call(windows,args=windows_args$Selectivity)
   plot_fn("Selectivity.plots")
 
   ### SR ###
+  do.call(windows,args=windows_args$StockRec)
   plot_fn("StockRec.plots")
+
+  graphics.off()
 
 }

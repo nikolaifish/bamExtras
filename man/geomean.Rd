@@ -4,10 +4,12 @@
 \alias{geomean}
 \title{Geometric mean: logarithm form}
 \usage{
-geomean(x)
+geomean(x, na.rm = TRUE)
 }
 \arguments{
 \item{x}{numeric vector}
+
+\item{na.rm}{as in base R functions "a logical value indicating whether NA values should be stripped before the computation proceeds."}
 }
 \description{
 Simple geometric mean function using only is.finite values of log(x).

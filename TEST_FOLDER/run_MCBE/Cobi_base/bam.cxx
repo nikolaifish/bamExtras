@@ -1,3 +1,11 @@
+//##  Author: NMFS, Beaufort Lab, Sustainable Fisheries Branch
+//##  Analyst: Kate Siegfried
+//##  Species: Cobia
+//##  Region: US South Atlantic
+//##  SEDAR: 58
+//##  Date: 2022-11-10 14:20:41
+
+
 // Create a file with an R object from AD Model Builder
 
 // open the file using the default AD Model Builder file name, and
@@ -40,15 +48,15 @@ open_r_info_list("parms", false);
 	wrt_r_item("Linf", Linf);
 	wrt_r_item("K", K);
 	wrt_r_item("t0", t0);
-	wrt_r_item("len_cv_val",len_cv_val);
-	wrt_r_item("Linf_L", Linf_L);
-	wrt_r_item("K_L", K_L);
-	wrt_r_item("t0_L", t0_L);
-	wrt_r_item("len_cv_val_L",len_cv_val_L);
-	wrt_r_item("Linf_F", Linf_F);
-	wrt_r_item("K_F", K_F);
-	wrt_r_item("t0_F", t0_F);
-	wrt_r_item("len_cv_val_F",len_cv_val_F);
+	wrt_r_item("len.cv.val",len_cv_val);
+	wrt_r_item("Linf.L", Linf_L);
+	wrt_r_item("K.L", K_L);
+	wrt_r_item("t0.L", t0_L);
+	wrt_r_item("len.cv.val.L",len_cv_val_L);
+	wrt_r_item("Linf.F", Linf_F);
+	wrt_r_item("K.F", K_F);
+	wrt_r_item("t0.F", t0_F);
+	wrt_r_item("len.cv.val.F",len_cv_val_F);
 	wrt_r_item("wgt.a", wgtpar_a);
 	wrt_r_item("wgt.b", wgtpar_b);
 	wrt_r_item("spawn.time", spawn_time_frac);
@@ -159,36 +167,36 @@ open_r_df("parm.cons",1,8,2);
     wrt_r_df_col("Linf",Linf_out);
     wrt_r_df_col("K",K_out);
     wrt_r_df_col("t0",t0_out);
-    wrt_r_df_col("len_cv_val",len_cv_val_out);
-	wrt_r_df_col("Linf_L", Linf_L_out);
-	wrt_r_df_col("K_L", K_L_out);
-	wrt_r_df_col("t0_L", t0_L_out);
-	wrt_r_df_col("len_cv_val_L",len_cv_val_L_out);
-	wrt_r_df_col("Linf_F", Linf_F_out);
-	wrt_r_df_col("K_F", K_F_out);
-	wrt_r_df_col("t0_F", t0_F_out);
-	wrt_r_df_col("len_cv_val_F",len_cv_val_F_out);
-    wrt_r_df_col("log_R0",log_R0_out);
+    wrt_r_df_col("len.cv.val",len_cv_val_out);
+	wrt_r_df_col("Linf.L", Linf_L_out);
+	wrt_r_df_col("K.L", K_L_out);
+	wrt_r_df_col("t0.L", t0_L_out);
+	wrt_r_df_col("len.cv.val.L",len_cv_val_L_out);
+	wrt_r_df_col("Linf.F", Linf_F_out);
+	wrt_r_df_col("K.F", K_F_out);
+	wrt_r_df_col("t0.F", t0_F_out);
+	wrt_r_df_col("len.cv.val.F",len_cv_val_F_out);
+    wrt_r_df_col("log.R0",log_R0_out);
     wrt_r_df_col("steep",steep_out);
-    wrt_r_df_col("rec_sigma",rec_sigma_out);
-    wrt_r_df_col("R_autocorr",R_autocorr_out);
-    wrt_r_df_col("log_dm_lenc_cGN",log_dm_cGN_lc_out);
-	wrt_r_df_col("log_dm_agec_rGN",log_dm_rGN_ac_out);
+    wrt_r_df_col("rec.sigma",rec_sigma_out);
+    wrt_r_df_col("R.autocorr",R_autocorr_out);
+    wrt_r_df_col("log.dm.lenc.cGN",log_dm_cGN_lc_out);
+	wrt_r_df_col("log.dm.agec.rGN",log_dm_rGN_ac_out);
 
-    wrt_r_df_col("selpar_A50_cGN1",selpar_A50_cGN1_out);
-    wrt_r_df_col("selpar_slope_cGN1",selpar_slope_cGN1_out);
+    wrt_r_df_col("selpar.A50.cGN1",selpar_A50_cGN1_out);
+    wrt_r_df_col("selpar.slope.cGN1",selpar_slope_cGN1_out);
 	
-	wrt_r_df_col("selpar_A50_rGN1",selpar_A50_rGN1_out);
-    wrt_r_df_col("selpar_slope_rGN1",selpar_slope_rGN1_out);
-	wrt_r_df_col("selpar_A50_rGN2",selpar_A50_rGN2_out);
-    wrt_r_df_col("selpar_slope_rGN2",selpar_slope_rGN2_out);
+	wrt_r_df_col("selpar.A50.rGN1",selpar_A50_rGN1_out);
+    wrt_r_df_col("selpar.slope.rGN1",selpar_slope_rGN1_out);
+	wrt_r_df_col("selpar.A50.rGN2",selpar_A50_rGN2_out);
+    wrt_r_df_col("selpar.slope.rGN2",selpar_slope_rGN2_out);
 	
-	wrt_r_df_col("log_q_cpue_rHB",log_q_rHB_out);
-    wrt_r_df_col("M_constant",M_constant_out);
-    wrt_r_df_col("log_avg_F_L_cGN",log_avg_F_cGN_out);
-	wrt_r_df_col("log_avg_F_L_rGN",log_avg_F_rGN_out);
+	wrt_r_df_col("log.q.cpue.rHB",log_q_rHB_out);
+    wrt_r_df_col("M.constant",M_constant_out);
+    wrt_r_df_col("log.avg.F.L.cGN",log_avg_F_cGN_out);
+	wrt_r_df_col("log.avg.F.L.rGN",log_avg_F_rGN_out);
 	
-    wrt_r_df_col("F_init",F_init_out);
+    wrt_r_df_col("F.init",F_init_out);
 close_r_df();
 
 // DATA FRAME of time series deviation vector estimates
@@ -486,7 +494,7 @@ open_r_df("t.series", styr, (endyr+1), 2);
     wrt_r_df_col("recruits", rec);
     wrt_r_df_col("logR.dev", log_rec_dev_output); //places zeros in yrs deviations not estimated  //KWS
     wrt_r_df_col("SSB", SSB);
-	wrt_r_df_col("SSB_knum", SSB_knum);
+	wrt_r_df_col("SSB.knum", SSB_knum);
     wrt_r_df_col("SSB.SSBmsy", SdSSB_msy);
     //wrt_r_df_col("SSB.msst.M", SdSSB_msy/smsy2msstM);
     wrt_r_df_col("SSB.msst", SdSSB_msy/smsy2msst75);

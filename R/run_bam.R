@@ -5,7 +5,7 @@
 #' but customizable \code{cleanup.bat} file. Model-specific files are supplied by the user in any one of several different ways
 #' (see Arguments). It temporarily changes the working directory to \code{dir_bam}
 #' then calls a shell script to run the BAM model, and changes the working directory back to the previous path.
-#' The function invisibly returns the rdat object created by the cxx file, which can be assigned an object name.
+#' The function invisibly returns the bam file objects (indicated by return_obj) in a list.
 #' @param CommonName Common name of species associated with dat, tpl, and cxx files
 #' @param fileName Name given to BAM files, not including file extensions.
 #' @param dir_bam Name of directory to write BAM files to, relative to the working directory.
@@ -22,6 +22,7 @@
 #' (i.e. \code{run_command <- paste(fileName, admb_switch)})
 #' @param admb2r_obj Character string containing admb2r C++ code, which is written with \code{base::writeLines} to \code{dir_bam}
 #' @param cleanup List object written to \code{cleanup.bat} file in \code{dir_bam}.
+#' @param return_obj objects to return from the function. May include one or more of the following "dat", "tpl", "cxx", "rdat". character vector.
 #' @keywords bam stock assessment fisheries
 #' @export
 #' @examples
@@ -54,13 +55,14 @@ run_bam <- function(CommonName = NULL, fileName = "bam", dir_bam = NULL,
                     admb2r_obj = admb2r.cpp,
                     cleanup = list(del=c("*.r0*","*.p0*","*.b0*","*.log","*.rpt","*.obj",
                               "*.htp","*.eva","*.bar","*.tds","*.o","tmp_admb",
-                              "variance","*.dep","*.hes","*.tmp"))
+                              "variance","*.dep","*.hes","*.tmp")),
+                    return_obj = "rdat"
 ){
-  wd <- getwd()
-  message(paste("working directory:",wd))
+  wdt <- getwd()
+  message(paste("working directory:",wdt))
 
   if(!is.null(CommonName)){
-    fileName <- CommonName
+    if(is.null(fileName)) {fileName <- CommonName}
     dat <- get(paste0("dat_",CommonName))
     tpl <- get(paste0("tpl_",CommonName))
     cxx <- get(paste0("cxx_",CommonName))
@@ -94,10 +96,7 @@ run_bam <- function(CommonName = NULL, fileName = "bam", dir_bam = NULL,
   }
 
   if(is.null(dir_bam)){
-    dir_bam <- ifelse(fileName=="bam",
-                      fileName,
-                      paste0("bam_",fileName)
-    )
+    dir_bam <- file.path(wdt,fileName)
   }
 
   if(!dir.exists(dir_bam)) {
@@ -141,13 +140,22 @@ run_bam <- function(CommonName = NULL, fileName = "bam", dir_bam = NULL,
   shell("cleanup.bat")
 
   rdat <- dget(fileName_rdat)
-  setwd(wd)
-  message(paste("Working directory changed back to:",wd))
+
+  setwd(wdt)
+  message(paste("Working directory changed back to:",wdt))
 
   if(unlink_dir_bam){
     # delete a directory -- must add recursive = TRUE
     unlink(dir_bam, recursive = TRUE)
   }
+  rm(wdt)
 
-  invisible(rdat)
+  bam_obj <- list("dat"=dat,"tpl"=tpl,"cxx"=cxx,"rdat"=rdat)
+  out <- bam_obj[return_obj]
+#
+#   if(length(out)==1){
+#     out <- out[[1]]
+#   }
+
+  invisible(out)
 }

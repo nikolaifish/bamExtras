@@ -24,14 +24,12 @@
 #' @param data_sim list for supplying optional data not available in input data or rdat (e.g. cvs for simulating time series of landings, discards, and cpue)
 #' @param par_default list for supplying default values for particular parameters to use if values cannot be found by in the usual locations (e.g. if a time series of landings does not have a corresponding time series of cvs, the default cv_L will be used)
 #' @param standardize Should \code{\link[bamExtras]{standardize_bam}} be run by the function before running the BAM
-#' @param sc Scalar (multiplier) to compute upper and lower bounds of random uniform distribution from mean value
-#' @param M_scLim Scalar for M (constant M) limits. Numeric vector of length 2. If M_constant is not available in the base model output, M_scLim values will be used to scale M at age.
-#' @param steep_scLim Scalar for steep limits. Numeric vector of length 2
-#' @param Linf_scLim Scalar for Linf (Von Bertalanffy growth function) limits. Numeric vector of length 2
-#' @param K_scLim Scalar for K (Von Bertalanffy growth function) limits. Numeric vector of length 2
-#' @param t0_scLim Scalar for t0 (Von Bertalanffy growth function) limits. Numeric vector of length 2
+#' @param sclim_gen Scalar (multipliers) for computing upper and lower bounds of random uniform distribution from mean value from base run output
+#' @param sclim Optional list of scalars for computing point parameter limits. By default, limits are (generically) computed using sclim_gen. Numeric vectors of length 2, usually centered around 1. e.g. sclim = list(M=c(0.9,1.1), steep=(c(0.8,1.2))). Note that if M_constant is not available in the base model output, sclim$M values will be used to scale M at age.
+#' @param data_type_resamp character vector of abbreviations for types of data sets that should be resampled in the MCBE simulations. L = landings, D = discards, U = cpue indices, age = age compositions, len = length compositions. If you don't want to resample any of the data sets, set data_type_resamp = c().
+#' @param fn_par List of unevaluated expressions used to simulate values of fixed parameters. Functions should produce vectors on length nsim, or in some cases
+#' @param fix_par Optional character vector of parameter names to fix in the simulations using tpl init object names with a phase setting (e.g. "set_M_constant", "set_steep"). This is mostly used for running sensitivities and parameter profiles. Note that this has no effect on the base model.
 #' @param subset_rdat  Subset objects in sim rdat files. Value should be a list of the object names and either a numeric value indicating how many evenly spaced rows to include in the subset of a matrix, or NULL to set the object to NULL
-#' @param Dmort_scLim Scalar for Dmort limits. Numeric vector of length 2
 #' @param coresUse number of cores to use for parallel processing
 #' @param ndigits number of digits to round simulated values to
 #' @param unlink_dir_bam_base Should dir_bam_base be deleted after this function is run?
@@ -66,10 +64,9 @@
 #' run_MCBE("Tilefish", dir_bam_base="Tile_base", dir_bam_sim="Tile_sim")
 #' run_MCBE("VermilionSnapper", dir_bam_base="VeSn_base", dir_bam_sim="VeSn_sim")
 #'
-#' MCBE_ReSn <- run_MCBE("RedSnapper",steep_scLim = c(1,1))
+#' MCBE_ReSn <- run_MCBE("RedSnapper",steep_sclim = c(1,1))
 #' }
-
-
+#'
 run_MCBE <- function(CommonName = NULL,
                      fileName     = "bam",
                      dir_bam_sim  = "sim",
@@ -85,22 +82,29 @@ run_MCBE <- function(CommonName = NULL,
                                         cv_D=0.2),
                      standardize=TRUE,
                      nsim=10,
-                     sc = 0.1,  scLim = sc*c(-1,1)+1,
-                     M_scLim = 0.1*c(-1,1)+1,
-                     steep_scLim = scLim,
-                     Linf_scLim = scLim, K_scLim = scLim, t0_scLim = scLim,
-                     Dmort_scLim = scLim,
+                     sclim_gen = c(0.9,1.1),
+                     sclim = list(),
+                     data_type_resamp = c("U","L","D","age","len"),
+                     fn_par = list(
+                       M = expression(runif(nsim,min(M_lim),max(M_lim))),
+                       K = expression(runif(nsim,min(K_lim),max(K_lim))),
+                       Linf = expression(runif(nsim,min(Linf_lim),max(Linf_lim))),
+                       t0 = expression(runif(nsim,min(t0_lim),max(t0_lim))),
+                       steep = expression(runif(nsim,min(steep_lim),max(steep_lim))),
+                       rec_sigma = expression(rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)),
+                       Dmort = expression(apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))}))
+                     ),
+                     fix_par = c(),
                      # parallel=TRUE, # Right now it has to be in parallel
                      coresUse=NULL,
-                     ndigits=4, # number of digits to round simulated values to
+                     ndigits=4,
                      unlink_dir_bam_base=FALSE,
-                     run_bam_base=TRUE, # If FALSE, the function will look for an executable named fileName.exe in dir_bam_base and use it as the base model.
-                     # If TRUE and overwrite_bam_base=TRUE, the function will call run_bam.
-                     overwrite_bam_base=TRUE, # If FALSE, the files in dir_bam_base will not be overwritten if run_bam_base=TRUE
+                     run_bam_base=TRUE,
+                     overwrite_bam_base=TRUE,
                      admb_switch_base = '-nox',
-                     run_sim=TRUE, # If FALSE, the simulated data will be generated but won't be used in new BAM runs
-                     admb_switch_sim = '-est -nox -ind', # -ind changes the name of the data input file each bootstrap iteration
-                     prompt_me=FALSE, # Turn on/off prompts that ask for user input before deleting files.
+                     run_sim=TRUE,
+                     admb_switch_sim = '-est -nox -ind',
+                     prompt_me=FALSE,
                      subset_rdat=list("eq.series"=101,"pr.series"=101),
                      random_seed=12345
 
@@ -110,7 +114,7 @@ run_MCBE <- function(CommonName = NULL,
                      #           "*.htp","*.eva","*.bar","*.tds","*.o","tmp_admb",
                      #           "variance","*.dep","*.hes","*.tmp"))
 ){
-#######################
+  #######################
   library(doParallel)
   library(foreach)
   library(msm)
@@ -121,24 +125,24 @@ run_MCBE <- function(CommonName = NULL,
     set.seed(random_seed)
   }
 
-# parallel setup
-if(is.null(coresUse)){
-coresAvail <- detectCores()
-coresUse <- coresAvail-1
-}
-coresUse  <- min(c(coresUse,coresAvail))
-cl <- makeCluster(coresUse)
-registerDoParallel(cl)
+  # parallel setup
+  if(is.null(coresUse)){
+    coresAvail <- detectCores()
+    coresUse <- coresAvail-1
+  }
+  coresUse  <- min(c(coresUse,coresAvail))
+  cl <- makeCluster(coresUse)
+  registerDoParallel(cl)
 
-nm_sim <- sprintf(paste("%0",nchar(nsim),".0f",sep=""),1:nsim)
+  nm_sim <- sprintf(paste("%0",nchar(nsim),".0f",sep=""),1:nsim)
 
-## Get base model stuff
+  ## Get base model stuff
 
-# Identify working directory
+  # Identify working directory
   wd <- getwd()
   message(paste("working directory:",wd))
 
-# Define bam base model objects
+  # Define bam base model objects
   if(!is.null(CommonName)){
     dat <- get(paste0("dat_",CommonName))
     tpl <- get(paste0("tpl_",CommonName))
@@ -171,8 +175,8 @@ nm_sim <- sprintf(paste("%0",nchar(nsim),".0f",sep=""),1:nsim)
     tpl <- bam$tpl
     cxx <- bam$cxx
   }else{
-      message("Running bamExtras::bam2r()")
-      bam <- bam2r(dat_obj=dat, tpl_obj=tpl,cxx_obj=cxx)
+    message("Running bamExtras::bam2r()")
+    bam <- bam2r(dat_obj=dat, tpl_obj=tpl,cxx_obj=cxx)
   }
   init <- bam$init
 
@@ -182,31 +186,57 @@ nm_sim <- sprintf(paste("%0",nchar(nsim),".0f",sep=""),1:nsim)
       message(paste("The folder",paste0("'",dir_bam_base,"'"),"already exists."))
       if(overwrite_bam_base){
         message(paste("Since overwrite_bam_base = TRUE, files in ",dir_bam_base,"will be overwritten when run_bam is called"))
-        spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)
+        spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)$rdat
       }else{
         message(paste("Since overwrite_bam_base = FALSE, run_bam will not be called to rerun the base run"))
         spp <- dget(file.path(dir_bam_base,paste0(fileName,".rdat")))
       }
     }else{
       dir.create(dir_bam_base)
-      spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)
+      spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)$rdat
 
     }
   }else{
     spp <- dget(file.path(dir_bam_base,paste0(fileName,".rdat")))
   }
 
-## Identify objects from bam base output
-comp.mats <- spp$comp.mats
-t.series <- spp$t.series
+  ## Identify objects from bam base output
+  comp.mats <- spp$comp.mats
+  t.series <- spp$t.series
 
-##############################
-## Conduct Monte Carlo draws and bootstrap data
+  ##############################
+  ## Conduct Monte Carlo draws and bootstrap data
+
+  # sclim
+  sclim_user <- sclim
+  sclim_default <- list(M=sclim_gen,
+                steep=sclim_gen,
+                rec_sigma=sclim_gen,
+                Linf=sclim_gen,
+                K=sclim_gen,
+                t0=sclim_gen,
+                Dmort=sclim_gen
+
+  )
+
+  sclim <- modifyList(sclim_default,sclim_user)
+
+  # fn_par
+  fn_par_user <- fn_par
+  fn_par_default = list(
+    M = expression(rep(M,nsim)),
+    K = expression(rep(K,nsim)),
+    Linf = expression(rep(Linf,nsim)),
+    t0 = expression(rep(t0,nsim)),
+    steep = expression(rep(steep,nsim)),
+    rec_sigma = expression(rep(rec_sigma,nsim)),
+    Dmort = expression(apply(Dmort,2,function(x){rep(x,nsim)}))
+  )
+  fn_par <- modifyList(fn_par_default, fn_par_user)
 
   # Check for values
-    M_constant_is <- "set_M_constant"%in%names(init)
-    Dmort_is <- length(grep("^set_Dmort",names(init),value=TRUE))>0
-
+  M_constant_is <- "set_M_constant"%in%names(init)
+  Dmort_is <- length(grep("^set_Dmort",names(init),value=TRUE))>0
 
   # get base parameter values
   agebins <- as.numeric(init$agebins)
@@ -227,58 +257,55 @@ t.series <- spp$t.series
 
 
   if(Dmort_is){
-  Dmort <- local({
-    a <- init[grep("^set_Dmort",names(init),value=TRUE)] # list
-    b <- lapply(a,as.numeric)
-    array(unlist(b),dim=c(1,length(b)),dimnames = list(NULL,names(b)))
+    Dmort <- local({
+      a <- init[grep("^set_Dmort",names(init),value=TRUE)] # list
+      b <- lapply(a,as.numeric)
+      array(unlist(b),dim=c(1,length(b)),dimnames = list(NULL,names(b)))
     })
   }else{
     message("Discard mortality rates NOT found in the base model (i.e. no names(init) beginning with set_Dmort).")
   }
 
   # compute limits of parameter values
-  Linf_Lim <- Linf*Linf_scLim
-  K_Lim    <- K*K_scLim
-  t0_Lim   <- t0*t0_scLim
-  M_Lim    <- M*M_scLim
-  steep_Lim <- steep*steep_scLim
+  Linf_lim <- Linf*sclim$Linf
+  K_lim    <- K*sclim$K
+  t0_lim   <- t0*sclim$t0
+  M_lim    <- M*sclim$M
+  steep_lim <- steep*sclim$steep
 
-  if(Dmort_is){Dmort_Lim <- Dmort[c(1,1),,drop=FALSE]*Dmort_scLim}
-
+  if(Dmort_is){Dmort_lim <- Dmort[c(1,1),,drop=FALSE]*sclim$Dmort}
 
   ## Conduct Monte Carlo draws
   # Vectors (sim)
-  sim_Linf <- runif(nsim,min(Linf_Lim),max(Linf_Lim))
-  sim_K <- runif(nsim,min(K_Lim),max(K_Lim))
-  sim_t0 <- runif(nsim,min(t0_Lim),max(t0_Lim))
+  sim_Linf <- eval(fn_par$Linf)
+  sim_K <- eval(fn_par$K)
+  sim_t0 <- eval(fn_par$t0)
   if(M_constant_is){
-    sim_M <- runif(nsim,min(M_Lim),max(M_Lim))
+    sim_M <- eval(fn_par$M)
     sim_Masc <- sim_M/M # Multiply by M-at-age to rescale appropriately with sim M
   }else{
     sim_M <- rep(NA,nsim)
-    sim_Masc <- runif(nsim,M_scLim[1],M_scLim[2])
+    sim_Masc <- runif(nsim,sclim$M[1],sclim$M[2])
   }
-  sim_steep <- runif(nsim,min(steep_Lim),max(steep_Lim))
-  sim_rec_sigma <- round(rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0),ndigits) # values from meta-analysis. HARDCODED VALUES!!!  MAP TO FUNCTION ARGUMENTS !!!
+  sim_steep <- eval(eval(fn_par$steep))
+  sim_rec_sigma <- round(eval(fn_par$rec_sigma),ndigits) # values from meta-analysis. HARDCODED VALUES!!!  MAP TO FUNCTION ARGUMENTS !!!
 
   if(Dmort_is){
-    sim_Dmort <- apply(Dmort_Lim,2,function(x){
-      runif(nsim,min(x),max(x))
-      })
-    }
+    sim_Dmort <- eval(fn_par$Dmort)
+  }
 
   # Matrices (sim,age)
   sim_Ma <- round(t(matrix(rep(Ma,nsim),ncol=nsim,dimnames=list(age=agebins,sim=nm_sim)))*sim_Masc,ndigits)
 
-
   sim_vectors <- local({
     a <- data.frame(Linf=sim_Linf,
-                         K=sim_K,
-                         t0=sim_t0,
-                         M=sim_M,
-                         steep=sim_steep,
-                         rec_sigma=sim_rec_sigma
-                         )
+                    K=sim_K,
+                    t0=sim_t0,
+                    M=sim_M,
+                    Masc=sim_Masc,
+                    steep=sim_steep,
+                    rec_sigma=sim_rec_sigma
+    )
     if(Dmort_is) {b <- cbind(a,sim_Dmort)
     }else{
       b <- a
@@ -352,8 +379,13 @@ t.series <- spp$t.series
       yrs_cpue_i <- rownames(ci)
     }
 
-    sim_cpue_i <- lnorm_vector_boot(cpue_i,cv_cpue_i,nsim,
-                                 standardize=TRUE,digits=ndigits)
+    if(any(c("U","cpue")%in%data_type_resamp)){
+      message(paste("bootstrapping",nm_i))
+      sim_cpue_i <- lnorm_vector_boot(cpue_i,cv_cpue_i,nsim,
+                                      standardize=TRUE,digits=ndigits)
+    }else{
+      sim_cpue_i <- matrix(cpue_i,nrow=length(yrs_cpue_i),ncol=nsim)
+    }
     dimnames(sim_cpue_i) <- list("year"=yrs_cpue_i,"sim"=nm_sim)
     sim_cpue[[cpue_root_i]] <- sim_cpue_i
   }
@@ -398,8 +430,13 @@ t.series <- spp$t.series
       if(any(yrs_L_i != rownames(ci))){warning(paste("years of",paste0("data_sim$cv_L$",L_root_i),"do not match years of",nm_i,"in the base model"))}
     }
 
-    sim_L_i <- lnorm_vector_boot(L_i,cv_L_i,nsim,
-                                    standardize=FALSE,digits=ndigits)
+    if("L"%in%data_type_resamp){
+      message(paste("bootstrapping",nm_i))
+      sim_L_i <- lnorm_vector_boot(L_i,cv_L_i,nsim,
+                                   standardize=FALSE,digits=ndigits)
+    }else{
+      sim_L_i <- matrix(L_i,nrow=length(yrs_L_i),ncol=nsim)
+    }
     dimnames(sim_L_i) <- list("year"=yrs_L_i,"sim"=nm_sim)
     sim_L[[L_root_i]] <- sim_L_i
   }
@@ -409,94 +446,105 @@ t.series <- spp$t.series
   sim_D <- list()
 
   if(length(obs_released_nm)>0){
-  cv_D_nm <- names(init)[grepl(pattern="obs_cv_D_",names(init))]
+    cv_D_nm <- names(init)[grepl(pattern="obs_cv_D_",names(init))]
 
-  for(nm_i in obs_released_nm){
-    D_root_i <- gsub("obs_released_","",nm_i)
-    cv_D_nm_i <- gsub("obs_released_","obs_cv_D_",nm_i)
+    for(nm_i in obs_released_nm){
+      D_root_i <- gsub("obs_released_","",nm_i)
+      cv_D_nm_i <- gsub("obs_released_","obs_cv_D_",nm_i)
 
-    yrs_D_nm_i <- paste0("yrs_D_",D_root_i)
-    styr_D_nm_i <- gsub("obs_released","styr_D",nm_i)
-    endyr_D_nm_i <- gsub("obs_released","endyr_D",nm_i)
-    if(yrs_D_nm_i%in%names(init)){ # If the specific years are given, use them. Otherwise look for range of years given and use those
-      yrs_D_i <- init[[yrs_D_nm_i]]
-    }else{
-      styr_D_i  <- init[[styr_D_nm_i]]
-      endyr_D_i <- init[[endyr_D_nm_i]]
-      yrs_D_i <- paste(styr_D_i:endyr_D_i)
-    }
-
-    D_i <- as.numeric(init[[nm_i]])
-
-    # Set default cvs
-    cv_D_i <- if(cv_D_nm_i%in%names(init)){
-      as.numeric(init[[cv_D_nm_i]])}else{
-        message(paste0(cv_D_nm_i," not found in names(init). Using cvs of par_default$cv_D = ",par_default$cv_D, " to simulate ",nm_i))
-        rep(par_default$cv_D,length(D_i))
+      yrs_D_nm_i <- paste0("yrs_D_",D_root_i)
+      styr_D_nm_i <- gsub("obs_released","styr_D",nm_i)
+      endyr_D_nm_i <- gsub("obs_released","endyr_D",nm_i)
+      if(yrs_D_nm_i%in%names(init)){ # If the specific years are given, use them. Otherwise look for range of years given and use those
+        yrs_D_i <- init[[yrs_D_nm_i]]
+      }else{
+        styr_D_i  <- init[[styr_D_nm_i]]
+        endyr_D_i <- init[[endyr_D_nm_i]]
+        yrs_D_i <- paste(styr_D_i:endyr_D_i)
       }
 
-    # Override and replace cvs if values are provided in data_sim
-    if(any(!is.na(data_sim$cv_D[,D_root_i]))){
-      message(paste("using values from data_sim for",nm_i))
-      ci <- local({
-        ai <- data_sim$cv_D[,D_root_i,drop=FALSE]
-        ai[complete.cases(ai),,drop=FALSE]
-      })
-      cv_D_i <- ci[,D_root_i]
-      if(any(yrs_D_i != rownames(ci))){warning(paste("years of",paste0("data_sim$cv_D$",D_root_i),"do not match years of",nm_i,"in the base model"))}
-    }
+      D_i <- as.numeric(init[[nm_i]])
 
-    sim_D_i <- lnorm_vector_boot(D_i,cv_D_i,nsim,
-                                 standardize=FALSE,digits=ndigits)
-    dimnames(sim_D_i) <- list("year"=yrs_D_i,"sim"=nm_sim)
-    sim_D[[D_root_i]] <- sim_D_i
-  }
+      # Set default cvs
+      cv_D_i <- if(cv_D_nm_i%in%names(init)){
+        as.numeric(init[[cv_D_nm_i]])}else{
+          message(paste0(cv_D_nm_i," not found in names(init). Using cvs of par_default$cv_D = ",par_default$cv_D, " to simulate ",nm_i))
+          rep(par_default$cv_D,length(D_i))
+        }
+
+      # Override and replace cvs if values are provided in data_sim
+      if(any(!is.na(data_sim$cv_D[,D_root_i]))){
+        message(paste("using values from data_sim for",nm_i))
+        ci <- local({
+          ai <- data_sim$cv_D[,D_root_i,drop=FALSE]
+          ai[complete.cases(ai),,drop=FALSE]
+        })
+        cv_D_i <- ci[,D_root_i]
+        if(any(yrs_D_i != rownames(ci))){warning(paste("years of",paste0("data_sim$cv_D$",D_root_i),"do not match years of",nm_i,"in the base model"))}
+      }
+
+      if("D"%in%data_type_resamp){
+        message(paste("bootstrapping",nm_i))
+        sim_D_i <- lnorm_vector_boot(D_i,cv_D_i,nsim,
+                                     standardize=FALSE,digits=ndigits)
+      }else{
+        sim_D_i <- matrix(D_i,nrow=length(yrs_D_i),ncol=nsim)
+      }
+      dimnames(sim_D_i) <- list("year"=yrs_D_i,"sim"=nm_sim)
+      sim_D[[D_root_i]] <- sim_D_i
+    }
   }else{
-  message("No discard time series found in the base model (i.e. no names(init) beginning with obs_released).")
+    message("No discard time series found in the base model (i.e. no names(init) beginning with obs_released).")
   }
+
 
   #%% Age composition %%#
   obs_agec_nm <- names(init)[grepl(pattern="obs_agec",names(init))]
   sim_acomp <- list()
 
   if(length(obs_agec_nm)>0){
-  agec_root <- gsub("^obs_agec_","",obs_agec_nm)
+    agec_root <- gsub("^obs_agec_","",obs_agec_nm)
 
-  for(agec_root_i in agec_root){
-    acomp_ob_nm_i <- gsub("\\_","\\.",paste0("acomp.",agec_root_i,".ob"))
-    x_i <- comp.mats_i <- comp.mats[[acomp_ob_nm_i]]
+    for(agec_root_i in agec_root){
+      acomp_ob_nm_i <- gsub("\\_","\\.",paste0("acomp.",agec_root_i,".ob"))
+      x_i <- comp.mats_i <- comp.mats[[acomp_ob_nm_i]]
 
-    agebins_acomp_i <- factor(colnames(x_i),levels=colnames(x_i))
+      agebins_acomp_i <- factor(colnames(x_i),levels=colnames(x_i))
 
-    yrs_i <- as.numeric(rownames(x_i))
+      yrs_i <- as.numeric(rownames(x_i))
 
-    # Get nfish from init instead of spp. If years of comps are excluded from
-    # fitting by bam based on minSS then values of -99999 will appear for
-    # values of nfish in the rdat. This won't affect results, but the -99999
-    # values cause an error when trying to simulate comps.
-    nfish_i <- setNames(as.numeric(init[[paste0("nfish_agec_",agec_root_i)]]),paste(yrs_i))
-    dimnames(x_i) <- list("year"=yrs_i,"age"=agebins_acomp_i)
+      # Get nfish from init instead of spp. If years of comps are excluded from
+      # fitting by bam based on minSS then values of -99999 will appear for
+      # values of nfish in the rdat. This won't affect results, but the -99999
+      # values cause an error when trying to simulate comps.
+      nfish_i <- setNames(as.numeric(init[[paste0("nfish_agec_",agec_root_i)]]),paste(yrs_i))
+      dimnames(x_i) <- list("year"=yrs_i,"age"=agebins_acomp_i)
 
-    x_i <- as.data.frame.matrix(x_i)
-    x_i$nfish <- nfish_i
+      x_i <- as.data.frame.matrix(x_i)
+      x_i$nfish <- nfish_i
 
-
-    sim_acomp_i <- foreach(i=1:nsim) %dopar% {
-      out <- apply(x_i,1,function(y){
-        if(sum(y[names(y)!="nfish"])>0&y["nfish"]>0){
-          ages_y <- sample(x=agebins_acomp_i, size=y["nfish"], replace=TRUE, prob=y[paste(agebins_acomp_i)])
-          round(table(factor(ages_y,agebins_acomp_i))/y["nfish"],4)
-        }else{
-          ages_y <- rep(0,length(agebins_acomp_i))
+      if(any(c("age","agec")%in%data_type_resamp)){
+        message(paste("bootstrapping",paste0("obs_agec_",agec_root_i)))
+        sim_acomp_i <- foreach(i=1:nsim) %dopar% {
+          out <- apply(x_i,1,function(y){
+            if(sum(y[names(y)!="nfish"])>0&y["nfish"]>0){
+              ages_y <- sample(x=agebins_acomp_i, size=y["nfish"], replace=TRUE, prob=y[paste(agebins_acomp_i)])
+              round(table(factor(ages_y,agebins_acomp_i))/y["nfish"],4)
+            }else{
+              ages_y <- rep(0,length(agebins_acomp_i))
+            }
+          })
+          t(out)
         }
-      })
-      t(out)
-    }
-    sim_acomp_i <- array(unlist(sim_acomp_i),dim=c(dim(comp.mats_i),length(sim_acomp_i)),
-                         dimnames=list(year=yrs_i,age=levels(agebins_acomp_i),sim=nm_sim))
+        sim_acomp_i <- array(unlist(sim_acomp_i),dim=c(dim(comp.mats_i),length(sim_acomp_i)),
+                             dimnames=list(year=yrs_i,age=levels(agebins_acomp_i),sim=nm_sim))
 
-    sim_acomp[[agec_root_i]] <- sim_acomp_i
-  }
+        sim_acomp[[agec_root_i]] <- sim_acomp_i
+      }else{
+        sim_acomp[[agec_root_i]] <- array(unlist(comp.mats_i),dim=c(dim(comp.mats_i),nsim),
+                                          dimnames=list(year=yrs_i,age=levels(agebins_acomp_i),sim=nm_sim))
+      }
+    }
   }else{
     message("No age compositions found in the base model (i.e. no names(init) beginning with obs_agec).")
   }
@@ -527,28 +575,33 @@ t.series <- spp$t.series
       x_i <- as.data.frame.matrix(x_i)
       x_i$nfish <- nfish_i
 
-      sim_lcomp_i <- foreach(i=1:nsim) %dopar% {
-        out <- apply(x_i,1,function(y){
-          if(sum(y[names(y)!="nfish"])>0&y["nfish"]>0){
-            lens_y <- sample(x=lenbins_lcomp_i, size=y["nfish"], replace=TRUE, prob=y[paste(lenbins_lcomp_i)])
-            round(table(factor(lens_y,lenbins_lcomp_i))/y["nfish"],4)
-          }else{
-            lens_y <- rep(0,length(lenbins_lcomp_i))
-          }
-        })
-        t(out)
+      if(any(c("len","lenc")%in%data_type_resamp)){
+        message(paste("bootstrapping",paste0("obs_lenc_",lenc_root_i)))
+        sim_lcomp_i <- foreach(i=1:nsim) %dopar% {
+          out <- apply(x_i,1,function(y){
+            if(sum(y[names(y)!="nfish"])>0&y["nfish"]>0){
+              lens_y <- sample(x=lenbins_lcomp_i, size=y["nfish"], replace=TRUE, prob=y[paste(lenbins_lcomp_i)])
+              round(table(factor(lens_y,lenbins_lcomp_i))/y["nfish"],4)
+            }else{
+              lens_y <- rep(0,length(lenbins_lcomp_i))
+            }
+          })
+          t(out)
+        }
+        sim_lcomp_i <- array(unlist(sim_lcomp_i),dim=c(dim(comp.mats_i),length(sim_lcomp_i)),
+                             dimnames=list(year=yrs_i,len=levels(lenbins_lcomp_i),sim=nm_sim))
+        sim_lcomp[[lenc_root_i]] <- sim_lcomp_i
+      }else{
+        sim_lcomp[[lenc_root_i]] <- array(unlist(comp.mats_i),dim=c(dim(comp.mats_i),nsim),
+                                          dimnames=list(year=yrs_i,len=levels(lenbins_lcomp_i),sim=nm_sim))
       }
-      sim_lcomp_i <- array(unlist(sim_lcomp_i),dim=c(dim(comp.mats_i),length(sim_lcomp_i)),
-                           dimnames=list(year=yrs_i,len=levels(lenbins_lcomp_i),sim=nm_sim))
-
-      sim_lcomp[[lenc_root_i]] <- sim_lcomp_i
     }
   }else{
     message("No length compositions found in the base model (i.e. no names(init) beginning with obs_lenc).")
   }
 
-############################
-## Run the bam base model to build the executable and establish a reference?
+  ############################
+  ## Run the bam base model to build the executable and establish a reference?
   #%%%%%%%%%%%%%%%%%%%%%
   #### Run MCBE (maybe this should be a separate function?) ####
   #%%%%%%%%%%%%%%%%%%%%%
@@ -578,165 +631,170 @@ t.series <- spp$t.series
       message(paste("Created the folder",paste0("'",dir_bam_sim,"'.")))
     }
 
-  message(paste("Running MCBE for", nsim,"sims in parallel on",coresUse,"cores at",Sys.time()))
+    message(paste("Running MCBE for", nsim,"sims in parallel on",coresUse,"cores at",Sys.time()))
 
-  MCBE_out <- foreach(i=1:nsim,
-          #, .export = ls()[grepl("xboot.obs",ls())] # Pass additional objects to foreach
-          .packages=c("bamExtras")
-  ) %dopar% {
-    nm_sim_i <- nm_sim[i]
+    MCBE_out <- foreach(i=1:nsim,
+                        #, .export = ls()[grepl("xboot.obs",ls())] # Pass additional objects to foreach
+                        .packages=c("bamExtras")
+    ) %dopar% {
+      nm_sim_i <- nm_sim[i]
 
-    init_i <- init # Copy init from base for each bootstrap run, to initialize
+      init_i <- init # Copy init from base for each bootstrap run, to initialize
 
-    #%%%%  Modify init_i %%%%#
+      #%%%%  Modify init_i %%%%#
 
-    #%% Create Monte Carlo/bootstrap data set %%#
+      #%% Create Monte Carlo/bootstrap data set %%#
+      # Fix parameters
+      init_i[fix_par] <- lapply(init_i[fix_par],function(x){x["phase"] <- paste(-abs(as.numeric(x["phase"]))); x})
 
-    ##### Monte Carlo #####
-    # M
-    if(M_constant_is){
-      init_i$set_M_constant[c(1,5)] <- paste(sim_vectors$M[i])
-    }
-    init_i$set_M <- paste(sim_Ma[i,])
 
-    # Dmort
-    if(Dmort_is){
-    for(j in colnames(Dmort)){
-      set_Dmort_ij <- sim_vectors[i,j]
-      init_i[[j]] <- paste(set_Dmort_ij)
-    }
-    }
-
-    # steepness
-    init_i$set_steep[c(1,5)] <- paste(sim_vectors$steep[i])
-
-    # rec_sigma
-    init_i$set_rec_sigma[c(1,5)] <- paste(sim_vectors$rec_sigma[i])
-
-    ##### Bootstrap #####
-    spf <- paste0("%01.",ndigits,"f")
-    # Add indices (cpue)
-    for(nm_j in obs_cpue_nm){
-      cpue_root_j <- gsub("obs_cpue_","",nm_j)
-      init_i[[nm_j]] <- sprintf(spf,sim_cpue[[cpue_root_j]][,i])
-    }
-
-    # Add landings (L)
-    for(nm_j in obs_L_nm){
-      L_root_j <- gsub("obs_L_","",nm_j)
-      init_i[[nm_j]] <- sprintf(spf,sim_L[[L_root_j]][,i])
-    }
-
-    # Add discards (D)
-    if(length(obs_released_nm)>0){
-      for(nm_j in obs_released_nm){
-        released_root_j <- gsub("obs_released_","",nm_j)
-        init_i[[nm_j]] <- sprintf(spf,sim_D[[released_root_j]][,i])
+      ##### Monte Carlo #####
+      # M
+      if(M_constant_is){
+        init_i$set_M_constant[c(1,5)] <- paste(sim_vectors$M[i])
       }
-    }
+      init_i$set_M <- paste(sim_Ma[i,])
 
-    # Add age comps
-    if(length(obs_agec_nm)>0){
-      for(agec_root_j in agec_root){
-        # acomp_ob_nm_j <- paste0("acomp.",agec_root_j,".ob") # rdat naming convention
-        obs_agec_nm_j <- gsub("\\.","\\_",paste0("obs_agec_",agec_root_j))    # tpl naming convention
-        agec_ij <- sim_acomp[[agec_root_j]][,,i,drop=FALSE]
-        dim_agec_ij <- dim(agec_ij)
-        agec_ij <- matrix(apply(agec_ij,2,function(x){sprintf(spf,x)}),nrow=dim_agec_ij[1])
-        dimnames(agec_ij) <- NULL
-        init_i[[obs_agec_nm_j]] <- agec_ij
+      # Dmort
+      if(Dmort_is){
+        for(j in colnames(Dmort)){
+          set_Dmort_ij <- sim_vectors[i,j]
+          init_i[[j]] <- paste(set_Dmort_ij)
+        }
       }
-    }
 
-    if(length(obs_lenc_nm)>0){
-      for(lenc_root_j in lenc_root){
-        # lcomp_ob_nm_j <- paste0("lcomp.",lenc_root_j,".ob") # rdat naming convention
-        obs_lenc_nm_j <- gsub("\\.","\\_",paste0("obs_lenc_",lenc_root_j))    # tpl naming convention
-        lenc_ij <- sim_lcomp[[lenc_root_j]][,,i,drop=FALSE]
-        dim_lenc_ij <- dim(lenc_ij)
-        lenc_ij <- matrix(apply(lenc_ij,2,function(x){sprintf(spf,x)}),nrow=dim_lenc_ij[1])
-        dimnames(lenc_ij) <- NULL
-        init_i[[obs_lenc_nm_j]] <- lenc_ij
+      # steepness
+      init_i$set_steep[c(1,5)] <- paste(sim_vectors$steep[i])
+
+      # rec_sigma
+      init_i$set_rec_sigma[c(1,5)] <- paste(sim_vectors$rec_sigma[i])
+
+      ##### Bootstrap #####
+      spf <- paste0("%01.",ndigits,"f")
+      # Add indices (cpue)
+      for(nm_j in obs_cpue_nm){
+        cpue_root_j <- gsub("obs_cpue_","",nm_j)
+        init_i[[nm_j]] <- sprintf(spf,sim_cpue[[cpue_root_j]][,i])
       }
-    }
 
-    #%% Incorporate changes to init_i back into BAM dat %%#
-    bam_i <- bam2r(
-      dat_obj = dat,
-      tpl_obj = tpl,
-      cxx_obj = cxx,
-      init = init_i)
+      # Add landings (L)
+      for(nm_j in obs_L_nm){
+        L_root_j <- gsub("obs_L_","",nm_j)
+        init_i[[nm_j]] <- sprintf(spf,sim_L[[L_root_j]][,i])
+      }
 
-    #%%  File management stuff
-    sim_dir_i <- paste0("sim_",nm_sim_i)
-    dir.create(sim_dir_i)
-    setwd(sim_dir_i)
+      # Add discards (D)
+      if(length(obs_released_nm)>0){
+        for(nm_j in obs_released_nm){
+          released_root_j <- gsub("obs_released_","",nm_j)
+          init_i[[nm_j]] <- sprintf(spf,sim_D[[released_root_j]][,i])
+        }
+      }
 
-    fileName_exe_base <- paste0(fileName,".exe")
+      # Add age comps
+      if(length(obs_agec_nm)>0){
+        for(agec_root_j in agec_root){
+          # acomp_ob_nm_j <- paste0("acomp.",agec_root_j,".ob") # rdat naming convention
+          obs_agec_nm_j <- gsub("\\.","\\_",paste0("obs_agec_",agec_root_j))    # tpl naming convention
+          agec_ij <- sim_acomp[[agec_root_j]][,,i,drop=FALSE]
+          dim_agec_ij <- dim(agec_ij)
+          agec_ij <- matrix(apply(agec_ij,2,function(x){sprintf(spf,x)}),nrow=dim_agec_ij[1])
+          dimnames(agec_ij) <- NULL
+          init_i[[obs_agec_nm_j]] <- agec_ij
+        }
+      }
 
-    fileName_dat_i <- paste(nm_sim_i,'-',fileName,'.dat',sep="") # Name of dat file for i
-    fileName_rdat_i <- paste(nm_sim_i,'-',fileName,'.rdat',sep="") # Name of rdat file for i
-    fileName_exe_i <- paste(nm_sim_i,'-',fileName,'.exe',sep="") # Name of exe file for i
-    fileName_par_i <- paste(nm_sim_i,'-',fileName,'.par',sep="") # Name of par file for i
+      if(length(obs_lenc_nm)>0){
+        for(lenc_root_j in lenc_root){
+          # lcomp_ob_nm_j <- paste0("lcomp.",lenc_root_j,".ob") # rdat naming convention
+          obs_lenc_nm_j <- gsub("\\.","\\_",paste0("obs_lenc_",lenc_root_j))    # tpl naming convention
+          lenc_ij <- sim_lcomp[[lenc_root_j]][,,i,drop=FALSE]
+          dim_lenc_ij <- dim(lenc_ij)
+          lenc_ij <- matrix(apply(lenc_ij,2,function(x){sprintf(spf,x)}),nrow=dim_lenc_ij[1])
+          dimnames(lenc_ij) <- NULL
+          init_i[[obs_lenc_nm_j]] <- lenc_ij
+        }
+      }
 
-    # Copy executable to directory for sim i
-    file.copy(file.path("..",dir_bam_base,fileName_exe_base), fileName_exe_i, overwrite=TRUE)
+      #%% Incorporate changes to init_i back into BAM dat %%#
+      bam_i <- bam2r(
+        dat_obj = dat,
+        tpl_obj = tpl,
+        cxx_obj = cxx,
+        init = init_i)
 
-    # Rewrite dat file incorporating modified data
-    writeLines(text=bam_i$dat, con=fileName_dat_i)
+      #%%  File management stuff
+      sim_dir_i <- paste0("sim_",nm_sim_i)
+      dir.create(sim_dir_i)
+      setwd(sim_dir_i)
 
-    #######Run bam for sim_i
-    shell(paste(fileName_exe_i, admb_switch_sim, fileName_dat_i, sep=" "))
+      fileName_exe_base <- paste0(fileName,".exe")
 
-    par_i <- readLines(fileName_par_i)
-    lk_total_i <- gsub("^.*Objective function value = (.*)  Maximum.*$","\\1",par_i[1])
-    grad_max_i <- gsub("^.*component = ","\\1",par_i[1])
+      fileName_dat_i <- paste(nm_sim_i,'-',fileName,'.dat',sep="") # Name of dat file for i
+      fileName_rdat_i <- paste(nm_sim_i,'-',fileName,'.rdat',sep="") # Name of rdat file for i
+      fileName_exe_i <- paste(nm_sim_i,'-',fileName,'.exe',sep="") # Name of exe file for i
+      fileName_par_i <- paste(nm_sim_i,'-',fileName,'.par',sep="") # Name of par file for i
 
-    if(!is.na(as.numeric(lk_total_i))){ # If the total likelihood of the model was a numeric result
-    # Subset rdat to decrease size on disk
-    rdat_i <- dget(file=fileName_rdat_i)
-    for(nm_k in names(subset_rdat)){
-      k <- rdat_i[[nm_k]]
-      if(is.null(subset_rdat[[nm_k]])){
-        rdat_i[[nm_k]] <- NULL
+      # Copy executable to directory for sim i
+      file.copy(file.path("..",dir_bam_base,fileName_exe_base), fileName_exe_i, overwrite=TRUE)
+
+      # Rewrite dat file incorporating modified data
+      writeLines(text=bam_i$dat, con=fileName_dat_i)
+
+      #######Run bam for sim_i
+      shell(paste(fileName_exe_i, admb_switch_sim, fileName_dat_i, sep=" "))
+
+      par_i <- readLines(fileName_par_i)
+      lk_total_i <- gsub("^.*Objective function value = (.*)  Maximum.*$","\\1",par_i[1])
+      grad_max_i <- gsub("^.*component = ","\\1",par_i[1])
+
+      if(!is.na(as.numeric(lk_total_i))){ # If the total likelihood of the model was a numeric result
+        # Subset rdat to decrease size on disk
+        rdat_i <- dget(file=fileName_rdat_i)
+        for(nm_k in names(subset_rdat)){
+          k <- rdat_i[[nm_k]]
+          if(is.null(subset_rdat[[nm_k]])){
+            rdat_i[[nm_k]] <- NULL
+          }else{
+            rdat_i[[nm_k]] <- k[seq(1,nrow(k),length=subset_rdat[[nm_k]]),,drop=FALSE]
+          }
+        }
+        # Save file over previous
+        dput(x=rdat_i,file=fileName_rdat_i)
+        file_to <- file.path("..",dir_bam_sim)
       }else{
-        rdat_i[[nm_k]] <- k[seq(1,nrow(k),length=subset_rdat[[nm_k]]),,drop=FALSE]
+        file_to <- file.path("..",dir_bam_sim_fail)
+        if(!dir.exists(file_to)){
+          dir.create(file_to)
+        }
       }
-    }
-    # Save file over previous
-    dput(x=rdat_i,file=fileName_rdat_i)
-    file_to <- file.path("..",dir_bam_sim)
-    }else{
-      file_to <- file.path("..",dir_bam_sim_fail)
-      if(!dir.exists(file_to)){
-        dir.create(file_to)
-      }
-    }
 
-    ########## Copy data files to folder
-    file.copy(from=c(fileName_dat_i,fileName_rdat_i),
-              to=file_to,
-              overwrite = TRUE)
+      ########## Copy data files to folder
+      file.copy(from=c(fileName_dat_i,fileName_rdat_i),
+                to=file_to,
+                overwrite = TRUE)
 
-    #######Remove individual processing folders
-    setwd(wd)
-    unlink(sim_dir_i, recursive=T)
+      #######Remove individual processing folders
+      setwd(wd)
+      unlink(sim_dir_i, recursive=T)
 
-  return(setNames(c(lk_total_i,grad_max_i),c("lk_total","grad_max")))
-  } #end MCBE foreach loop
+      return(setNames(c(lk_total_i,grad_max_i),c("lk_total","grad_max")))
+    } #end MCBE foreach loop
 
 
-  message(paste("Finished running MCBE for", nsim,"sims in parallel on",coresUse,"cores at",Sys.time()))
+    message(paste("Finished running MCBE for", nsim,"sims in parallel on",coresUse,"cores at",Sys.time()))
 
-  MCBE_out <- apply(do.call(rbind,MCBE_out),2,as.numeric)
-  MCBE_out <- cbind("sim"=nm_sim,as.data.frame(MCBE_out),
-                    "Linf"=sim_Linf,"K"=sim_K, "t0"=sim_t0, "M"=sim_M, "Mage_scale"=sim_Masc,
-                    "steep"=sim_steep,"rec_sigma"=sim_rec_sigma)
+    MCBE_out <- apply(do.call(rbind,MCBE_out),2,as.numeric)
+    MCBE_out <- cbind("sim"=nm_sim,as.data.frame(MCBE_out),
+                      sim_vectors
+                      # "Linf"=sim_Linf,"K"=sim_K, "t0"=sim_t0, "M"=sim_M, "Mage_scale"=sim_Masc,
+                      # "steep"=sim_steep,"rec_sigma"=sim_rec_sigma
+                      )
 
-  write.csv(x=MCBE_out,file=file.path(dir_bam_sim,"MCBE_results.csv"),row.names = FALSE)
+    write.csv(x=MCBE_out,file=file.path(dir_bam_sim,"MCBE_results.csv"),row.names = FALSE)
 
-### Return stuff
-invisible(MCBE_out)
+    ### Return stuff
+    invisible(MCBE_out)
 
   } # end if(run_sim)
 

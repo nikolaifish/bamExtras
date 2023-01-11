@@ -3,7 +3,7 @@
 //##  Species: Black Sea Bass
 //##  Region: US South Atlantic
 //##  SEDAR: 56
-//##  Date: 2022-10-19 18:14:05
+//##  Date: 2022-11-18 22:17:15
 
 
 //##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
@@ -30,16 +30,18 @@ init_int styr;
 init_int endyr;
 //Starting year to estimate recruitment deviation from S-R curve
 init_int styr_rec_dev;
+//Ending year to estimate recruitment deviation from S-R curve
+init_int endyr_rec_dev;
 //possible 3 phases of constraints on recruitment deviations
 init_int endyr_rec_phase1;
 init_int endyr_rec_phase2;
 
-//Reg blocks -- 3 possible periods of cGN size regs: styr-83 no restrictions, 1984-98 8-inch TL, 1999-2010 10-in TL
-//           -- 4 possible periods of recr size regs: styr-83 no restrictions, 1984-98 8-inch TL, 1999-2006 10-in TL, 2007-2010 12-in TL 
-init_int endyr_period1;
-init_int endyr_period2;
-init_int endyr_recr_period3;
-init_int endyr_period4;
+//Reg blocks -- 3 possible phases of cGN size regs: styr-83 no restrictions, 1984-98 8-inch TL, 1999-2010 10-in TL
+//           -- 4 possible phases of recr size regs: styr-83 no restrictions, 1984-98 8-inch TL, 1999-2006 10-in TL, 2007-2010 12-in TL 
+init_int endyr_selex_phase1;
+init_int endyr_selex_phase2;
+init_int endyr_selex_phase3;
+init_int endyr_selex_phase4;
 //first yr commercial fisheries were closed due to quotas
 init_int styr_cGN_closed;  
 //size limits
@@ -63,7 +65,7 @@ number nyrs_rec;
  LOCAL_CALCS
    nyrs=endyr-styr+1.;
    //nyrs_rec=endyr-styr_rec_dev+1.;
-   nyrs_rec=endyr_rec_phase2-styr_rec_dev+1.;
+   nyrs_rec=endyr_rec_dev-styr_rec_dev+1.;
  END_CALCS
 
 //Total number of length bins for each matrix and length bins used to compute mass in largest bin (plus group)
@@ -236,11 +238,11 @@ init_int styr_cpue_rHB;
 init_int endyr_cpue_rHB;
 init_vector obs_cpue_rHB(styr_cpue_rHB,endyr_cpue_rHB);//Observed CPUE
 init_vector obs_cv_cpue_rHB(styr_cpue_rHB,endyr_cpue_rHB); //CV of cpue
-//###rHB_D index (headboat discards from at sea observer program#################
-//init_int styr_rHB_D_cpue;
-//init_int endyr_rHB_D_cpue;
-//init_vector obs_rHB_D_cpue(styr_rHB_D_cpue,endyr_rHB_D_cpue);   //Observed CPUE
-//init_vector rHB_D_cpue_cv(styr_rHB_D_cpue,endyr_rHB_D_cpue);    //CV of cpue
+//###rHD index (headboat discards from at sea observer program#################
+//init_int styr_rHD_cpue;
+//init_int endyr_rHD_cpue;
+//init_vector obs_rHD_cpue(styr_rHD_cpue,endyr_rHD_cpue);   //Observed CPUE
+//init_vector rHD_cpue_cv(styr_rHD_cpue,endyr_rHD_cpue);    //CV of cpue
 // Landings (1000 lb)
 init_int styr_L_rHB;
 init_int endyr_L_rHB;
@@ -399,14 +401,14 @@ init_vector set_selpar_logit_Age0_rHB_D(1,7);
 init_vector set_selpar_logit_Age1_rHB_D(1,7);
 init_vector set_selpar_logit_Age2_rHB_D(1,7);
 
-init_vector set_selpar_A50_rHB_D4(1,7);
-init_vector set_selpar_slope_rHB_D4(1,7);
-init_vector set_selpar_A502_rHB_D4(1,7);
-init_vector set_selpar_slope2_rHB_D4(1,7);
-init_vector set_selpar_A50_rHB_D5(1,7);
-init_vector set_selpar_slope_rHB_D5(1,7);
-init_vector set_selpar_A502_rHB_D5(1,7);
-init_vector set_selpar_slope2_rHB_D5(1,7);
+init_vector set_selpar_A50_rHD4(1,7);
+init_vector set_selpar_slope_rHD4(1,7);
+init_vector set_selpar_A502_rHD4(1,7);
+init_vector set_selpar_slope2_rHD4(1,7);
+init_vector set_selpar_A50_rHD5(1,7);
+init_vector set_selpar_slope_rHD5(1,7);
+init_vector set_selpar_A502_rHD5(1,7);
+init_vector set_selpar_slope2_rHD5(1,7);
 
 //--index catchability------------------------------------------------------------------------------------------------------------
 init_vector set_log_q_cpue_sBT(1,7);    //catchability coefficient (log) for Blackfish trap
@@ -414,7 +416,7 @@ init_vector set_log_q_cpue_sTV(1,7);    //catchability coefficient (log) for MAR
 //init_vector set_logq_Vid(1,7);    //catchability coefficient (log) for SERFS video
 init_vector set_log_q_cpue_cHL(1,7);      //catchability coefficient (log) for commercial logbook index
 init_vector set_log_q_cpue_rHB(1,7);      //catchability coefficient (log) for the headboat index
-//init_vector set_logq_rHB_D(1,7);     //catchability coefficient (log) for rHB_D
+//init_vector set_logq_rHD(1,7);     //catchability coefficient (log) for rHD
 
 ////--mean F's in log space--------------------------------
 init_vector set_log_avg_F_L_cHL(1,7);
@@ -442,15 +444,15 @@ init_vector set_log_dev_RWq(1,3);
 init_vector set_log_dev_rec(1,3);
 init_vector set_log_dev_Nage(1,3);
 
-init_vector set_log_dev_vals_F_L__cHL(styr_L_cHL,endyr_L_cHL);
-init_vector set_log_dev_vals_F_L__cPT(styr_L_cPT,endyr_L_cPT);
+init_vector set_log_dev_vals_F_L_cHL(styr_L_cHL,endyr_L_cHL);
+init_vector set_log_dev_vals_F_L_cPT(styr_L_cPT,endyr_L_cPT);
 //init_vector set_log_F_dev_cTW_vals(styr_L_cTW,endyr_L_cTW);
-init_vector set_log_dev_vals_F_L__rHB(styr_L_rHB,endyr_L_rHB);
-init_vector set_log_dev_vals_F_L__rGN(styr_L_rGN,endyr_L_rGN);
-init_vector set_log_dev_vals_F_D__commvals(styr_D_cHL,endyr_D_cHL);
-init_vector set_log_dev_vals_F_D__HBvals(styr_D_rHB,endyr_D_rHB);
-init_vector set_log_dev_vals_F_D__mripvals(styr_D_rGN,endyr_D_rGN);
-init_vector set_log_dev_vals_rec(styr_rec_dev,endyr_rec_phase2);
+init_vector set_log_dev_vals_F_L_rHB(styr_L_rHB,endyr_L_rHB);
+init_vector set_log_dev_vals_F_L_rGN(styr_L_rGN,endyr_L_rGN);
+init_vector set_log_dev_vals_F_D_cGN(styr_D_cHL,endyr_D_cHL);
+init_vector set_log_dev_vals_F_D_rHB(styr_D_rHB,endyr_D_rHB);
+init_vector set_log_dev_vals_F_D_rGN(styr_D_rGN,endyr_D_rGN);
+init_vector set_log_dev_vals_rec(styr_rec_dev,endyr_rec_dev);
 init_vector set_log_dev_vals_Nage(2,nages);   
 
 //--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
@@ -480,7 +482,7 @@ init_number set_w_cpue_sTV;
 //init_number set_w_I_Vid;
 init_number set_w_cpue_cHL;
 init_number set_w_cpue_rHB;
-//init_number set_w_I_rHB_D;
+//init_number set_w_I_rHD;
 
 init_number set_w_rec;             //for fitting S-R curve
 init_number set_w_rec_early;       //additional constraint on early years recruitment
@@ -534,7 +536,7 @@ init_int set_q_DD_stage;      //age to begin counting biomass, should be near fu
 init_int set_q_RW_phase;         //value sets estimation phase of random walk, negative value turns it off
 init_number set_q_RW_cHL_var;     //assumed variance of RW q
 init_number set_q_RW_rHB_var;     //assumed variance of RW q
-//init_number set_q_RW_rHB_D_var;    //assumed variance of RW q
+//init_number set_q_RW_rHD_var;    //assumed variance of RW q
 
 //init_vector set_F_init_ratio;  //defines initialization F as a ratio of that from first several yrs of assessment
 init_number set_F_init_ratio
@@ -688,37 +690,37 @@ LOCAL_CALCS
   const double selpar_Age1_rHB_D_logit_LO=set_selpar_logit_Age1_rHB_D(2); const double selpar_Age1_rHB_D_logit_HI=set_selpar_logit_Age1_rHB_D(3); const double selpar_Age1_rHB_D_logit_PH=set_selpar_logit_Age1_rHB_D(4);
   const double selpar_Age2_rHB_D_logit_LO=set_selpar_logit_Age2_rHB_D(2); const double selpar_Age2_rHB_D_logit_HI=set_selpar_logit_Age2_rHB_D(3); const double selpar_Age2_rHB_D_logit_PH=set_selpar_logit_Age2_rHB_D(4);
   
-  const double selpar_A50_rHB_D4_LO=set_selpar_A50_rHB_D4(2); 
-  const double selpar_A50_rHB_D4_HI=set_selpar_A50_rHB_D4(3); 
-  const double selpar_A50_rHB_D4_PH=set_selpar_A50_rHB_D4(4);
-  const double selpar_slope_rHB_D4_LO=set_selpar_slope_rHB_D4(2); 
-  const double selpar_slope_rHB_D4_HI=set_selpar_slope_rHB_D4(3); 
-  const double selpar_slope_rHB_D4_PH=set_selpar_slope_rHB_D4(4);
-  const double selpar_A502_rHB_D4_LO=set_selpar_A502_rHB_D4(2); 
-  const double selpar_A502_rHB_D4_HI=set_selpar_A502_rHB_D4(3); 
-  const double selpar_A502_rHB_D4_PH=set_selpar_A502_rHB_D4(4);
-  const double selpar_slope2_rHB_D4_LO=set_selpar_slope2_rHB_D4(2); 
-  const double selpar_slope2_rHB_D4_HI=set_selpar_slope2_rHB_D4(3); 
-  const double selpar_slope2_rHB_D4_PH=set_selpar_slope2_rHB_D4(4);
-  const double selpar_A50_rHB_D5_LO=set_selpar_A50_rHB_D5(2); 
-  const double selpar_A50_rHB_D5_HI=set_selpar_A50_rHB_D5(3); 
-  const double selpar_A50_rHB_D5_PH=set_selpar_A50_rHB_D5(4);
-  const double selpar_slope_rHB_D5_LO=set_selpar_slope_rHB_D5(2); 
-  const double selpar_slope_rHB_D5_HI=set_selpar_slope_rHB_D5(3); 
-  const double selpar_slope_rHB_D5_PH=set_selpar_slope_rHB_D5(4);
-  const double selpar_A502_rHB_D5_LO=set_selpar_A502_rHB_D5(2); 
-  const double selpar_A502_rHB_D5_HI=set_selpar_A502_rHB_D5(3); 
-  const double selpar_A502_rHB_D5_PH=set_selpar_A502_rHB_D5(4);
-  const double selpar_slope2_rHB_D5_LO=set_selpar_slope2_rHB_D5(2); 
-  const double selpar_slope2_rHB_D5_HI=set_selpar_slope2_rHB_D5(3); 
-  const double selpar_slope2_rHB_D5_PH=set_selpar_slope2_rHB_D5(4);
+  const double selpar_A50_rHD4_LO=set_selpar_A50_rHD4(2); 
+  const double selpar_A50_rHD4_HI=set_selpar_A50_rHD4(3); 
+  const double selpar_A50_rHD4_PH=set_selpar_A50_rHD4(4);
+  const double selpar_slope_rHD4_LO=set_selpar_slope_rHD4(2); 
+  const double selpar_slope_rHD4_HI=set_selpar_slope_rHD4(3); 
+  const double selpar_slope_rHD4_PH=set_selpar_slope_rHD4(4);
+  const double selpar_A502_rHD4_LO=set_selpar_A502_rHD4(2); 
+  const double selpar_A502_rHD4_HI=set_selpar_A502_rHD4(3); 
+  const double selpar_A502_rHD4_PH=set_selpar_A502_rHD4(4);
+  const double selpar_slope2_rHD4_LO=set_selpar_slope2_rHD4(2); 
+  const double selpar_slope2_rHD4_HI=set_selpar_slope2_rHD4(3); 
+  const double selpar_slope2_rHD4_PH=set_selpar_slope2_rHD4(4);
+  const double selpar_A50_rHD5_LO=set_selpar_A50_rHD5(2); 
+  const double selpar_A50_rHD5_HI=set_selpar_A50_rHD5(3); 
+  const double selpar_A50_rHD5_PH=set_selpar_A50_rHD5(4);
+  const double selpar_slope_rHD5_LO=set_selpar_slope_rHD5(2); 
+  const double selpar_slope_rHD5_HI=set_selpar_slope_rHD5(3); 
+  const double selpar_slope_rHD5_PH=set_selpar_slope_rHD5(4);
+  const double selpar_A502_rHD5_LO=set_selpar_A502_rHD5(2); 
+  const double selpar_A502_rHD5_HI=set_selpar_A502_rHD5(3); 
+  const double selpar_A502_rHD5_PH=set_selpar_A502_rHD5(4);
+  const double selpar_slope2_rHD5_LO=set_selpar_slope2_rHD5(2); 
+  const double selpar_slope2_rHD5_HI=set_selpar_slope2_rHD5(3); 
+  const double selpar_slope2_rHD5_PH=set_selpar_slope2_rHD5(4);
   
   const double log_q_sBT_LO=set_log_q_cpue_sBT(2); const double log_q_sBT_HI=set_log_q_cpue_sBT(3); const double log_q_sBT_PH=set_log_q_cpue_sBT(4);
   const double log_q_rHB_LO=set_log_q_cpue_rHB(2); const double log_q_rHB_HI=set_log_q_cpue_rHB(3); const double log_q_rHB_PH=set_log_q_cpue_rHB(4);
   const double log_q_sTV_LO=set_log_q_cpue_sTV(2); const double log_q_sTV_HI=set_log_q_cpue_sTV(3); const double log_q_sTV_PH=set_log_q_cpue_sTV(4);
   //const double log_q_Vid_LO=set_logq_Vid(2); const double log_q_Vid_HI=set_logq_Vid(3); const double log_q_Vid_PH=set_logq_Vid(4);
   const double log_q_cHL_LO=set_log_q_cpue_cHL(2); const double log_q_cHL_HI=set_log_q_cpue_cHL(3); const double log_q_cHL_PH=set_log_q_cpue_cHL(4);
-  //const double log_q_rHB_D_LO=set_logq_rHB_D(2); const double log_q_rHB_D_HI=set_logq_rHB_D(3); const double log_q_rHB_D_PH=set_logq_rHB_D(4);
+  //const double log_q_rHD_LO=set_logq_rHD(2); const double log_q_rHD_HI=set_logq_rHD(3); const double log_q_rHD_PH=set_logq_rHD(4);
   
   const double log_avg_F_cHL_LO=set_log_avg_F_L_cHL(2); const double log_avg_F_cHL_HI=set_log_avg_F_L_cHL(3); const double log_avg_F_cHL_PH=set_log_avg_F_L_cHL(4);
   const double log_avg_F_cPT_LO=set_log_avg_F_L_cPT(2); const double log_avg_F_cPT_HI=set_log_avg_F_L_cPT(3); const double log_avg_F_cPT_PH=set_log_avg_F_L_cPT(4);
@@ -1020,9 +1022,9 @@ LOCAL_CALCS
     
   //init_bounded_dev_vector log_dev_rec(styr_rec_dev,endyr,-3,3,2);  //log recruitment deviations
   //vector log_dev_rec(styr_rec_dev,endyr);
-  init_bounded_dev_vector log_dev_rec(styr_rec_dev,endyr_rec_phase2,log_rec_dev_LO,log_rec_dev_HI,log_rec_dev_PH);
+  init_bounded_dev_vector log_dev_rec(styr_rec_dev,endyr_rec_dev,log_rec_dev_LO,log_rec_dev_HI,log_rec_dev_PH);
   vector log_rec_dev_output(styr_rec_dev,endyr);             //used in output. equals zero except for yrs in log_dev_rec
-  vector log_rec_dev_out(styr_rec_dev,endyr_rec_phase2);  //used in output for bound checking
+  vector log_rec_dev_out(styr_rec_dev,endyr_rec_dev);  //used in output for bound checking
 
   number var_rec_dev;                                //variance of log recruitment deviations, from yrs with unconstrainted S-R(XXXX-XXXX)
   number sigma_rec_dev;                              //sample SD of log residuals (may not equal rec_sigma 
@@ -1086,10 +1088,10 @@ LOCAL_CALCS
   
 //Commercial handline selectivity-------------------------------------------------
   matrix sel_cHL(styr,endyr,1,nages);  
-  //vector sel_cHL_1(1,nages); //sel in period 1 assumed equal to period 2
-  vector sel_cHL_2(1,nages); //sel in period 2
-  vector sel_cHL_3(1,nages); //sel in period 3 
-  vector sel_cHL_4(1,nages); //sel in period 4 
+  //vector sel_cHL_1(1,nages); //sel in selex_phase1 assumed equal to selex_phase2
+  vector sel_cHL_2(1,nages); //sel in selex_phase2
+  vector sel_cHL_3(1,nages); //sel in selex_phase3 
+  vector sel_cHL_4(1,nages); //sel in selex_phase4 
   
   init_bounded_number selpar_A50_cHL2(selpar_A50_cHL2_LO,selpar_A50_cHL2_HI,selpar_A50_cHL2_PH);
   init_bounded_number selpar_slope_cHL2(selpar_slope_cHL2_LO,selpar_slope_cHL2_HI,selpar_slope_cHL2_PH);
@@ -1107,10 +1109,10 @@ LOCAL_CALCS
      
 //commercial discards (handline + pots)
   matrix sel_cGN_D(styr,endyr,1,nages); 
-  vector sel_cGN_D_2(1,nages);         //sel in period 2
-  vector sel_cGN_D_3(1,nages);         //sel in period 3 
-  vector sel_cGN_D_4(1,nages);         //sel in period 4  
-  vector sel_cGN_D_quota3(1,nages);    //sel in period 3 when quotas were in place (2009,2010) Also in 2011-2012   
+  vector sel_cGN_D_2(1,nages);         //sel in selex_phase2
+  vector sel_cGN_D_3(1,nages);         //sel in selex_phase3 
+  vector sel_cGN_D_4(1,nages);         //sel in selex_phase4  
+  vector sel_cGN_D_quota3(1,nages);    //sel in selex_phase3 when quotas were in place (2009,2010) Also in 2011-2012   
  
 //values used for weighting selex and avg weights of discards during yrs with quotas
   number Dopen_cHL; number Dclosed_cHL; number Lopen_cHL;  
@@ -1120,10 +1122,10 @@ LOCAL_CALCS
          
 //Commercial pots selectivity -------------------------------------------------            
   matrix sel_cPT(styr,endyr,1,nages); 
-  //  vector sel_cPT_1(1,nages); //sel vector in period 1 assumed equal to period 2 
-  vector sel_cPT_2(1,nages);   //sel vector in period 2  
-  vector sel_cPT_3(1,nages);   //sel vector in period 3  
-  vector sel_cPT_4(1,nages);   //sel vector in period 3    
+  //  vector sel_cPT_1(1,nages); //sel vector in selex_phase1 assumed equal to selex_phase2 
+  vector sel_cPT_2(1,nages);   //sel vector in selex_phase2  
+  vector sel_cPT_3(1,nages);   //sel vector in selex_phase3  
+  vector sel_cPT_4(1,nages);   //sel vector in selex_phase3    
   
   init_bounded_number selpar_A50_cPT2(selpar_A50_cPT2_LO,selpar_A50_cPT2_HI,selpar_A50_cPT2_PH);
   init_bounded_number selpar_slope_cPT2(selpar_slope_cPT2_LO,selpar_slope_cPT2_HI,selpar_slope_cPT2_PH);
@@ -1144,11 +1146,11 @@ LOCAL_CALCS
 
 //Headboat selectivity -------------------------------------------------
   matrix sel_rHB(styr,endyr,1,nages);  
-  vector sel_rHB_1(1,nages); //sel in period 1 
-  vector sel_rHB_2(1,nages); //sel in period 2
-  vector sel_rHB_3(1,nages); //sel in period 3 
-  vector sel_rHB_4(1,nages); //sel in period 4  
-  vector sel_rHB_5(1,nages); //sel in period 5   
+  vector sel_rHB_1(1,nages); //sel in selex_phase1 
+  vector sel_rHB_2(1,nages); //sel in selex_phase2
+  vector sel_rHB_3(1,nages); //sel in selex_phase3 
+  vector sel_rHB_4(1,nages); //sel in selex_phase4  
+  vector sel_rHB_5(1,nages); //sel in selex_phase5   
   
   init_bounded_number selpar_A50_rHB1(selpar_A50_rHB1_LO,selpar_A50_rHB1_HI,selpar_A50_rHB1_PH);
   init_bounded_number selpar_slope_rHB1(selpar_slope_rHB1_LO,selpar_slope_rHB1_HI,selpar_slope_rHB1_PH);
@@ -1178,30 +1180,30 @@ LOCAL_CALCS
   
   //---headboat discards--------------------------------- 
   matrix sel_rHB_D(styr,endyr,1,nages); 
-  vector sel_rHB_D_1(1,nages); //sel in period 1, assumed equal to period 2
-  vector sel_rHB_D_2(1,nages); //sel in period 2
-  vector sel_rHB_D_3(1,nages); //sel in period 3 
-  vector sel_rHB_D_4(1,nages); //sel in period 4  
-  vector sel_rHB_D_5(1,nages); //sel in period 5 
+  vector sel_rHB_D_1(1,nages); //sel in selex_phase1, assumed equal to selex_phase2
+  vector sel_rHB_D_2(1,nages); //sel in selex_phase2
+  vector sel_rHB_D_3(1,nages); //sel in selex_phase3 
+  vector sel_rHB_D_4(1,nages); //sel in selex_phase4  
+  vector sel_rHB_D_5(1,nages); //sel in selex_phase5 
   
-  init_bounded_number selpar_A50_rHB_D4(selpar_A50_rHB_D4_LO,selpar_A50_rHB_D4_HI,selpar_A50_rHB_D4_PH);
-  init_bounded_number selpar_slope_rHB_D4(selpar_slope_rHB_D4_LO,selpar_slope_rHB_D4_HI,selpar_slope_rHB_D4_PH);
-  init_bounded_number selpar_A502_rHB_D4(selpar_A502_rHB_D4_LO,selpar_A502_rHB_D4_HI,selpar_A502_rHB_D4_PH);
-  init_bounded_number selpar_slope2_rHB_D4(selpar_slope2_rHB_D4_LO,selpar_slope2_rHB_D4_HI,selpar_slope2_rHB_D4_PH);
+  init_bounded_number selpar_A50_rHD4(selpar_A50_rHD4_LO,selpar_A50_rHD4_HI,selpar_A50_rHD4_PH);
+  init_bounded_number selpar_slope_rHD4(selpar_slope_rHD4_LO,selpar_slope_rHD4_HI,selpar_slope_rHD4_PH);
+  init_bounded_number selpar_A502_rHD4(selpar_A502_rHD4_LO,selpar_A502_rHD4_HI,selpar_A502_rHD4_PH);
+  init_bounded_number selpar_slope2_rHD4(selpar_slope2_rHD4_LO,selpar_slope2_rHD4_HI,selpar_slope2_rHD4_PH);
   
-  init_bounded_number selpar_A50_rHB_D5(selpar_A50_rHB_D5_LO,selpar_A50_rHB_D5_HI,selpar_A50_rHB_D5_PH);
-  init_bounded_number selpar_slope_rHB_D5(selpar_slope_rHB_D5_LO,selpar_slope_rHB_D5_HI,selpar_slope_rHB_D5_PH);
-  init_bounded_number selpar_A502_rHB_D5(selpar_A502_rHB_D5_LO,selpar_A502_rHB_D5_HI,selpar_A502_rHB_D5_PH);
-  init_bounded_number selpar_slope2_rHB_D5(selpar_slope2_rHB_D5_LO,selpar_slope2_rHB_D5_HI,selpar_slope2_rHB_D5_PH);
+  init_bounded_number selpar_A50_rHD5(selpar_A50_rHD5_LO,selpar_A50_rHD5_HI,selpar_A50_rHD5_PH);
+  init_bounded_number selpar_slope_rHD5(selpar_slope_rHD5_LO,selpar_slope_rHD5_HI,selpar_slope_rHD5_PH);
+  init_bounded_number selpar_A502_rHD5(selpar_A502_rHD5_LO,selpar_A502_rHD5_HI,selpar_A502_rHD5_PH);
+  init_bounded_number selpar_slope2_rHD5(selpar_slope2_rHD5_LO,selpar_slope2_rHD5_HI,selpar_slope2_rHD5_PH);
   
-  vector selpar_A50_rHB_D4_out(1,8);
-  vector selpar_slope_rHB_D4_out(1,8);
-  vector selpar_A502_rHB_D4_out(1,8);
-  vector selpar_slope2_rHB_D4_out(1,8);
-  vector selpar_A50_rHB_D5_out(1,8);
-  vector selpar_slope_rHB_D5_out(1,8);
-  vector selpar_A502_rHB_D5_out(1,8);
-  vector selpar_slope2_rHB_D5_out(1,8);
+  vector selpar_A50_rHD4_out(1,8);
+  vector selpar_slope_rHD4_out(1,8);
+  vector selpar_A502_rHD4_out(1,8);
+  vector selpar_slope2_rHD4_out(1,8);
+  vector selpar_A50_rHD5_out(1,8);
+  vector selpar_slope_rHD5_out(1,8);
+  vector selpar_A502_rHD5_out(1,8);
+  vector selpar_slope2_rHD5_out(1,8);
   
   vector vecprob_rHB_D2(4,nages);     //prob of less than size limit
   vector vecprob_rHB_D3(4,nages);     //prob of less than size limit
@@ -1237,11 +1239,11 @@ LOCAL_CALCS
     //rGN selectivity  -------------------------------------------------
   matrix sel_rGN(styr,endyr,1,nages);  
   matrix sel_rGN_D(styr,endyr,1,nages); 
-  vector sel_rGN1(1,nages); //sel in period 1 
-  vector sel_rGN2(1,nages); //sel in period 2
-  vector sel_rGN3(1,nages); //sel in period 3 
-  vector sel_rGN4(1,nages); //sel in period 4  
-  vector sel_rGN5(1,nages); //sel in period 5   
+  vector sel_rGN1(1,nages); //sel in selex_phase1 
+  vector sel_rGN2(1,nages); //sel in selex_phase2
+  vector sel_rGN3(1,nages); //sel in selex_phase3 
+  vector sel_rGN4(1,nages); //sel in selex_phase4  
+  vector sel_rGN5(1,nages); //sel in selex_phase5   
      
   init_bounded_number selpar_A50_rGN1(selpar_A50_rGN1_LO,selpar_A50_rGN1_HI,selpar_A50_rGN1_PH);
   init_bounded_number selpar_slope_rGN1(selpar_slope_rGN1_LO,selpar_slope_rGN1_HI,selpar_slope_rGN1_PH);
@@ -1282,8 +1284,8 @@ LOCAL_CALCS
   matrix N_cHL(styr_cpue_cHL,endyr_cpue_cHL,1,nages);             //used to compute cHL index
   vector pred_rHB_cpue(styr_cpue_rHB,endyr_cpue_rHB);             //predicted rHB U (pounds/hour)
   matrix N_rHB(styr_cpue_rHB,endyr_cpue_rHB,1,nages);             //used to compute rHB index
-  //vector pred_rHB_D_cpue(styr_rHB_D_cpue,endyr_rHB_D_cpue);          //predicted rHB_D U (fish/angler-hour)
-  //matrix N_rHB_D(styr_rHB_D_cpue,endyr_rHB_D_cpue,1,nages);          //used to compute rHB_D index
+  //vector pred_rHD_cpue(styr_rHD_cpue,endyr_rHD_cpue);          //predicted rHD U (fish/angler-hour)
+  //matrix N_rHD(styr_rHD_cpue,endyr_rHD_cpue,1,nages);          //used to compute rHD index
 
 //---Catchability (CPUE q's)----------------------------------------------------------
   //init_bounded_number log_q_sBT(-20,-10,1);
@@ -1291,27 +1293,27 @@ LOCAL_CALCS
   //init_bounded_number log_q_Vid(-20,-10,1);  
   //init_bounded_number log_q_cHL(-20,-5,1);
   //init_bounded_number log_q_rHB(-20,-5,1);
-  //init_bounded_number log_q_rHB_D(-20,-10,1);
+  //init_bounded_number log_q_rHD(-20,-10,1);
   init_bounded_number q_rate(0.001,0.1,set_q_rate_phase);
   
   init_bounded_number log_q_sBT(log_q_sBT_LO,log_q_sBT_HI,log_q_sBT_PH);
   init_bounded_number log_q_sTV(log_q_sTV_LO,log_q_sTV_HI,log_q_sTV_PH);
   init_bounded_number log_q_cHL(log_q_cHL_LO,log_q_cHL_HI,log_q_cHL_PH);
   init_bounded_number log_q_rHB(log_q_rHB_LO,log_q_rHB_HI,log_q_rHB_PH);
-  //init_bounded_number log_q_rHB_D(log_q_rHB_D_LO,log_q_rHB_D_HI,log_q_rHB_D_PH);
+  //init_bounded_number log_q_rHD(log_q_rHD_LO,log_q_rHD_HI,log_q_rHD_PH);
   //init_bounded_number log_q_Vid(log_q_Vid_LO,log_q_Vid_HI,log_q_Vid_PH);
   
   vector log_q_sBT_out(1,8);
   vector log_q_sTV_out(1,8);
   vector log_q_cHL_out(1,8);
   vector log_q_rHB_out(1,8);
-  //vector log_q_rHB_D_out(1,8);
+  //vector log_q_rHD_out(1,8);
   //vector log_q_Vid_out(1,8);
   
   //number q_rate;
   vector q_rate_fcn_cHL(styr_cpue_cHL,endyr_cpue_cHL);       //increase due to technology creep (saturates in 2003)
   vector q_rate_fcn_rHB(styr_cpue_rHB,endyr_cpue_rHB);         //increase due to technology creep (saturates in 2003)
-  //vector q_rate_fcn_rHB_D(styr_rHB_D_cpue,endyr_rHB_D_cpue);      //increase due to technology creep (saturates in 2003)
+  //vector q_rate_fcn_rHD(styr_rHD_cpue,endyr_rHD_cpue);      //increase due to technology creep (saturates in 2003)
   
   //init_bounded_number q_DD_beta(0.1,0.9,set_q_DD_phase);  
   number q_DD_beta;
@@ -1321,18 +1323,18 @@ LOCAL_CALCS
 
   //init_bounded_vector q_RW_log_dev_cHL(styr_cpue_cHL,endyr_cpue_cHL-1,-3.0,3.0,set_q_RW_phase);
   //init_bounded_vector q_RW_log_dev_rHB(styr_cpue_rHB,endyr_cpue_rHB-1,-3.0,3.0,set_q_RW_phase);
-  //init_bounded_vector q_RW_log_dev_rHB_D(styr_rHB_D_cpue,endyr_rHB_D_cpue-1,-3.0,3.0,set_q_RW_phase);
+  //init_bounded_vector q_RW_log_dev_rHD(styr_rHD_cpue,endyr_rHD_cpue-1,-3.0,3.0,set_q_RW_phase);
  
   //init_bounded_vector q_RW_log_dev_cHL(styr_cpue_cHL,endyr_cpue_cHL-1,log_RWq_LO,log_RWq_HI,log_RWq_PH);
   //init_bounded_vector q_RW_log_dev_rHB(styr_cpue_rHB,endyr_cpue_rHB-1,log_RWq_LO,log_RWq_HI,log_RWq_PH);
-  //init_bounded_vector q_RW_log_dev_rHB_D(styr_rHB_D_cpue,endyr_rHB_D_cpue-1,log_RWq_LO,log_RWq_HI,log_RWq_PH);
+  //init_bounded_vector q_RW_log_dev_rHD(styr_rHD_cpue,endyr_rHD_cpue-1,log_RWq_LO,log_RWq_HI,log_RWq_PH);
   init_bounded_vector q_RW_log_dev_cHL(styr_cpue_cHL,endyr_cpue_cHL-1,log_RWq_LO,log_RWq_HI,log_RWq_PH);
   init_bounded_vector q_RW_log_dev_rHB(styr_cpue_rHB,endyr_cpue_rHB-1,log_RWq_LO,log_RWq_HI,log_RWq_PH);
-  //init_bounded_vector q_RW_log_dev_rHB_D(styr_rHB_D_cpue,endyr_rHB_D_cpue-1,log_RWq_LO,log_RWq_HI,log_RWq_PH);
+  //init_bounded_vector q_RW_log_dev_rHD(styr_rHD_cpue,endyr_rHD_cpue-1,log_RWq_LO,log_RWq_HI,log_RWq_PH);
  
   vector q_cHL(styr_cpue_cHL,endyr_cpue_cHL);
   vector q_rHB(styr_cpue_rHB,endyr_cpue_rHB);
-  //vector q_rHB_D(styr_rHB_D_cpue,endyr_rHB_D_cpue);
+  //vector q_rHD(styr_rHD_cpue,endyr_rHD_cpue);
 
 //----------------------------------------------------------------------------------------------------------------------------------------------- 
 //---Landings Bias for recreational landings------------------------------------------------------------------
@@ -1549,7 +1551,7 @@ LOCAL_CALCS
   vector log_F_dev_cGN_D_out(styr_D_cHL,endyr_D_cHL);
   matrix F_cGN_D(styr,endyr,1,nages);
   vector F_cGN_D_out(styr,endyr); //used for intermediate calculations in fcn get_mortality
-  number log_F_dev_cGN_D2;   //avg log deviations in reg period 2 (for estimation 1984-1992, prior to data) 
+  number log_F_dev_cGN_D2;   //avg log deviations in reg selex_phase2 (for estimation 1984-1992, prior to data) 
   number log_F_dev_end_cGN_D;  
   
   //init_bounded_number log_avg_F_D_rHB(-10.0,0.0,1);
@@ -1648,7 +1650,7 @@ LOCAL_CALCS
   //number w_I_Vid;
   number w_cpue_cHL;
   number w_cpue_rHB;
-  //number w_I_rHB_D;
+  //number w_I_rHD;
   
   number w_rec;
   number w_rec_early;
@@ -1663,7 +1665,7 @@ LOCAL_CALCS
   number f_Vid_cpue;
   number f_cHL_cpue;
   number f_rHB_cpue;
-  //number f_rHB_D_cpue;
+  //number f_rHD_cpue;
  
   number f_cHL_L;  
   number f_cPT_L;
@@ -1691,7 +1693,7 @@ LOCAL_CALCS
   
   number f_cHL_RW_cpue; //random walk component of indices
   number f_rHB_RW_cpue;
-  number f_rHB_D_RW_cpue;   
+  number f_rHD_RW_cpue;   
   
 //Penalties and constraints. Not all are used.
   number f_rec_dev;                //weight on recruitment deviations to fit S-R curve
@@ -1754,15 +1756,15 @@ PRELIMINARY_CALCS_SECTION
   //values used for weighting selex and avg weight of cGN discards in yrs with quotas
   //geometric mean of last three yrs
   //avg weights of landings were near 1 lb, so those values are left in weight
-  Dopen_cHL=Dmort_HL*pow((obs_released_cHL(2014)*obs_released_cHL(2015)*obs_released_cHL(endyr_D_cHL)),(1.0/3.0));
-  Dclosed_cHL=Dmort_HL*((obs_released_cHL_closed(2013)+obs_released_cHL_closed(2014)+obs_released_cHL_closed(2015)+obs_released_cHL_closed(endyr_D_cHL))/4.0);
-  //Dclosed_cHL=Dmort_HL*pow((obs_released_cHL_closed(2014)*obs_released_cHL_closed(2015)*obs_released_cHL_closed(endyr_D_cHL)),(1.0/3.0));
-  Lopen_cHL=Dmort_HL*pow((obs_L_cHL(2014)*obs_L_cHL(2015)*obs_L_cHL(endyr_L_cHL)),(1.0/3.0));
+  Dopen_cHL=Dmort_HL*pow((obs_released_cHL(endyr_D_cHL-2)*obs_released_cHL(endyr_D_cHL-1)*obs_released_cHL(endyr_D_cHL)),(1.0/3.0));
+  Dclosed_cHL=Dmort_HL*((obs_released_cHL_closed(endyr_D_cHL-3)+obs_released_cHL_closed(endyr_D_cHL-2)+obs_released_cHL_closed(endyr_D_cHL-1)+obs_released_cHL_closed(endyr_D_cHL))/4.0);
+  //Dclosed_cHL=Dmort_HL*pow((obs_released_cHL_closed(endyr_D_cHL-2)*obs_released_cHL_closed(endyr_D_cHL-1)*obs_released_cHL_closed(endyr_D_cHL)),(1.0/3.0));
+  Lopen_cHL=Dmort_HL*pow((obs_L_cHL(endyr_L_cHL-2)*obs_L_cHL(endyr_L_cHL-1)*obs_L_cHL(endyr_L_cHL)),(1.0/3.0));
   
-  Dopen_cPT=Dmort_cPT2*pow((obs_released_cPT(2014)*obs_released_cPT(2015)*obs_released_cPT(endyr_D_cPT)),(1.0/3.0));
-  Dclosed_cPT=Dmort_cPT2*(obs_released_cPT_closed(2013)+(obs_released_cPT_closed(2014)+obs_released_cPT_closed(2015)+obs_released_cPT_closed(endyr_D_cPT))/4.0);
-  //Dclosed_cPT=Dmort_cPT2*pow((obs_released_cPT_closed(2014)*obs_released_cPT_closed(2015)*obs_released_cPT_closed(endyr_D_cPT)),(1.0/3.0));
-  Lopen_cPT=Dmort_cPT2*pow((obs_L_cPT(2014)*obs_L_cPT(2015)*obs_L_cPT(endyr_L_cPT)),(1.0/3.0));
+  Dopen_cPT=Dmort_cPT2*pow((obs_released_cPT(endyr_D_cPT-2)*obs_released_cPT(endyr_D_cPT-1)*obs_released_cPT(endyr_D_cPT)),(1.0/3.0));
+  Dclosed_cPT=Dmort_cPT2*(obs_released_cPT_closed(endyr_D_cPT-3)+(obs_released_cPT_closed(endyr_D_cPT-2)+obs_released_cPT_closed(endyr_D_cPT-1)+obs_released_cPT_closed(endyr_D_cPT))/4.0);
+  //Dclosed_cPT=Dmort_cPT2*pow((obs_released_cPT_closed(endyr_D_cPT-2)*obs_released_cPT_closed(endyr_D_cPT-1)*obs_released_cPT_closed(endyr_D_cPT)),(1.0/3.0));
+  Lopen_cPT=Dmort_cPT2*pow((obs_L_cPT(endyr_L_cPT-2)*obs_L_cPT(endyr_L_cPT-1)*obs_L_cPT(endyr_L_cPT)),(1.0/3.0));
   
   D_sum_cHLcPT=Dopen_cHL+Dclosed_cHL+Dopen_cPT+Dclosed_cPT;
 
@@ -1776,8 +1778,8 @@ PRELIMINARY_CALCS_SECTION
   obs_cHL_D=Dmort_HL*obs_released_cHL;
   obs_cHL_D(styr_D_cHL_closed,endyr_D_cHL_closed)+=Dmort_HL*obs_released_cHL_closed;
   
-  obs_cPT_D(styr_D_cPT,2006)=Dmort_cPT1*obs_released_cPT(styr_D_cPT,2006);
-  obs_cPT_D(2007,endyr_D_cPT)=Dmort_cPT2*obs_released_cPT(2007,endyr_D_cPT);
+  obs_cPT_D(styr_D_cPT,endyr_selex_phase3)=Dmort_cPT1*obs_released_cPT(styr_D_cPT,endyr_selex_phase3);
+  obs_cPT_D(endyr_selex_phase3+1,endyr_D_cPT)=Dmort_cPT2*obs_released_cPT(endyr_selex_phase3+1,endyr_D_cPT);
   obs_cPT_D(styr_D_cPT_closed,endyr_D_cPT_closed)+=Dmort_cPT2*obs_released_cPT_closed;
   
   obs_cGN_D=obs_cHL_D+obs_cPT_D;
@@ -1823,16 +1825,16 @@ PRELIMINARY_CALCS_SECTION
   log_q_sTV=set_log_q_cpue_sTV(1);
   log_q_cHL=set_log_q_cpue_cHL(1);
   log_q_rHB=set_log_q_cpue_rHB(1);
-  //log_q_rHB_D=set_logq_rHB_D(1);
+  //log_q_rHD=set_logq_rHD(1);
   q_rate=set_q_rate;
   q_rate_fcn_cHL=1.0;
   q_rate_fcn_rHB=1.0;
-  //q_rate_fcn_rHB_D=1.0;
+  //q_rate_fcn_rHD=1.0;
   q_DD_beta=set_q_DD_beta;
   q_DD_fcn=1.0;
   q_RW_log_dev_cHL.initialize();
   q_RW_log_dev_rHB.initialize();
-  //q_RW_log_dev_rHB_D.initialize();
+  //q_RW_log_dev_rHD.initialize();
 
   if (set_q_rate_phase<0 & q_rate!=0.0)
   {
@@ -1850,12 +1852,12 @@ PRELIMINARY_CALCS_SECTION
           }
           if (iyear>2003) {q_rate_fcn_rHB(iyear)=q_rate_fcn_rHB(iyear-1);} 
       }  
-      //for (iyear=styr_rHB_D_cpue; iyear<=endyr_rHB_D_cpue; iyear++)
-      //{   if (iyear>styr_rHB_D_cpue & iyear <=2003) 
-       //   {//q_rate_fcn_rHB_D(iyear)=(1.0+q_rate)*q_rate_fcn_rHB_D(iyear-1); //compound
-       //      q_rate_fcn_rHB_D(iyear)=(1.0+(iyear-styr_rHB_D_cpue)*q_rate)*q_rate_fcn_rHB_D(styr_rHB_D_cpue);  //linear
+      //for (iyear=styr_rHD_cpue; iyear<=endyr_rHD_cpue; iyear++)
+      //{   if (iyear>styr_rHD_cpue & iyear <=2003) 
+       //   {//q_rate_fcn_rHD(iyear)=(1.0+q_rate)*q_rate_fcn_rHD(iyear-1); //compound
+       //      q_rate_fcn_rHD(iyear)=(1.0+(iyear-styr_rHD_cpue)*q_rate)*q_rate_fcn_rHD(styr_rHD_cpue);  //linear
        //   }
-       //   if (iyear>2003) {q_rate_fcn_rHB_D(iyear)=q_rate_fcn_rHB_D(iyear-1);} 
+       //   if (iyear>2003) {q_rate_fcn_rHD(iyear)=q_rate_fcn_rHD(iyear-1);} 
       //}
   } //end q_rate conditional      
 
@@ -1886,7 +1888,7 @@ PRELIMINARY_CALCS_SECTION
   //w_I_Vid=set_w_I_Vid;
   w_cpue_cHL=set_w_cpue_cHL;
   w_cpue_rHB=set_w_cpue_rHB;
-  //w_I_rHB_D=set_w_I_rHB_D;
+  //w_I_rHD=set_w_I_rHD;
 
   w_rec=set_w_rec;
   w_fullF=set_w_fullF;
@@ -1959,14 +1961,14 @@ PRELIMINARY_CALCS_SECTION
   selpar_logit_Age1_rHB_D=set_selpar_logit_Age1_rHB_D(1); 
   selpar_logit_Age2_rHB_D=set_selpar_logit_Age2_rHB_D(1);
 
-  selpar_A50_rHB_D4=set_selpar_A50_rHB_D4(1);
-  selpar_slope_rHB_D4=set_selpar_slope_rHB_D4(1); 
-  selpar_A502_rHB_D4=set_selpar_A502_rHB_D4(1);
-  selpar_slope2_rHB_D4=set_selpar_slope2_rHB_D4(1); 
-  selpar_A50_rHB_D5=set_selpar_A50_rHB_D5(1);
-  selpar_slope_rHB_D5=set_selpar_slope_rHB_D5(1);
-  selpar_A502_rHB_D5=set_selpar_A502_rHB_D5(1);
-  selpar_slope2_rHB_D5=set_selpar_slope2_rHB_D5(1);
+  selpar_A50_rHD4=set_selpar_A50_rHD4(1);
+  selpar_slope_rHD4=set_selpar_slope_rHD4(1); 
+  selpar_A502_rHD4=set_selpar_A502_rHD4(1);
+  selpar_slope2_rHD4=set_selpar_slope2_rHD4(1); 
+  selpar_A50_rHD5=set_selpar_A50_rHD5(1);
+  selpar_slope_rHD5=set_selpar_slope_rHD5(1);
+  selpar_A502_rHD5=set_selpar_A502_rHD5(1);
+  selpar_slope2_rHD5=set_selpar_slope2_rHD5(1);
    
  SSB_msy_out=0.0;
 
@@ -2304,27 +2306,27 @@ FUNCTION get_length_at_age_dist
     cprob_lenvec(1)=cumd_norm(zscore_len);          //includes any probability mass below zero
     lenprob(iage,1)=cprob_lenvec(1)-cprob_lzero;    //removes any probability mass below zero	
 
-	//First size limit 8" Period 1 for both commercial and recreational discards (1984 through 1998)
+	//First size limit 8" selex_phase1 for both commercial and recreational discards (1984 through 1998)
 	zscore_lsizelim1=(sizelim1-meanlen_TL(iage)) / len_sd(iage);
 	cprob_lsizelim1=cumd_norm(zscore_lsizelim1);   //includes any probability mass below zero
 	prob_belowsizelim_block1(iage)=	cprob_lsizelim1-cprob_lzero; //removes any probability mass below zero
 
-	//Second size limit 10" Period 2 for both commercial and recreational discards and Period 3 for recreational landings (1999 through 2012 for commercial) (1999 through 2006 for recreational)
+	//Second size limit 10" selex_phase2 for both commercial and recreational discards and selex_phase3 for recreational landings (1999 through 2012 for commercial) (1999 through 2006 for recreational)
 	zscore_lsizelim2=(sizelim2-meanlen_TL(iage)) / len_sd(iage);
 	cprob_lsizelim2=cumd_norm(zscore_lsizelim2);   //includes any probability mass below zero
 	prob_belowsizelim_block2(iage)=	cprob_lsizelim2-cprob_lzero; //removes any probability mass below zero
 
-	//Third size limit 11" Period 3 for commercial (2013 through terminal year)
+	//Third size limit 11" selex_phase3 for commercial (2013 through terminal year)
 	zscore_lsizelim3=(sizelim3-meanlen_TL(iage)) / len_sd(iage);
 	cprob_lsizelim3=cumd_norm(zscore_lsizelim3);                 //includes any probability mass below zero
 	prob_belowsizelim_block3(iage)=	cprob_lsizelim3-cprob_lzero; //removes any probability mass below zero
 
-	//Fourth size limit 12" Period 3 for recreational discards and Period 4 for recreational landings (2007 through 2012)
+	//Fourth size limit 12" selex_phase3 for recreational discards and selex_phase4 for recreational landings (2007 through 2012)
 	zscore_lsizelim4=(sizelim4-meanlen_TL(iage)) / len_sd(iage);
 	cprob_lsizelim4=cumd_norm(zscore_lsizelim4);                 //includes any probability mass below zero
 	prob_belowsizelim_block4(iage)=	cprob_lsizelim4-cprob_lzero; //removes any probability mass below zero
 
-	//Fifth size limit 13" Period 4 for recreational discards and Period 5 for recreational landings (2013 through the terminal year)
+	//Fifth size limit 13" selex_phase4 for recreational discards and selex_phase5 for recreational landings (2013 through the terminal year)
 	zscore_lsizelim5=(sizelim5-meanlen_TL(iage)) / len_sd(iage);
 	cprob_lsizelim5=cumd_norm(zscore_lsizelim5);                 //includes any probability mass below zero
 	prob_belowsizelim_block5(iage)=	cprob_lsizelim5-cprob_lzero; //removes any probability mass below zero
@@ -2386,7 +2388,7 @@ FUNCTION get_length_at_age_dist
    
 FUNCTION get_weight_at_age_landings
   //fleets under identical size limits are set equal at end of fcn
-  for (iyear=styr; iyear<=endyr_period1; iyear++)
+  for (iyear=styr; iyear<=endyr_selex_phase1; iyear++)
   {
     len_cHL_mm(iyear)=meanlen_TL;
     wgt_cHL_klb(iyear)=wgt_klb;      
@@ -2402,13 +2404,13 @@ FUNCTION get_weight_at_age_landings
 
     for (iage=1;iage<=nages; iage++)
     {
-    len_rGN_D_mm(iyear,iage)=sum(elem_prod(lenprob_rGN_D2(iage),lenbins)); //assumes same size distn in period 1 as in period 2       
+    len_rGN_D_mm(iyear,iage)=sum(elem_prod(lenprob_rGN_D2(iage),lenbins)); //assumes same size distn in selex_phase1 as in selex_phase2       
     }
     wgt_rGN_D_klb(iyear)=g2klb*wgtpar_a*pow(len_rGN_D_mm(iyear),wgtpar_b);
   } // end iyear loop
   
   
-  for (iyear=(endyr_period1+1); iyear<=endyr_period2; iyear++)
+  for (iyear=(endyr_selex_phase1+1); iyear<=endyr_selex_phase2; iyear++)
   {
     for (iage=1;iage<=nages; iage++)
     {
@@ -2431,7 +2433,7 @@ FUNCTION get_weight_at_age_landings
     wgt_rGN_D_klb(iyear)=g2klb*wgtpar_a*pow(len_rGN_D_mm(iyear),wgtpar_b);               
   }
 
-  for (iyear=(endyr_period2+1); iyear<=endyr; iyear++) //cGN only
+  for (iyear=(endyr_selex_phase2+1); iyear<=endyr; iyear++) //cGN only
   {
     for (iage=1;iage<=nages; iage++)
     {
@@ -2444,7 +2446,7 @@ FUNCTION get_weight_at_age_landings
     wgt_cGN_D_klb(iyear)=g2klb*wgtpar_a*pow(len_cGN_D_mm(iyear),wgtpar_b);  
   }    
   
-  for (iyear=(endyr_period2+1); iyear<=endyr_recr_period3; iyear++) //rec only
+  for (iyear=(endyr_selex_phase2+1); iyear<=endyr_selex_phase3; iyear++) //rec only
   {
     for (iage=1;iage<=nages; iage++)
     {
@@ -2459,7 +2461,7 @@ FUNCTION get_weight_at_age_landings
     wgt_rGN_D_klb(iyear)=g2klb*wgtpar_a*pow(len_rGN_D_mm(iyear),wgtpar_b);               
   }
   
-  for (iyear=(endyr_recr_period3+1); iyear<=endyr; iyear++) //rec only
+  for (iyear=(endyr_selex_phase3+1); iyear<=endyr; iyear++) //rec only
   {
     for (iage=1;iage<=nages; iage++)
     {
@@ -2474,7 +2476,7 @@ FUNCTION get_weight_at_age_landings
     wgt_rGN_D_klb(iyear)=g2klb*wgtpar_a*pow(len_rGN_D_mm(iyear),wgtpar_b);               
   }  
    
-   for (iyear=(endyr_period4+1); iyear<=endyr; iyear++) //rec only
+   for (iyear=(endyr_selex_phase4+1); iyear<=endyr; iyear++) //rec only
   {
     for (iage=1;iage<=nages; iage++)
     {
@@ -2521,7 +2523,7 @@ FUNCTION get_spr_F0
 
 FUNCTION get_selectivity
 
-// ------- compute landings selectivities by period
+// ------- compute landings selectivities by selex_phase
 
   //---flat-topped sels---------------------------
   sel_sBT_vec=logistic(agebins, selpar_A50_sBT, selpar_slope_sBT);
@@ -2559,19 +2561,19 @@ FUNCTION get_selectivity
 
 //-----------fill in years--------------------------------------------
   
-  //Period 1:   
-  for (iyear=styr; iyear<=endyr_period1; iyear++)
+  //selex_phase1:   
+  for (iyear=styr; iyear<=endyr_selex_phase1; iyear++)
   {
      sel_sBT(iyear)=sel_sBT_vec;
      sel_sTV(iyear)=sel_sTV_vec;
-     sel_cHL(iyear)=sel_cHL_2; //commercial handline sel mirrors period 2
-     sel_cPT(iyear)=sel_cPT_2; //commercial handline sel mirrors period 2
+     sel_cHL(iyear)=sel_cHL_2; //commercial handline sel mirrors selex_phase2
+     sel_cPT(iyear)=sel_cPT_2; //commercial handline sel mirrors selex_phase2
      sel_rHB(iyear)=sel_rHB_1; 
      sel_rGN(iyear)=sel_rGN1;      
   }
 
-  //Period 2: 
-  for (iyear=endyr_period1+1; iyear<=endyr_period2; iyear++)
+  //selex_phase2: 
+  for (iyear=endyr_selex_phase1+1; iyear<=endyr_selex_phase2; iyear++)
   {     
      sel_sBT(iyear)=sel_sBT_vec;
      sel_sTV(iyear)=sel_sTV_vec;
@@ -2581,8 +2583,8 @@ FUNCTION get_selectivity
      sel_rGN(iyear)=sel_rGN2;     
   }
 
-  //Period 3 
-  for (iyear=endyr_period2+1; iyear<=endyr; iyear++)
+  //selex_phase3 
+  for (iyear=endyr_selex_phase2+1; iyear<=endyr; iyear++)
   {
      sel_sBT(iyear)=sel_sBT_vec;
      sel_sTV(iyear)=sel_sTV_vec;
@@ -2591,14 +2593,14 @@ FUNCTION get_selectivity
      sel_rHB(iyear)=sel_rHB_3;
      sel_rGN(iyear)=sel_rGN3;     
   }   
-  //Period 4: rec only, overwrites yrs calculated for period 3
-  for (iyear=endyr_recr_period3; iyear<endyr_period4; iyear++)
+  //selex_phase4: rec only, overwrites yrs calculated for selex_phase3
+  for (iyear=endyr_selex_phase3; iyear<endyr_selex_phase4; iyear++)
   {
      sel_rHB(iyear)=sel_rHB_4;
      sel_rGN(iyear)=sel_rGN4;     
   }   
-   //Period 5: Comm and rec, overwrites yrs previously calculated
-   for (iyear=endyr_period4; iyear<=endyr; iyear++)
+   //selex_phase5: Comm and rec, overwrites yrs previously calculated
+   for (iyear=endyr_selex_phase4; iyear<=endyr; iyear++)
   {
      sel_cHL(iyear)=sel_cHL_4; 
      sel_cPT(iyear)=sel_cPT_4;
@@ -2618,28 +2620,28 @@ FUNCTION get_selectivity
   selpar_Age1_rHB_D=1.0/(1.0+mfexp(-selpar_logit_Age1_rHB_D)); 
   selpar_Age2_rHB_D=1.0/(1.0+mfexp(-selpar_logit_Age2_rHB_D));
 
-  sel_rHB_D_4=logistic_exponential(agebins, selpar_A50_rHB_D4, selpar_slope_rHB_D4, selpar_A502_rHB_D4, selpar_slope2_rHB_D4);//logistic_double(agebins, selpar_A50_rHB_D4, selpar_slope_rHB_D4, selpar_A502_rHB_D4, selpar_slope2_rHB_D4); 
-  sel_rHB_D_5=logistic_exponential(agebins, selpar_A50_rHB_D5, selpar_slope_rHB_D5, selpar_A502_rHB_D5, selpar_slope2_rHB_D5);//logistic_double(agebins, selpar_A50_rHB_D5, selpar_slope_rHB_D5, selpar_A502_rHB_D5, selpar_slope2_rHB_D5); 
+  sel_rHB_D_4=logistic_exponential(agebins, selpar_A50_rHD4, selpar_slope_rHD4, selpar_A502_rHD4, selpar_slope2_rHD4);//logistic_double(agebins, selpar_A50_rHD4, selpar_slope_rHD4, selpar_A502_rHD4, selpar_slope2_rHD4); 
+  sel_rHB_D_5=logistic_exponential(agebins, selpar_A50_rHD5, selpar_slope_rHD5, selpar_A502_rHD5, selpar_slope2_rHD5);//logistic_double(agebins, selpar_A50_rHD5, selpar_slope_rHD5, selpar_A502_rHD5, selpar_slope2_rHD5); 
    
- //Assume same sel of age 0's across periods 
+ //Assume same sel of age 0's across selex_phases 
   sel_rHB_D_2(1)=selpar_Age0_rHB_D; 
   sel_rHB_D_3(1)=selpar_Age0_rHB_D; 
   //sel_rHB_D_4(1)=selpar_Age0_rHB_D;
   //sel_rHB_D_5(1)=selpar_Age0_rHB_D;
   sel_cGN_D_3(1)=selpar_Age0_rHB_D;
- //Assume same sel of age 1's across periods 
+ //Assume same sel of age 1's across selex_phases 
   sel_rHB_D_2(2)=selpar_Age1_rHB_D; 
   sel_rHB_D_3(2)=selpar_Age1_rHB_D; 
   //sel_rHB_D_4(2)=selpar_Age1_rHB_D;
   //sel_rHB_D_5(2)=selpar_Age1_rHB_D;
   sel_cGN_D_3(2)=selpar_Age1_rHB_D;
- //Assume same sel of age 2's across periods 
+ //Assume same sel of age 2's across selex_phases 
   sel_rHB_D_2(3)=selpar_Age2_rHB_D; 
   sel_rHB_D_3(3)=selpar_Age2_rHB_D; 
   //sel_rHB_D_4(3)=selpar_Age2_rHB_D;
   //sel_rHB_D_5(3)=selpar_Age2_rHB_D;  
   sel_cGN_D_3(3)=selpar_Age2_rHB_D;
- //Assume full sel at age 3 across periods 
+ //Assume full sel at age 3 across selex_phases 
   sel_rHB_D_2(4)=1.0; 
   sel_rHB_D_3(4)=1.0; 
   //sel_rHB_D_4(4)=1.0;
@@ -2654,38 +2656,38 @@ FUNCTION get_selectivity
 	   //sel_rHB_D_4(iage)=prob_belowsizelim_block5(iage);
        }
 
-  //Period 1: assumed same as in period 1, no commercial discards
-  for (iyear=styr; iyear<=endyr_period1; iyear++)
+  //selex_phase1: assumed same as in selex_phase1, no commercial discards
+  for (iyear=styr; iyear<=endyr_selex_phase1; iyear++)
       {sel_rHB_D(iyear)=sel_rHB_D_2;}
 
-  //Period 2: 
-  for (iyear=endyr_period1+1; iyear<=endyr_period2; iyear++)
+  //selex_phase2: 
+  for (iyear=endyr_selex_phase1+1; iyear<=endyr_selex_phase2; iyear++)
       {sel_rHB_D(iyear)=sel_rHB_D_2;
        sel_cGN_D(iyear)=sel_rHB_D_2;
       }
-  //Period 3: Starts in 1999
-  for (iyear=endyr_period2+1; iyear<=endyr; iyear++)
+  //selex_phase3: Starts in 1999
+  for (iyear=endyr_selex_phase2+1; iyear<=endyr; iyear++)
   {sel_rHB_D(iyear)=sel_rHB_D_3;
    sel_cGN_D(iyear)=sel_rHB_D_3;}  
   
-  //Period 4: Starts in 2007, rHB and rGN only, overwrites last few yrs calculated for period 3
-  for (iyear=endyr_recr_period3+1; iyear<=endyr_period4; iyear++)
+  //selex_phase4: Starts in 2007, rHB and rGN only, overwrites last few yrs calculated for selex_phase3
+  for (iyear=endyr_selex_phase3+1; iyear<=endyr_selex_phase4; iyear++)
   {sel_rHB_D(iyear)=sel_rHB_D_4;
    sel_cGN_D(iyear)=sel_rHB_D_3;
    
   }
-  //Discard quota: wghted average,, overwrites last few yrs calculated for period 3 styr cGN closed=2009
-  for (iyear=styr_cGN_closed; iyear<=endyr_period4; iyear++)
+  //Discard quota: wghted average,, overwrites last few yrs calculated for selex_phase3 styr cGN closed=2009
+  for (iyear=styr_cGN_closed; iyear<=endyr_selex_phase4; iyear++)
   {sel_cGN_D(iyear)=Dprop_cGN_sel_D*sel_rHB_D_3 + Dprop_cGN_sel_cHL*sel_cHL_2 +
                      Dprop_cGN_sel_cPT*sel_cPT_2;
    sel_cGN_D(iyear)=sel_cGN_D(iyear)/max(sel_cGN_D(iyear));} 
    
-  //cout<<"sel_rHB_D after period 4 loop"<<sel_rHB_D<<endl;
-  //Period 5: Starts in 2013 
-  for (iyear=endyr_period4+1; iyear<=endyr; iyear++)
+  //cout<<"sel_rHB_D after selex_phase4 loop"<<sel_rHB_D<<endl;
+  //selex_phase5: Starts in 2013 
+  for (iyear=endyr_selex_phase4+1; iyear<=endyr; iyear++)
   {sel_rHB_D(iyear)=sel_rHB_D_5;
    sel_cGN_D(iyear)=sel_cGN_D_3;
-   //Discard quota: wghted average,, overwrites last few yrs calculated for period 3 styr cGN closed=2009
+   //Discard quota: wghted average,, overwrites last few yrs calculated for selex_phase3 styr cGN closed=2009
    sel_cGN_D(iyear)=Dprop_cGN_sel_D*sel_cGN_D_3 + Dprop_cGN_sel_cHL*sel_cHL_2 +
                      Dprop_cGN_sel_cPT*sel_cPT_2;
    sel_cGN_D(iyear)=sel_cGN_D(iyear)/max(sel_cGN_D(iyear));} 
@@ -2752,7 +2754,7 @@ FUNCTION get_mortality
 
     if(iyear>=styr_D_cHL & iyear<=endyr_D_cHL)
       {F_cGN_D_out(iyear)=mfexp(log_avg_F_D_cGN+log_dev_F_D_cGN(iyear));}
-    if(iyear > endyr_period1 & iyear < styr_D_cHL)
+    if(iyear > endyr_selex_phase1 & iyear < styr_D_cHL)
       {F_cGN_D_out(iyear)=mfexp(log_avg_F_D_cGN+log_F_dev_cGN_D2);}
     F_cGN_D(iyear)=sel_cGN_D(iyear)*F_cGN_D_out(iyear);  
     Fsum(iyear)+=F_cGN_D_out(iyear);    
@@ -2991,12 +2993,12 @@ FUNCTION get_catchability_fcns
           }
           if (iyear>2003) {q_rate_fcn_rHB(iyear)=q_rate_fcn_rHB(iyear-1);} 
       }  
-      //for (iyear=styr_rHB_D_cpue; iyear<=endyr_rHB_D_cpue; iyear++)
-      //{   if (iyear>styr_rHB_D_cpue & iyear <=2003) 
-      //    {//q_rate_fcn_rHB_D(iyear)=(1.0+q_rate)*q_rate_fcn_rHB_D(iyear-1); //compound
-      //       q_rate_fcn_rHB_D(iyear)=(1.0+(iyear-styr_rHB_D_cpue)*q_rate)*q_rate_fcn_rHB_D(styr_rHB_D_cpue);  //linear
+      //for (iyear=styr_rHD_cpue; iyear<=endyr_rHD_cpue; iyear++)
+      //{   if (iyear>styr_rHD_cpue & iyear <=2003) 
+      //    {//q_rate_fcn_rHD(iyear)=(1.0+q_rate)*q_rate_fcn_rHD(iyear-1); //compound
+      //       q_rate_fcn_rHD(iyear)=(1.0+(iyear-styr_rHD_cpue)*q_rate)*q_rate_fcn_rHD(styr_rHD_cpue);  //linear
       //    }
-      //    if (iyear>2003) {q_rate_fcn_rHB_D(iyear)=q_rate_fcn_rHB_D(iyear-1);} 
+      //    if (iyear>2003) {q_rate_fcn_rHD(iyear)=q_rate_fcn_rHD(iyear-1);} 
       //}
   } //end q_rate conditional      
 
@@ -3050,13 +3052,13 @@ FUNCTION get_indices
       pred_rHB_cpue(iyear)=q_rHB(iyear)*q_rate_fcn_rHB(iyear)*q_DD_fcn(iyear)*sum(N_rHB(iyear));
       if (iyear<endyr_cpue_rHB){q_rHB(iyear+1)=q_rHB(iyear)*mfexp(q_RW_log_dev_rHB(iyear));}
   }
-  //rHB_D cpue
-  //q_rHB_D(styr_rHB_D_cpue)=mfexp(log_q_rHB_D);
-  //for (iyear=styr_rHB_D_cpue; iyear<=endyr_rHB_D_cpue; iyear++)
+  //rHD cpue
+  //q_rHD(styr_rHD_cpue)=mfexp(log_q_rHD);
+  //for (iyear=styr_rHD_cpue; iyear<=endyr_rHD_cpue; iyear++)
   //{   //index in number units
-  //    N_rHB_D(iyear)=elem_prod(N_mdyr(iyear),sel_rHB_D(iyear)); 
-  //    pred_rHB_D_cpue(iyear)=q_rHB_D(iyear)*q_rate_fcn_rHB_D(iyear)*q_DD_fcn(iyear)*sum(N_rHB_D(iyear));
-  //    if (iyear<endyr_rHB_D_cpue){q_rHB_D(iyear+1)=q_rHB_D(iyear)*mfexp(q_RW_log_dev_rHB_D(iyear));}
+  //    N_rHD(iyear)=elem_prod(N_mdyr(iyear),sel_rHB_D(iyear)); 
+  //    pred_rHD_cpue(iyear)=q_rHD(iyear)*q_rate_fcn_rHD(iyear)*q_DD_fcn(iyear)*sum(N_rHD(iyear));
+  //    if (iyear<endyr_rHD_cpue){q_rHD(iyear+1)=q_rHD(iyear)*mfexp(q_RW_log_dev_rHD(iyear));}
   //}
   
 FUNCTION get_length_comps
@@ -3066,79 +3068,79 @@ FUNCTION get_length_comps
       {pred_sBT_lenc(iyear)=(N_sBT(yrs_lenc_sBT(iyear))*lenprob)/sum(N_sBT(yrs_lenc_sBT(iyear)));} 
 
   //Commercial lines
-  for (iyear=1;iyear<=nyr_lenc_cHL;iyear++) //all yrs within periods 2,3
-  {  if (yrs_lenc_cHL(iyear)<=endyr_period2)
+  for (iyear=1;iyear<=nyr_lenc_cHL;iyear++) //all yrs within selex_phases 2,3
+  {  if (yrs_lenc_cHL(iyear)<=endyr_selex_phase2)
      {pred_cHL_lenc(iyear)=(L_cHL_num(yrs_lenc_cHL(iyear))*lenprob_cHL2)
                           /sum(L_cHL_num(yrs_lenc_cHL(iyear)));       
      } 
-     if (yrs_lenc_cHL(iyear)>endyr_period2)
+     if (yrs_lenc_cHL(iyear)>endyr_selex_phase2)
      {pred_cHL_lenc(iyear)=(L_cHL_num(yrs_lenc_cHL(iyear))*lenprob_cHL3)
                           /sum(L_cHL_num(yrs_lenc_cHL(iyear)));       
      }  
   }
 
-  //Commercial pots: pooled all from period 2
+  //Commercial pots: pooled all from selex_phase2
   L_cPT_num_pool.initialize();
   for (iyear=1;iyear<=nyr_lenc_pool_cPT;iyear++)
   {  L_cPT_num_pool_yr(iyear)=nsamp_lenc_pool_cPT(iyear)*L_cPT_num(yrs_lenc_pool_cPT(iyear))
                             /sum(L_cPT_num(yrs_lenc_pool_cPT(iyear)));                             
-     if (yrs_lenc_pool_cPT(iyear)<=endyr_period2) {L_cPT_num_pool(1)+=L_cPT_num_pool_yr(iyear);}                             
+     if (yrs_lenc_pool_cPT(iyear)<=endyr_selex_phase2) {L_cPT_num_pool(1)+=L_cPT_num_pool_yr(iyear);}                             
   } 
-  for (iyear=1;iyear<=nyr_lenc_cPT;iyear++) //all yrs within periods 2
-  {  if (yrs_lenc_cPT(iyear)<=endyr_period2)
+  for (iyear=1;iyear<=nyr_lenc_cPT;iyear++) //all yrs within selex_phase 2
+  {  if (yrs_lenc_cPT(iyear)<=endyr_selex_phase2)
        {pred_cPT_lenc(iyear)=(L_cPT_num_pool(iyear)*lenprob_cPT2)/sum(L_cPT_num_pool(iyear)); } 
-	   pred_cPT_lenc(iyear)=(L_cPT_num(yrs_lenc_cPT(iyear))*lenprob_cPT3)  //added to calculate comps for last period
+	   pred_cPT_lenc(iyear)=(L_cPT_num(yrs_lenc_cPT(iyear))*lenprob_cPT3)  //added to calculate comps for last selex_phase
 						  /sum(L_cPT_num(yrs_lenc_cPT(iyear)));
   }  
    
 
  
  //Headboat 
-  for (iyear=1;iyear<=nyr_lenc_rHB;iyear++)  //all in periods 1,2,3
-  {  if (yrs_lenc_rHB(iyear)<=endyr_period1)
+  for (iyear=1;iyear<=nyr_lenc_rHB;iyear++)  //all in selex_phases 1,2,3
+  {  if (yrs_lenc_rHB(iyear)<=endyr_selex_phase1)
      {pred_rHB_lenc(iyear)=(L_rHB_num(yrs_lenc_rHB(iyear))*lenprob_rHB1)
                           /sum(L_rHB_num(yrs_lenc_rHB(iyear)));       
      } 
-     if (yrs_lenc_rHB(iyear)>endyr_period1 & yrs_lenc_rHB(iyear)<=endyr_period2)
+     if (yrs_lenc_rHB(iyear)>endyr_selex_phase1 & yrs_lenc_rHB(iyear)<=endyr_selex_phase2)
      {pred_rHB_lenc(iyear)=(L_rHB_num(yrs_lenc_rHB(iyear))*lenprob_rHB2)
                           /sum(L_rHB_num(yrs_lenc_rHB(iyear)));       
      }  
-     if (yrs_lenc_rHB(iyear)>endyr_period2)
+     if (yrs_lenc_rHB(iyear)>endyr_selex_phase2)
      {pred_rHB_lenc(iyear)=(L_rHB_num(yrs_lenc_rHB(iyear))*lenprob_rHB3)
                           /sum(L_rHB_num(yrs_lenc_rHB(iyear)));       
      }  
   }
  //rHB discards 
-  for (iyear=1;iyear<=nyr_lenc_rHB_D;iyear++) //all yrs within period 3,4
-  {  if (yrs_lenc_rHB_D(iyear)<=endyr_recr_period3)
+  for (iyear=1;iyear<=nyr_lenc_rHB_D;iyear++) //all yrs within selex_phase3,4
+  {  if (yrs_lenc_rHB_D(iyear)<=endyr_selex_phase3)
      {pred_rHB_D_lenc(iyear)=(D_rHB_num(yrs_lenc_rHB_D(iyear))*lenprob_rHB_D3)
                         /sum(D_rHB_num(yrs_lenc_rHB_D(iyear)));}      
-    if (yrs_lenc_rHB_D(iyear)>endyr_recr_period3)
+    if (yrs_lenc_rHB_D(iyear)>endyr_selex_phase3)
      {pred_rHB_D_lenc(iyear)=(D_rHB_num(yrs_lenc_rHB_D(iyear))*lenprob_rHB_D4)
                         /sum(D_rHB_num(yrs_lenc_rHB_D(iyear)));}                      
   }
 
  
  //MRIP
-  for (iyear=1;iyear<=nyr_lenc_rGN;iyear++)  //all in periods 1,2,3
-  {  if (yrs_lenc_rGN(iyear)<=endyr_period1)
+  for (iyear=1;iyear<=nyr_lenc_rGN;iyear++)  //all in selex_phases 1,2,3
+  {  if (yrs_lenc_rGN(iyear)<=endyr_selex_phase1)
      {pred_rGN_lenc(iyear)=(L_rGN_num(yrs_lenc_rGN(iyear))*lenprob_rGN1)
                           /sum(L_rGN_num(yrs_lenc_rGN(iyear)));       
      } 
-     if (yrs_lenc_rGN(iyear)>endyr_period1 & yrs_lenc_rGN(iyear)<=endyr_period2)
+     if (yrs_lenc_rGN(iyear)>endyr_selex_phase1 & yrs_lenc_rGN(iyear)<=endyr_selex_phase2)
      {pred_rGN_lenc(iyear)=(L_rGN_num(yrs_lenc_rGN(iyear))*lenprob_rGN2)
                           /sum(L_rGN_num(yrs_lenc_rGN(iyear)));       
      }  
-     if (yrs_lenc_rGN(iyear)>endyr_period2 & yrs_lenc_rGN(iyear)<=endyr_recr_period3)
+     if (yrs_lenc_rGN(iyear)>endyr_selex_phase2 & yrs_lenc_rGN(iyear)<=endyr_selex_phase3)
      {pred_rGN_lenc(iyear)=(L_rGN_num(yrs_lenc_rGN(iyear))*lenprob_rGN3)
                           /sum(L_rGN_num(yrs_lenc_rGN(iyear)));       
      }  
-     if (yrs_lenc_rGN(iyear)>endyr_recr_period3 &
-	 yrs_lenc_rGN(iyear)<=endyr_period4)
+     if (yrs_lenc_rGN(iyear)>endyr_selex_phase3 &
+	 yrs_lenc_rGN(iyear)<=endyr_selex_phase4)
      {pred_rGN_lenc(iyear)=(L_rGN_num(yrs_lenc_rGN(iyear))*lenprob_rGN4)
                           /sum(L_rGN_num(yrs_lenc_rGN(iyear)));       
      }  
-	 if (yrs_lenc_rGN(iyear)>endyr_period4)
+	 if (yrs_lenc_rGN(iyear)>endyr_selex_phase4)
      {pred_rGN_lenc(iyear)=(L_rGN_num(yrs_lenc_rGN(iyear))*lenprob_rGN5)
                           /sum(L_rGN_num(yrs_lenc_rGN(iyear)));       
      }  
@@ -3636,10 +3638,10 @@ FUNCTION evaluate_objective_function
   fval+=f_rHB_cpue;
   fval_data+=f_rHB_cpue;
   
-  //f_rHB_D_cpue=0.0;
-  //f_rHB_D_cpue=lk_lognormal(pred_rHB_D_cpue, obs_rHB_D_cpue, rHB_D_cpue_cv, w_I_rHB_D);
-  //fval+=f_rHB_D_cpue;
-  //fval_data+=f_rHB_D_cpue;
+  //f_rHD_cpue=0.0;
+  //f_rHD_cpue=lk_lognormal(pred_rHD_cpue, obs_rHD_cpue, rHD_cpue_cv, w_I_rHD);
+  //fval+=f_rHD_cpue;
+  //fval_data+=f_rHD_cpue;
 
 ////---Landings-------------------------------
  
@@ -3856,10 +3858,10 @@ FUNCTION evaluate_objective_function
       {f_rHB_RW_cpue+=square(q_RW_log_dev_rHB(iyear))/(2.0*set_q_RW_rHB_var);}      
   fval+=f_rHB_RW_cpue;   
   
-  //f_rHB_D_RW_cpue=0.0;
-  //for (iyear=styr_rHB_D_cpue; iyear<endyr_rHB_D_cpue; iyear++)
-  //    {f_rHB_D_RW_cpue+=square(q_RW_log_dev_rHB_D(iyear))/(2.0*set_q_RW_rHB_D_var);}      
-  //fval+=f_rHB_D_RW_cpue;  
+  //f_rHD_RW_cpue=0.0;
+  //for (iyear=styr_rHD_cpue; iyear<endyr_rHD_cpue; iyear++)
+  //    {f_rHD_RW_cpue+=square(q_RW_log_dev_rHD(iyear))/(2.0*set_q_RW_rHD_var);}      
+  //fval+=f_rHD_RW_cpue;  
   
   
 //---Priors---------------------------------------------------
@@ -3928,11 +3930,11 @@ FUNCTION evaluate_objective_function
   f_priors+=neg_log_prior(selpar_logit_Age1_rHB_D, set_selpar_logit_Age1_rHB_D(5),set_selpar_logit_Age1_rHB_D(6),set_selpar_logit_Age1_rHB_D(7));
   f_priors+=neg_log_prior(selpar_logit_Age2_rHB_D, set_selpar_logit_Age2_rHB_D(5),set_selpar_logit_Age2_rHB_D(6), set_selpar_logit_Age2_rHB_D(7));
     
-  f_priors+=neg_log_prior(selpar_A50_rHB_D4, set_selpar_A50_rHB_D4(5),set_selpar_A50_rHB_D4(6),set_selpar_A50_rHB_D4(7)); 
-  f_priors+=neg_log_prior(selpar_slope_rHB_D4, set_selpar_slope_rHB_D4(5),set_selpar_slope_rHB_D4(6),set_selpar_slope_rHB_D4(7)); 
-  f_priors+=neg_log_prior(selpar_A502_rHB_D4, set_selpar_A502_rHB_D4(5),set_selpar_A502_rHB_D4(6),set_selpar_A502_rHB_D4(7)); f_priors+=neg_log_prior(selpar_A50_rHB_D5, set_selpar_A50_rHB_D5(5),set_selpar_A50_rHB_D5(6),set_selpar_A50_rHB_D5(7));   
-  f_priors+=neg_log_prior(selpar_slope_rHB_D5, set_selpar_slope_rHB_D5(5),set_selpar_slope_rHB_D5(6),set_selpar_slope_rHB_D5(7)); 
-  f_priors+=neg_log_prior(selpar_A502_rHB_D5, set_selpar_A502_rHB_D5(5),set_selpar_A502_rHB_D5(6),set_selpar_A502_rHB_D5(7));
+  f_priors+=neg_log_prior(selpar_A50_rHD4, set_selpar_A50_rHD4(5),set_selpar_A50_rHD4(6),set_selpar_A50_rHD4(7)); 
+  f_priors+=neg_log_prior(selpar_slope_rHD4, set_selpar_slope_rHD4(5),set_selpar_slope_rHD4(6),set_selpar_slope_rHD4(7)); 
+  f_priors+=neg_log_prior(selpar_A502_rHD4, set_selpar_A502_rHD4(5),set_selpar_A502_rHD4(6),set_selpar_A502_rHD4(7)); f_priors+=neg_log_prior(selpar_A50_rHD5, set_selpar_A50_rHD5(5),set_selpar_A50_rHD5(6),set_selpar_A50_rHD5(7));   
+  f_priors+=neg_log_prior(selpar_slope_rHD5, set_selpar_slope_rHD5(5),set_selpar_slope_rHD5(6),set_selpar_slope_rHD5(7)); 
+  f_priors+=neg_log_prior(selpar_A502_rHD5, set_selpar_A502_rHD5(5),set_selpar_A502_rHD5(6),set_selpar_A502_rHD5(7));
   
   fval+=f_priors;
 
@@ -4355,14 +4357,14 @@ REPORT_SECTION
        selpar_Age1_rHB_D_logit_out(8)=selpar_logit_Age1_rHB_D; selpar_Age1_rHB_D_logit_out(1,7)=set_selpar_logit_Age1_rHB_D;
 	   selpar_Age2_rHB_D_logit_out(8)=selpar_logit_Age2_rHB_D; selpar_Age2_rHB_D_logit_out(1,7)=set_selpar_logit_Age2_rHB_D;
 
-	   selpar_A50_rHB_D4_out(8)=selpar_A50_rHB_D4; selpar_A50_rHB_D4_out(1,7)=set_selpar_A50_rHB_D4;
-       selpar_slope_rHB_D4_out(8)=selpar_slope_rHB_D4; selpar_slope_rHB_D4_out(1,7)=set_selpar_slope_rHB_D4;
-	   selpar_A502_rHB_D4_out(8)=selpar_A502_rHB_D4; selpar_A502_rHB_D4_out(1,7)=set_selpar_A502_rHB_D4;
-       selpar_slope2_rHB_D4_out(8)=selpar_slope2_rHB_D4; selpar_slope2_rHB_D4_out(1,7)=set_selpar_slope2_rHB_D4;
-	   selpar_A50_rHB_D5_out(8)=selpar_A50_rHB_D5; selpar_A50_rHB_D5_out(1,7)=set_selpar_A50_rHB_D5;
-       selpar_slope_rHB_D5_out(8)=selpar_slope_rHB_D5; selpar_slope_rHB_D5_out(1,7)=set_selpar_slope_rHB_D5;
-	   selpar_A502_rHB_D5_out(8)=selpar_A502_rHB_D5; selpar_A502_rHB_D5_out(1,7)=set_selpar_A502_rHB_D5;
-       selpar_slope2_rHB_D5_out(8)=selpar_slope2_rHB_D5; selpar_slope2_rHB_D5_out(1,7)=set_selpar_slope2_rHB_D5;
+	   selpar_A50_rHD4_out(8)=selpar_A50_rHD4; selpar_A50_rHD4_out(1,7)=set_selpar_A50_rHD4;
+       selpar_slope_rHD4_out(8)=selpar_slope_rHD4; selpar_slope_rHD4_out(1,7)=set_selpar_slope_rHD4;
+	   selpar_A502_rHD4_out(8)=selpar_A502_rHD4; selpar_A502_rHD4_out(1,7)=set_selpar_A502_rHD4;
+       selpar_slope2_rHD4_out(8)=selpar_slope2_rHD4; selpar_slope2_rHD4_out(1,7)=set_selpar_slope2_rHD4;
+	   selpar_A50_rHD5_out(8)=selpar_A50_rHD5; selpar_A50_rHD5_out(1,7)=set_selpar_A50_rHD5;
+       selpar_slope_rHD5_out(8)=selpar_slope_rHD5; selpar_slope_rHD5_out(1,7)=set_selpar_slope_rHD5;
+	   selpar_A502_rHD5_out(8)=selpar_A502_rHD5; selpar_A502_rHD5_out(1,7)=set_selpar_A502_rHD5;
+       selpar_slope2_rHD5_out(8)=selpar_slope2_rHD5; selpar_slope2_rHD5_out(1,7)=set_selpar_slope2_rHD5;
 	   
        log_q_sBT_out(8)=log_q_sBT; log_q_sBT_out(1,7)=set_log_q_cpue_sBT;
 	   log_q_sTV_out(8)=log_q_sTV; log_q_sTV_out(1,7)=set_log_q_cpue_sTV;
@@ -4379,7 +4381,7 @@ REPORT_SECTION
        log_avg_F_rHB_D_out(8)=log_avg_F_D_rHB; log_avg_F_rHB_D_out(1,7)=set_log_avg_F_D_rHB;
        log_avg_F_rGN_D_out(8)=log_avg_F_D_rGN; log_avg_F_rGN_D_out(1,7)=set_log_avg_F_D_rGN;
         
-       log_rec_dev_out(styr_rec_dev, endyr_rec_phase2)=log_dev_rec;
+       log_rec_dev_out(styr_rec_dev, endyr_rec_dev)=log_dev_rec;
        log_F_dev_cHL_out(styr_L_cHL,endyr_L_cHL)=log_dev_F_L_cHL;
 	   log_F_dev_cPT_out(styr_L_cPT,endyr_L_cPT)=log_dev_F_L_cPT;
        log_F_dev_cTW_out(styr_L_cTW,endyr_L_cTW)=log_dev_F_L_cTW;

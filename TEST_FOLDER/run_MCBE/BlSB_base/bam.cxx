@@ -3,7 +3,7 @@
 //##  Species: Black Sea Bass
 //##  Region: US South Atlantic
 //##  SEDAR: 56
-//##  Date: 2022-10-19 18:14:05
+//##  Date: 2022-11-18 22:17:15
 
 
 // Create a file with an R object from AD Model Builder
@@ -57,7 +57,7 @@ open_r_info_list("parms", false);
 	wrt_r_item("q.sTV", mfexp(log_q_sTV));
 	wrt_r_item("q.cHL", mfexp(log_q_cHL));
 	wrt_r_item("q.rHB", mfexp(log_q_rHB));
-    //wrt_r_item("q.rHB.D", mfexp(log_q_rHB_D));
+    //wrt_r_item("q.rHB.D", mfexp(log_q_rHD));
 	wrt_r_item("q.rate",q_rate);
 	wrt_r_item("q.beta",q_DD_beta);
 	wrt_r_item("q.DD.B0.4plus", B0_q_DD);
@@ -175,14 +175,14 @@ open_r_df("parm.cons",1,8,2);
     wrt_r_df_col("selpar.age1.rHB.D.logit",selpar_Age1_rHB_D_logit_out);
     wrt_r_df_col("selpar.age2.rHB.D.logit",selpar_Age2_rHB_D_logit_out);
     
-	wrt_r_df_col("selpar.A50.rHB.D4", selpar_A50_rHB_D4_out);
-	wrt_r_df_col("selpar.slope.rHB.D4", selpar_slope_rHB_D4_out);
-	wrt_r_df_col("selpar.A502.rHB.D4", selpar_A502_rHB_D4_out);
-	wrt_r_df_col("selpar.slope2.rHB.D4", selpar_slope2_rHB_D4_out);
-	wrt_r_df_col("selpar.A50.rHB.D5", selpar_A50_rHB_D5_out);
-	wrt_r_df_col("selpar.slope.rHB.D5", selpar_slope_rHB_D5_out);
-	wrt_r_df_col("selpar.A502.rHB.D5", selpar_A502_rHB_D5_out);
-	wrt_r_df_col("selpar.slope2.rHB.D5", selpar_slope2_rHB_D5_out);
+	wrt_r_df_col("selpar.A50.rHB.D4", selpar_A50_rHD4_out);
+	wrt_r_df_col("selpar.slope.rHB.D4", selpar_slope_rHD4_out);
+	wrt_r_df_col("selpar.A502.rHB.D4", selpar_A502_rHD4_out);
+	wrt_r_df_col("selpar.slope2.rHB.D4", selpar_slope2_rHD4_out);
+	wrt_r_df_col("selpar.A50.rHB.D5", selpar_A50_rHD5_out);
+	wrt_r_df_col("selpar.slope.rHB.D5", selpar_slope_rHD5_out);
+	wrt_r_df_col("selpar.A502.rHB.D5", selpar_A502_rHD5_out);
+	wrt_r_df_col("selpar.slope2.rHB.D5", selpar_slope2_rHD5_out);
 	
 	wrt_r_df_col("log.q.cHL",log_q_cHL_out);
     wrt_r_df_col("log.q.rHB",log_q_rHB_out);
@@ -211,7 +211,7 @@ open_r_vector("like");
     wrt_r_item("lk.U.cHL", f_cHL_cpue);
     wrt_r_item("lk.U.rHB", f_rHB_cpue);
 	//wrt_r_item("lk.U.Vid", f_Vid_cpue);
-    //wrt_r_item("lk.U.rHB.D", f_rHB_D_cpue);
+    //wrt_r_item("lk.U.rHB.D", f_rHD_cpue);
     wrt_r_item("lk.L.cHL", f_cHL_L);
     wrt_r_item("lk.L.cPT", f_cPT_L);
     wrt_r_item("lk.L.cTW", f_cTW_L);
@@ -235,7 +235,7 @@ open_r_vector("like");
     wrt_r_item("lk.priors",f_priors);
     wrt_r_item("lk.U.RW.cHL",f_cHL_RW_cpue);
     wrt_r_item("lk.U.RW.rHB",f_rHB_RW_cpue);
-    //wrt_r_item("lk.U.RW.rHB.D",f_rHB_D_RW_cpue);
+    //wrt_r_item("lk.U.RW.rHB.D",f_rHD_RW_cpue);
 
 
     wrt_r_item("lk.SRfit", f_rec_dev);
@@ -265,7 +265,7 @@ open_r_vector("like");
 	//wrt_r_item("w.U.Vid", w_I_Vid);
 	wrt_r_item("w.U.cHL", w_cpue_cHL);
 	wrt_r_item("w.U.rHB", w_cpue_rHB);
-	//wrt_r_item("w.U.rHB.D", w_I_rHB_D);
+	//wrt_r_item("w.U.rHB.D", w_I_rHD);
 	wrt_r_item("w.R", w_rec);
 	wrt_r_item("w.R.init", w_rec_early);
 	wrt_r_item("w.R.end", w_rec_end);
@@ -327,14 +327,14 @@ open_r_info_list("sel.parms",false);
     wrt_r_item("selpar.Age1.rHB.D", selpar_Age1_rHB_D);
     wrt_r_item("selpar.Age2.rHB.D", selpar_Age2_rHB_D);
 
-	wrt_r_df_col("selpar.A50.rHB.D4", selpar_A50_rHB_D4_out);
-	wrt_r_df_col("selpar.slope.rHB.D4", selpar_slope_rHB_D4_out);
-	wrt_r_df_col("selpar.A502.rHB.D4", selpar_A502_rHB_D4_out);
-	wrt_r_df_col("selpar.slope2.rHB.D4", selpar_slope2_rHB_D4_out);
-	wrt_r_df_col("selpar.A50.rHB.D5", selpar_A50_rHB_D5_out);
-	wrt_r_df_col("selpar.slope.rHB.D5", selpar_slope_rHB_D5_out);
-	wrt_r_df_col("selpar.A502.rHB.D5", selpar_A502_rHB_D5_out);
-	wrt_r_df_col("selpar.slope2.rHB.D5", selpar_slope2_rHB_D5_out);
+	wrt_r_df_col("selpar.A50.rHB.D4", selpar_A50_rHD4_out);
+	wrt_r_df_col("selpar.slope.rHB.D4", selpar_slope_rHD4_out);
+	wrt_r_df_col("selpar.A502.rHB.D4", selpar_A502_rHD4_out);
+	wrt_r_df_col("selpar.slope2.rHB.D4", selpar_slope2_rHD4_out);
+	wrt_r_df_col("selpar.A50.rHB.D5", selpar_A50_rHD5_out);
+	wrt_r_df_col("selpar.slope.rHB.D5", selpar_slope_rHD5_out);
+	wrt_r_df_col("selpar.A502.rHB.D5", selpar_A502_rHD5_out);
+	wrt_r_df_col("selpar.slope2.rHB.D5", selpar_slope2_rHD5_out);
 	
 close_r_info_list();
 
@@ -822,21 +822,21 @@ open_r_df("t.series", styr, endyr, 2);
     wrt_r_df_col("U.rHB.ob", obs_cpue_rHB);
     wrt_r_df_col("U.rHB.pr", pred_rHB_cpue);
     wrt_r_df_col("cv.U.rHB", obs_cv_cpue_rHB);
-    //wrt_r_df_col("U.rHB.D.ob", obs_rHB_D_cpue);
-    //wrt_r_df_col("U.rHB.D.pr", pred_rHB_D_cpue);
-    //wrt_r_df_col("cv.U.rHB.D", rHB_D_cpue_cv);
+    //wrt_r_df_col("U.rHB.D.ob", obs_rHD_cpue);
+    //wrt_r_df_col("U.rHB.D.pr", pred_rHD_cpue);
+    //wrt_r_df_col("cv.U.rHB.D", rHD_cpue_cv);
 
     wrt_r_df_col("q.cHL", q_cHL);
     wrt_r_df_col("q.rHB", q_rHB);
     
     wrt_r_df_col("q.cHL.rate.mult",q_rate_fcn_cHL);
     wrt_r_df_col("q.rHB.rate.mult",q_rate_fcn_rHB);
-    //wrt_r_df_col("q.rHB.D.rate.mult",q_rate_fcn_rHB_D);
+    //wrt_r_df_col("q.rHB.D.rate.mult",q_rate_fcn_rHD);
     wrt_r_df_col("q.DD.mult", q_DD_fcn);
     wrt_r_df_col("q.DD.B.4plus", B_q_DD);
     wrt_r_df_col("q.cHL.RW.log.dev",q_RW_log_dev_cHL);
     wrt_r_df_col("q.rHB.RW.log.dev",q_RW_log_dev_rHB);
-    //wrt_r_df_col("q.rHB.D.RW.log.dev",q_RW_log_dev_rHB_D);
+    //wrt_r_df_col("q.rHB.D.RW.log.dev",q_RW_log_dev_rHD);
 
     wrt_r_df_col("L.cHL.ob", obs_L_cHL);
     wrt_r_df_col("L.cHL.pr", pred_cHL_L_klb);

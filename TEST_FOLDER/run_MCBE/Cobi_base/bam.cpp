@@ -141,8 +141,8 @@ cout << endl;
   set_log_dev_RWq.allocate(1,3,"set_log_dev_RWq");
   set_log_dev_rec.allocate(1,3,"set_log_dev_rec");
   set_log_dev_Nage.allocate(1,3,"set_log_dev_Nage");
-  set_log_dev_vals_F_L__cGN.allocate(styr_L_cGN,endyr_L_cGN,"set_log_dev_vals_F_L__cGN");
-  set_log_dev_vals_F_L__rGN.allocate(styr_L_rGN,endyr_L_rGN,"set_log_dev_vals_F_L__rGN");
+  set_log_dev_vals_F_L_cGN.allocate(styr_L_cGN,endyr_L_cGN,"set_log_dev_vals_F_L_cGN");
+  set_log_dev_vals_F_L_rGN.allocate(styr_L_rGN,endyr_L_rGN,"set_log_dev_vals_F_L_rGN");
   set_log_dev_vals_rec.allocate(styr_rec_dev,endyr_rec_dev,"set_log_dev_vals_rec");
   set_log_dev_vals_Nage.allocate(2,nages,"set_log_dev_vals_Nage");
   set_w_L.allocate("set_w_L");
@@ -1603,10 +1603,10 @@ void model_parameters::preliminary_calculations(void)
   // log_avg_F_rHB=set_log_avg_F_rHB(1); 
   log_avg_F_L_rGN=set_log_avg_F_L_rGN(1); 
     
-  log_dev_F_L_cGN=set_log_dev_vals_F_L__cGN;
+  log_dev_F_L_cGN=set_log_dev_vals_F_L_cGN;
   //log_F_dev_cLL=set_log_F_dev_cLL_vals;
   // log_F_dev_rHB=set_log_F_dev_rHB_vals;
-  log_dev_F_L_rGN=set_log_dev_vals_F_L__rGN;
+  log_dev_F_L_rGN=set_log_dev_vals_F_L_rGN;
  
   selpar_A50_cGN1=set_selpar_A50_cGN1(1);
   selpar_slope_cGN1=set_selpar_slope_cGN1(1);

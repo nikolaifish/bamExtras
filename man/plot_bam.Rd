@@ -10,24 +10,29 @@ plot_bam(
   draft = FALSE,
   use.color = TRUE,
   years_plot = NULL,
-  default_args = list(x = quote(spp), DataName = "spp", draft = draft, use.color =
+  FGPlot_args = list(x = quote(spp), DataName = "spp", draft = draft, use.color =
     use.color, graphics.type = graphics.type),
+  windows_args = list(),
   Bound.vec.plots.args = list(),
   BSR.time.plots.args = list(),
-  CLD.total.plots.args = list(),
+  CLD.total.plots.args = list(CLD.w.references = list("msy.klb", "msy.klb", "Dmsy.klb"),
+    CLD.n.references = list("msy.num", "msy.num", "Dmsy.num")),
   Cohort.plots.args = list(),
   Comp.plots.args = list(),
-  Comp.yearly.plots.args = list(),
-  Eq.plots.args = list(),
-  F.time.plots.args = list(),
-  Growth.plots.args = list(),
+  Comp.yearly.plots.args = list(print.neff = TRUE, print.n = TRUE),
+  Eq.plots.args = list(F.references = list("Fmsy"), user.Eq = list("L.eq.wholeklb",
+    "L.eq.knum", "D.eq.knum")),
+  F.time.plots.args = list(F.references = list(Fmsy = "Fmsy"), F.additional =
+    c(F.F30.ratio = "F.F30.ratio")),
+  Growth.plots.args = list(plot.all = TRUE),
   Index.plots.args = list(),
   Landings.plots.args = list(),
-  NFZ.age.plots.args = list(),
+  NFZ.age.plots.args = list(user.plots = "N.age.mdyr"),
   Parm.plots.args = list(),
-  PerRec.plots.args = list(),
-  Phase.plots.args = list(),
-  Selectivity.plots.args = list(),
+  PerRec.plots.args = list(user.PR = list("SPR", "ypr.lb.whole"), F.references =
+    list("Fmsy")),
+  Phase.plots.args = list(Xaxis.F = FALSE),
+  Selectivity.plots.args = list(compact = TRUE),
   StockRec.plots.args = list()
 )
 }
@@ -41,13 +46,15 @@ plot_bam(
 \item{use.color}{from FishGraph help: 'plots are made in grayscale when FALSE'}
 
 \item{years_plot}{vector of years to plot in time series. If NULL, all years are plotted}
+
+\item{FGPlot_args}{set of arguments to pass to all FishGraph plotting functions}
 }
 \description{
 A generic plotting function that calls plotting functions from FishGraph and bamExtras.
 }
 \examples{
 \dontrun{
-# Run MCBE, writing files to dir_bam_sim
+# Make plots
 plot_bam(rdat_BlackSeaBass)
 }
 }

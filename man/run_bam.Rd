@@ -20,7 +20,8 @@ run_bam(
   admb_switch = "-nox",
   admb2r_obj = admb2r.cpp,
   cleanup = list(del = c("*.r0*", "*.p0*", "*.b0*", "*.log", "*.rpt", "*.obj", "*.htp",
-    "*.eva", "*.bar", "*.tds", "*.o", "tmp_admb", "variance", "*.dep", "*.hes", "*.tmp"))
+    "*.eva", "*.bar", "*.tds", "*.o", "tmp_admb", "variance", "*.dep", "*.hes", "*.tmp")),
+  return_obj = "rdat"
 )
 }
 \arguments{
@@ -54,6 +55,8 @@ run_bam(
 \item{admb2r_obj}{Character string containing admb2r C++ code, which is written with \code{base::writeLines} to \code{dir_bam}}
 
 \item{cleanup}{List object written to \code{cleanup.bat} file in \code{dir_bam}.}
+
+\item{return_obj}{objects to return from the function. May include one or more of the following "dat", "tpl", "cxx", "rdat". character vector.}
 }
 \description{
 Creates a folder in a directory \code{dir_bam} to write BAM files including model-specific files
@@ -61,7 +64,7 @@ Creates a folder in a directory \code{dir_bam} to write BAM files including mode
 but customizable \code{cleanup.bat} file. Model-specific files are supplied by the user in any one of several different ways
 (see Arguments). It temporarily changes the working directory to \code{dir_bam}
 then calls a shell script to run the BAM model, and changes the working directory back to the previous path.
-The function invisibly returns the rdat object created by the cxx file, which can be assigned an object name.
+The function invisibly returns the bam file objects (indicated by return_obj) in a list.
 }
 \examples{
 \dontrun{

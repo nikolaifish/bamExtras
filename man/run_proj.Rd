@@ -10,8 +10,8 @@ run_proj(
   bam2r_args = NULL,
   pstar = NULL,
   styr_proj = NULL,
-  nyb = list(L = 3, U = 3, R = 5, comp = 3),
-  nyc = 3,
+  nyb_rcn = list(L = 3, U = 3, R = 5, comp = 3),
+  nyp_cur = 3,
   nyp = 5,
   F_cur = NULL,
   F_proj = NULL,
@@ -23,11 +23,11 @@ run_proj(
   sel_D = NULL,
   sel_tot = NULL,
   sel_F_flt = NULL,
-  wgt = NULL,
-  wgt_L = NULL,
-  wgt_D = NULL,
-  wgt_F_flt = NULL,
-  len_F_flt = NULL,
+  wgt_mt = NULL,
+  wgt_L_klb = NULL,
+  wgt_D_klb = NULL,
+  wgt_F_flt_klb = NULL,
+  len_F_flt_mm = NULL,
   reprod = NULL,
   M = NULL,
   spawn_time = NULL,
@@ -49,11 +49,11 @@ run_proj(
 
 \item{styr_proj}{start year (i.e. first calendar year) of projection}
 
-\item{nyb}{number of years in calculations that include recent landings (L) or discards and their cvs, index cvs (U), recruitment (R), or numbers of samples in age or length compositions (comp). Fleets without L or D within the last nyb years of the base model will not be projected forward. named list}
+\item{nyb_rcn}{number of years in calculations that include recent landings (L) or discards and their cvs, index cvs (U), recruitment (R), or numbers of samples in age or length compositions (comp). Fleets without L or D within the last nyb_rcn years of the base model will not be projected forward. named list}
 
-\item{nyc}{number of years to maintain current conditions before implementing management}
+\item{nyp_cur}{number of years to maintain current conditions before implementing management}
 
-\item{nyp}{number of years of projection. Must be >nyc}
+\item{nyp}{number of years of projection. Must be >nyp_cur}
 
 \item{F_cur}{current fully selected fishing mortality rate}
 
@@ -75,15 +75,15 @@ run_proj(
 
 \item{sel_F_flt}{list of selectivity vectors (by age) or matrices (by year,age) for each fleet associated with landings or discards. numeric vector or matrix}
 
-\item{wgt}{weight at age of population. numeric vector}
+\item{wgt_mt}{weight at age of population in metric tons (mt). numeric vector}
 
-\item{wgt_L}{weight at age of landings. numeric vector}
+\item{wgt_L_klb}{weight at age of landings in thousand pounds (klb). numeric vector}
 
-\item{wgt_D}{weight at age of discards. numeric vector}
+\item{wgt_D_klb}{weight at age of discards in thousand pounds (klb). numeric vector}
 
-\item{wgt_F_flt}{list of weight vectors (klb by age) or matrices (by year,age) for each fleet associated with landings or discards. numeric vector or matrix}
+\item{wgt_F_flt_klb}{list of weight vectors (klb by age) or matrices (by year,age) for each fleet associated with landings or discards. numeric vector or matrix}
 
-\item{len_F_flt}{list of length vectors (mm by age) or matrices (by year,age) for each fleet associated with landings or discards. numeric vector or matrix}
+\item{len_F_flt_mm}{list of length vectors (mm by age) or matrices (by year,age) for each fleet associated with landings or discards. numeric vector or matrix}
 
 \item{reprod}{reproductive contribution at age to SSB. numeric vector}
 
@@ -93,7 +93,7 @@ run_proj(
 
 \item{SR_par}{list of parameters associated with the stock-recruit (SR) relationship. Currently only works with a Beverton-Holt SR relationship for which the parameters are: h = steepness of spawner-recruit function, R0 = virgin recruitment of spawner-recruit function, Phi0 = virgin spawners per recruit, biascorr = bias correction}
 
-\item{SR_method}{Spawner-recruit function BH = Beverton-Holt, GM = constant geometric mean of nyb$R recent years of t.series$recruits. By default, run_proj will try to use BH, but if it can't find all the parameters, it will resort to GM (and will return a message letting you know that)}
+\item{SR_method}{Spawner-recruit function BH = Beverton-Holt, GM = constant geometric mean of nyb_rcn$R recent years of t.series$recruits. By default, run_proj will try to use BH, but if it can't find all the parameters, it will resort to GM (and will return a message letting you know that)}
 
 \item{age_error}{age error matrix to use for the projection years. By default, the function uses the same age_error matrix from the base model}
 

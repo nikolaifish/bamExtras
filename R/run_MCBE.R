@@ -249,7 +249,7 @@ run_MCBE <- function(CommonName = NULL,
     M <- as.numeric(init$set_M_constant[1])
   }else{
     M <- NA
-    message("M_constant NOT found in names(init)")
+    message("M_constant not found in names(init)")
   }
   Ma <- as.numeric(init$set_M)
   steep <- as.numeric(init$set_steep[1])
@@ -263,7 +263,7 @@ run_MCBE <- function(CommonName = NULL,
       array(unlist(b),dim=c(1,length(b)),dimnames = list(NULL,names(b)))
     })
   }else{
-    message("Discard mortality rates NOT found in the base model (i.e. no names(init) beginning with set_Dmort).")
+    message("Discard mortality rates not found in the base model (i.e. no names(init) beginning with set_Dmort).")
   }
 
   # compute limits of parameter values
@@ -620,7 +620,7 @@ run_MCBE <- function(CommonName = NULL,
           message(paste("The contents of the folder",paste0("'",dir_bam_sim_fail,"'"),"have been deleted."))
         }
         if(length(list.files(dir_bam_sim))>0){
-          stop(paste("The contents of the folder",paste0("'",dir_bam_sim,"'"),"were NOT actually deleted."))
+          stop(paste("The contents of the folder",paste0("'",dir_bam_sim,"'"),"were not actually deleted."))
         }
 
       }else{

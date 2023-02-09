@@ -92,6 +92,8 @@ if(!is.null(run_bam_args)){
 
     a.series <- rdat$a.series
     t.series <- rdat$t.series
+    t.series[t.series==-99999] <- NA
+    parm.cons <- rdat$parm.cons
     sel_age <- rdat$sel.age
     sel_age_1 <- sel_age[names(sel_age)%in%c("sel.v.wgted.L","sel.v.wgted.D","sel.v.wgted.tot")]
     sel_age_2 <- sel_age[!names(sel_age)%in%names(sel_age_1)]
@@ -139,11 +141,11 @@ if(!is.null(run_bam_args)){
       is.total.L.klb <- "total.L.klb"%in%names(t.series)
       if(!is.total.L.klb){
         total.L.name <- names(t.series)[grepl("total.L",names(t.series))][1]
-        message(paste("message: total.L.klb not found in t.series. L_cur is computed from",total.L.name,"instead\n"))
+        message(paste("total.L.klb not found in t.series. L_cur is computed from",total.L.name,"instead\n"))
         total.L <- t.series[,total.L.name,drop=FALSE]
       }else{
         total.L <- t.series[,"total.L.klb",drop=FALSE]
-        message(paste("message: L_cur is computed from t.series$total.L.klb\n"))
+        message(paste("L_cur is computed from t.series$total.L.klb\n"))
 
       }
       L_cur <- mean(total.L[yrs_L_b,])
@@ -156,7 +158,7 @@ if(!is.null(run_bam_args)){
       if(!is.null(sel_age_1$sel.v.wgted.D)){
         sel_D <- sel_age_1$sel.v.wgted.D
       }else{
-        message("message: sel_age_1$sel.v.wgted.D not found. Assessment may not model discards?\n")
+        message("sel_age_1$sel.v.wgted.D not found. Assessment may not model discards?\n")
       }
     }
 
@@ -214,21 +216,21 @@ if(!is.null(run_bam_args)){
     if(is.null(wgt_L_klb)){
       wgt.wgted.L.klb_nm <- names(a.series)[grepl("^[A-Za-z]*wgt.wgted.L.klb",names(a.series))]
       if(length(wgt.wgted.L.klb_nm)>0){
-        message(paste0("message: ", wgt.wgted.L.klb_nm, " found in names(a.series) and used to set wgt_L_klb\n"))
+        message(paste0(wgt.wgted.L.klb_nm, " found in names(a.series) and used to set wgt_L_klb\n"))
         wgt_L_klb <- a.series[,wgt.wgted.L.klb_nm[1]]
 
       }else{
-        warning("message: no wgt.wgted.L.klb found in names(a.series).\n")
+        warning("no wgt.wgted.L.klb found in names(a.series).\n")
       }
     }
     if(is.null(wgt_D_klb)){
       wgt.wgted.D.klb_nm <- names(a.series)[grepl("^[A-Za-z]*wgt.wgted.D.klb",names(a.series))]
       if(length(wgt.wgted.D.klb_nm)>0){
-        message(paste0("message: ", wgt.wgted.D.klb_nm, " found in names(a.series) and used to set wgt_D_klb\n"))
+        message(paste0(wgt.wgted.D.klb_nm, " found in names(a.series) and used to set wgt_D_klb\n"))
         wgt_D_klb <- a.series[,wgt.wgted.D.klb_nm[1]]
 
       }else{
-        warning("message: no wgt.wgted.D.klb found in names(a.series). Does this assessment model discards?\n")
+        warning("no wgt.wgted.D.klb found in names(a.series). Does this assessment model discards?\n")
       }
     }
 
@@ -298,31 +300,38 @@ if(!is.null(run_bam_args)){
     names(U_ts_pr) <- names(U_ts_ob) <- U_abb
     # Find q values in rdat
     # Are the q values provided in t.series?
-    q_nm <- paste0("q.",U_abb)
-    q_nm_tsY <- q_nm[q_nm%in%names(t.series)]
-    q_nm_tsN <- q_nm[!q_nm%in%names(t.series)]
-    q_nm_tsNpcY <- paste0("log.",q_nm_tsN)[paste0("log.",q_nm_tsN)%in%names(rdat$parm.cons)]
-    q_nm_tsNpcN <- q_nm[which((!q_nm%in%names(t.series))&(!paste0("log.",q_nm)%in%names(rdat$parm.cons)))]
+    #q_nm <- paste0("q.",U_abb)
+    q_nm_tsY <- names(rdat$t.series)[grepl(paste0("^q..*(",paste(U_abb,collapse="|"),")$"),names(rdat$t.series))]#q_nm[q_nm%in%names(t.series)]
+    U_abb_tsY <- U_abb[unlist(lapply(U_abb,function(x){any(grepl(x,q_nm_tsY))}))]
+    U_abb_tsN <- U_abb[!U_abb%in%U_abb_tsY]
+    # q_nm_tsN <- q_nm[!q_nm%in%names(t.series)]
+    #q_nm_tsNpcY <- names(parm.cons)[grepl(paste0("^log.q..*(",paste(U_abb,collapse="|"),")$"),names(parm.cons))]#paste0("log.",q_nm_tsN)[paste0("log.",q_nm_tsN)%in%names(parm.cons)]
+    # q_nm_tsNpcN <- q_nm[which((!q_nm%in%names(t.series))&(!paste0("log.",q_nm)%in%names(parm.cons)))]
     if(length(q_nm_tsY)>0){
       q_mn <- t.series[paste(yb),q_nm_tsY,drop=FALSE]  # This is really a kind of mean q, since q_rate and q_DD_mult might scale it to compute U
     }
     # If any of the q values are not in t.series, look in parms.cons
-    if(length(q_nm_tsN)>0){
-      message(paste0("message: ",paste(q_nm_tsN,collapse=", "), " not found in t.series"))
+    if(length(U_abb_tsN)>0){
+      message(paste0("q values for ",paste(U_abb_tsN,collapse=", "), " index not found in t.series"))
+      q_nm_tsNpcY <- names(parm.cons)[grepl(paste0("^log.q..*(",paste(U_abb_tsN,collapse="|"),")$"),names(parm.cons))]
       if(length(q_nm_tsNpcY)>0){
-        message(paste0("message: time invariant values of",paste(q_nm_tsNpcY,collapse=", "), " found in parm.cons will be used instead."))
-        q_tsNpcY <- exp(rdat$parm.cons[q_nm_tsNpcY][8,])
-        names(q_tsNpcY) <- gsub("^log.q.","",names(q_tsNpcY))
+        message(paste0("time invariant values ",paste(q_nm_tsNpcY,collapse=", "), " found in parm.cons will be exp transformed and used instead."))
+        U_abb_tsNpcY <- gsub(paste0("^(.*)(",paste(U_abb,collapse="|"),")"),"\\2",q_nm_tsNpcY)
+        q_tsNpcY <- setNames(exp(parm.cons[q_nm_tsNpcY][8,]),U_abb_tsNpcY)
+        # names(q_tsNpcY) <- gsub("^log.q.","",names(q_tsNpcY))
         for(nm_i in names(q_tsNpcY)){
           a <- U_ts_pr[,nm_i]
           a[!is.na(a)] <- q_tsNpcY[[nm_i]]
           q_mn[,paste0("q.",nm_i)] <- a
           }
+      }else{
+        U_abb_tsNpcY <- NULL
       }
-    }
-    # If any q not in t.series or parm.cons
-    if(length(q_nm_tsNpcN)>0){
-      warning(paste0(paste(q_nm_tsNpcN,collapse=", "), " not found in t.series or parm.cons. Can't compute these cpue indices in the projections."))
+      # If any q not in t.series or parm.cons
+      U_abb_tsNpcN <- U_abb[!U_abb%in%c(U_abb_tsY,U_abb_tsNpcY)]
+      if(length(U_abb_tsNpcN)>0){
+        warning(paste0("q values for ",paste(U_abb_tsNpcN,collapse=", "), " not found in t.series or parm.cons. Can't compute these cpue indices in the projections."))
+      }
     }
 
     q_DD_mult <- t.series[paste(yb),"q.DD.mult",drop=FALSE] # density dependent function as a multiple of q (scaled a la Katsukawa and Matsuda. 2003)
@@ -369,7 +378,7 @@ if(!is.null(run_bam_args)){
         if(unit_U_nm_i%in%names(wgt_F_flt_klb)){
           unit_U_w_i <- wgt_F_flt_klb[[paste0("wgt.L.",sel_U_abb_i)]]
         }else{
-          message(paste("message: I could not find",unit_U_nm_i, "to multiply by", sel_nm_i,"when computing", paste0("N_",sel_U_abb_i,"."), paste0("U_pr_",sel_U_abb_i), "will be computed in numbers instead of weight.\n"))
+          message(paste("I could not find",unit_U_nm_i, "to multiply by", sel_nm_i,"when computing", paste0("N_",sel_U_abb_i,"."), paste0("U_pr_",sel_U_abb_i), "will be computed in numbers instead of weight.\n"))
         }
       }else{
         # ..otherwise use population weights
@@ -392,12 +401,12 @@ if(!is.null(run_bam_args)){
       # to the the appropriate objects
       SSUi <- unlist(lapply(list(U_n_i=U_n_i,U_w_i=U_w_i),function(x){sum((U_ts_pr_i-x)^2,na.rm=TRUE)}))
       if(names(SSUi)[which.min(SSUi)]=="U_n_i"){
-        message(paste("message: The",sel_U_abb_i,"index appears to be in numbers in the base years and will therefore be projected in numbers."))
+        message(paste("The",sel_U_abb_i,"index appears to be in numbers in the base years and will therefore be projected in numbers."))
         NU_i <- NUn_i
         U_a_i <- U_a_n_i
         unit_U_i <- unit_U_n_i
       }else{
-        message(paste("message: The",sel_U_abb_i,"index appears to be in weight in the base years and will therefore be projected in weight."))
+        message(paste("The",sel_U_abb_i,"index appears to be in weight in the base years and will therefore be projected in weight."))
         NU_i <- NUw_i
         U_a_i <- U_a_w_i
         unit_U_i <- unit_U_w_i
@@ -422,7 +431,7 @@ if(!is.null(run_bam_args)){
     sel_misc <- sel_age_2[!gsub("sel.[vm].","",names(sel_age_2))%in%unique(c(U_abb,gsub("sel.[LD].","",names(sel_F_flt))))]
     if(length(sel_misc)>0){
       message(paste0("selectivities found in sel_age_2 that don't clearly match a source of F or an index: ", paste(names(sel_misc),collapse=", ")))
-    }
+
     sel_misc_abb <- gsub("sel.[mv].","",names(sel_misc))
     names(sel_misc) <- paste0("sel.misc.",sel_misc_abb)
 
@@ -447,6 +456,7 @@ if(!is.null(run_bam_args)){
       unit_misc[[i]] <- unit_misc_i
     }
     names(unit_misc) <- names(Nmisc) <- sel_misc_abb
+}
 
     ## age compositions from the base years
     # observed
@@ -489,12 +499,12 @@ if(!is.null(run_bam_args)){
     ## Build age-length conversion matrix associated with each set of length comps
     ## (will often be the same for all comps)
     for(i in 1:length(lcomp_b_pr)){
-      avail_len_cv_val <- names(rdat$parm.cons)[grepl("^len.cv",names(rdat$parm.cons))]
+      avail_len_cv_val <- names(parm.cons)[grepl("^len.cv",names(parm.cons))]
       if(length(avail_len_cv_val)>1){
-        message(paste("message: found multiple len.cv.val in rdat:",paste(avail_len_cv_val,collapse=", "),"Currently only using len.cv.val"))
+        message(paste("found multiple len.cv.val in rdat:",paste(avail_len_cv_val,collapse=", "),"Currently only using len.cv.val"))
       }
 
-      len_cv_val_i <- rdat$parm.cons$len.cv.val[8]
+      len_cv_val_i <- parm.cons$len.cv.val[8]
       len_sd_i <- len*len_cv_val_i
 
       lc_i <- lcomp_b_pr[[i]]
@@ -591,13 +601,13 @@ if(!is.null(run_bam_args)){
       SR_par_null <- c("h","R0","Phi0","biascorr")[c(is.null(h),is.null(R0),is.null(Phi0),is.null(biascorr))]
       # If not all of the BH SR parameters are found, resort to using the GM method
       if(length(SR_par_null)>0){
-        message(paste("message: BH SR parameters not found:",paste(SR_par_null,collapse=", ")," Using SR_method = GM.\n"))
+        message(paste("BH SR parameters not found:",paste(SR_par_null,collapse=", ")," Using SR_method = GM.\n"))
         SR_method <- "GM"
       }else{
-        message("message: all BH SR parameters found. Using SR_method = BH.\n")
+        message("all BH SR parameters found. Using SR_method = BH.\n")
       }
     }else{
-      message(paste("message: Using SR_method = GM.\n"))
+      message(paste("Using SR_method = GM.\n"))
     }
 
     if(is.null(M)){
@@ -632,7 +642,11 @@ if(!is.null(run_bam_args)){
   Nmdyr_p <- emypa  # numbers at age at midyear
   N_p <-      emypa  # numbers at age by year
   NU_p <-    emuypa # numbers (or biomass) at age for each index of abundance, used in U_a calculations
-  Nmisc_p <- lapply(Nmisc,function(x){matrix(NA,nrow=nyp,ncol=ncol(x),dimnames=list("year"=yp,"age"=colnames(x)))})
+  if(length(sel_misc)>0){
+    Nmisc_p <- lapply(Nmisc,function(x){matrix(NA,nrow=nyp,ncol=ncol(x),dimnames=list("year"=yp,"age"=colnames(x)))})
+  }else{
+    Nmisc_p <- NULL
+  }
 
   S_p <-   emyp # spawning stock (often biomass in mt, sometimes eggs in n)
   B_p <-   emyp # population biomass (mt)
@@ -678,7 +692,11 @@ if(!is.null(run_bam_args)){
   # Z_p <-   outer(Fsum_p,M+sel_tot,FUN="*") # Z for population
   Z_p <-   t(M+t(outer(Fsum_p,sel_tot,FUN="*")))   # Z for population
   F_L_p <-       outer(Fsum_p,sel_L,  FUN="*")     # F for landings
-  F_D_p <-       outer(Fsum_p,sel_D,  FUN="*")     # F for discards
+  if(!is.null(sel_D)){
+    F_D_p <-       outer(Fsum_p,sel_D,  FUN="*")     # F for discards
+  }else{
+    F_D_p <- F_L_p*0
+  }
 
   ## sel during projection years (by py, age, fleet)
   # for any source of F (landings or discards)
@@ -702,12 +720,14 @@ if(!is.null(run_bam_args)){
 
   # sel during projection years (by py, age, fleet) for any miscellaneous data sources
   # Fill with selectivity from last year of base (endyr)
+  if(length(sel_misc)>0){
   sel_misc_p <- lapply(1:length(sel_misc),function(i){
     nm_i <- names(sel_misc)[i]
     sel_endyr_i <- sel_misc[[nm_i]][paste(endyr),]
     matrix(sel_endyr_i, nrow=nyp, ncol=nages, byrow=TRUE, dimnames = dimnames(emypa))
   })
   names(sel_misc_p) <- names(sel_misc)
+  }
 
   # F during projection years (by py, age, fleet) for any source of F (landings or discards)
   # (analogous to F_L_p or F_D_p but by fleet)
@@ -823,18 +843,20 @@ if(!is.null(run_bam_args)){
       }
 
       ## Nmisc_p
-      for(j in 1:length(Nmisc_p)){
-        nm_j <- names(Nmisc_p)[j]
-        sel_misc_ij <- sel_misc_p[[paste0("sel.misc.",nm_j)]][yp_i,]
-        unit_misc_n_ij <- local({ # Set default unit = 1 for computing numbers-at-age
-          a <- sel_misc_ij
-          a*0+1
-        })
-        unit_misc_n_ij <- unit_misc_n_ij
+      if(length(sel_misc)>0){
+        for(j in 1:length(Nmisc_p)){
+          nm_j <- names(Nmisc_p)[j]
+          sel_misc_ij <- sel_misc_p[[paste0("sel.misc.",nm_j)]][yp_i,]
+          unit_misc_n_ij <- local({ # Set default unit = 1 for computing numbers-at-age
+            a <- sel_misc_ij
+            a*0+1
+          })
+          unit_misc_n_ij <- unit_misc_n_ij
 
-        Nmisc_p_n_ij <- Nmdyr_p[yp_i,]*sel_misc_ij*unit_misc_n_ij
-        Nmisc_p_ij <- Nmisc_p_n_ij
-        Nmisc_p[[nm_j]][yp_i,] <- Nmisc_p_ij
+          Nmisc_p_n_ij <- Nmdyr_p[yp_i,]*sel_misc_ij*unit_misc_n_ij
+          Nmisc_p_ij <- Nmisc_p_n_ij
+          Nmisc_p[[nm_j]][yp_i,] <- Nmisc_p_ij
+        }
       }
 
     }  # end i
@@ -874,18 +896,20 @@ if(!is.null(run_bam_args)){
   }
 
   ## Nmisc_p
-  for(j in 1:length(Nmisc_p)){
-    nm_j <- names(Nmisc_p)[j]
-    sel_misc_ij <- sel_misc_p[[paste0("sel.misc.",nm_j)]][nyp,]
-    unit_misc_n_ij <- local({ # Set default unit = 1 for computing numbers-at-age
-      a <- sel_misc_ij
-      a*0+1
-    })
-    unit_misc_n_ij <- unit_misc_n_ij
+  if(length(sel_misc)>0){
+    for(j in 1:length(Nmisc_p)){
+      nm_j <- names(Nmisc_p)[j]
+      sel_misc_ij <- sel_misc_p[[paste0("sel.misc.",nm_j)]][nyp,]
+      unit_misc_n_ij <- local({ # Set default unit = 1 for computing numbers-at-age
+        a <- sel_misc_ij
+        a*0+1
+      })
+      unit_misc_n_ij <- unit_misc_n_ij
 
-    Nmisc_p_n_ij <- Nmdyr_p[nyp,]*sel_misc_ij*unit_misc_n_ij
-    Nmisc_p_ij <- Nmisc_p_n_ij
-    Nmisc_p[[nm_j]][nyp,] <- Nmisc_p_ij
+      Nmisc_p_n_ij <- Nmdyr_p[nyp,]*sel_misc_ij*unit_misc_n_ij
+      Nmisc_p_ij <- Nmisc_p_n_ij
+      Nmisc_p[[nm_j]][nyp,] <- Nmisc_p_ij
+    }
   }
 
   U_p <- as.data.frame(lapply(U_a_p,rowSums))
@@ -1042,10 +1066,16 @@ if(!is.null(run_bam_args)){
   })
 
   Cn.L.tot <- tapply(Cn.L[,"Ln"],Cn.L[,"year"],sum)
-  Cn.D.tot <- tapply(Cn.D[,"Dn"],Cn.D[,"year"],sum)
-
   Cw.L.tot <- tapply(Cw.L[,"Lw"],Cw.L[,"year"],sum)
+
+  if(nrow(Cn.D)>0){
+  Cn.D.tot <- tapply(Cn.D[,"Dn"],Cn.D[,"year"],sum)
   Cw.D.tot <- tapply(Cw.D[,"Dw"],Cw.D[,"year"],sum)
+  }else{
+    Cn.D.tot <- NULL
+    Cw.D.tot <- NULL
+  }
+
 
 #############################################################
 ###### Extend data inputs and build projected dat file ######
@@ -1057,14 +1087,70 @@ if(!is.null(run_bam_args)){
     init_p <- init_b <- bam$init
 
     ### Identify temporal objects in init that need to change
-    # styr
-    # init_styr <- init_b[grepl("^styr",names(init_b))]
-    # endyr
-    init_endyr <- init_b[grepl("^endyr",names(init_b))]
-    # init_obs <- init_b[grepl("^obs_(L|released|cpue|cv|lenc|agec|maturity)",names(init_b))]
-    # init_obs_maturity <- init_b[grepl("^obs_maturity",names(init_b))]
-    #
-    # # tv (time varying objects currently in Atlantic Menhaden model)
+    ## Check to see if life history inputs are time varying. If so extend them accordingly
+    # maturity
+    obs_maturity_nm <- names(init_p)[grepl("^obs_maturity",names(init_p))]
+    if(length(obs_maturity_nm)>0){
+      for(nm_i in obs_maturity_nm){
+        xi <- init_p[[nm_i]]
+        if(is.matrix(xi)){
+          message(paste0(nm_i," is a matrix"))
+          # Check if rownames are equal to model years (they should be if it is time varying)
+          if(all(dimnames(xi)[[1]]==paste(yb))){
+            message(paste0(nm_i," appears to be time varying. endyr values will be projected"))
+            xi_p <- matrix(xi[paste(endyr),],nrow=nyp,ncol=ncol(xi),dimnames=list(paste(yp),dimnames(xi)[[2]]),byrow=TRUE)
+            init_p[[nm_i]] <- rbind(xi,xi_p)
+
+            }else{
+            warning(paste0("rownames of ",nm_i," are not equal to model years"))
+          }
+        }
+
+      }
+    }
+    # proportion female or male
+    obs_prop_nm <- names(init_p)[grepl("^obs_prop_[fmFM]",names(init_p))]
+    if(length(obs_prop_nm)>0){
+      for(nm_i in obs_prop_nm){
+        xi <- init_p[[nm_i]]
+        if(is.matrix(xi)){
+          message(paste0(nm_i," is a matrix"))
+          # Check if rownames are equal to model years (they should be if it is time varying)
+          if(all(dimnames(xi)[[1]]==paste(yb))){
+            message(paste0(nm_i," appears to be time varying. endyr values will be projected"))
+            xi_p <- matrix(xi[paste(endyr),],nrow=nyp,ncol=ncol(xi),dimnames=list(paste(yp),dimnames(xi)[[2]]),byrow=TRUE)
+            init_p[[nm_i]] <- rbind(xi,xi_p)
+
+          }else{
+            warning(paste0("rownames of ",nm_i," are not equal to model years"))
+          }
+        }
+      }
+    }
+
+    # natural mortality-at-age
+    set_M_nm <- names(init_p)[grepl("^set_M",names(init_p))]
+    if(length(set_M_nm)>0){
+      for(nm_i in set_M_nm){
+        xi <- init_p[[nm_i]]
+        if(is.matrix(xi)){
+          message(paste0(nm_i," is a matrix"))
+          # Check if rownames are equal to model years (they should be if it is time varying)
+          if(all(dimnames(xi)[[1]]==paste(yb))){
+            message(paste0(nm_i," appears to be time varying. endyr values will be projected"))
+            xi_p <- matrix(xi[paste(endyr),],nrow=nyp,ncol=ncol(xi),dimnames=list(paste(yp),dimnames(xi)[[2]]),byrow=TRUE)
+            init_p[[nm_i]] <- rbind(xi,xi_p)
+
+          }else{
+            warning(paste0("rownames of ",nm_i," are not equal to model years"))
+          }
+        }
+      }
+    }
+
+    # I'll have to do some more monkeying around to deal with the tv objects in menhaden
+    # mostly because they have wierd names
+    # tv (time varying objects currently in Atlantic Menhaden model)
     # init_tv <- init_b[grepl("_tv$",names(init_b))]
 
     #### Update temporal values
@@ -1072,8 +1158,8 @@ if(!is.null(run_bam_args)){
     # Any _endyr for select values and for data sets that extend to the terminal
     # year of the assessment should be extended by nyp
     yr_nm_add_p <- local({
-      a <- c("endyr","endyr_rec_dev","endyr_rec_phase2","endyr_rec_spr","styr_regs","endyr_proj",
-                     names(init_endyr[grepl("^endyr_([DL]|cpue)",names(init_endyr))&as.numeric(init_endyr)>=endyr])
+      a <- c("endyr","endyr_rec_dev","endyr_rec_phase2","endyr_rec_spr","styr_regs","endyr_proj"
+                     #,names(init_endyr[grepl("^endyr_([DL]|cpue)",names(init_endyr))&as.numeric(init_endyr)>=endyr])
              )
       a[a%in%names(init_b)]
     })
@@ -1101,7 +1187,6 @@ if(!is.null(run_bam_args)){
       ndigi <- round(median(nchar(gsub("([0-9]*.)([0-9]*)","\\2",xbi))))
       # ndigcvi <- round(median(nchar(gsub("([0-9]*.)([0-9]*)","\\2",xcvi))))
       xpi <- round(get(names(SSxbi)[which.min(SSxbi)])[paste(yp)],ndigi)
-      # xi <- c(xbi,xpi[xpi>0]) # Only include projected values greater than zero
       # If the last year of xbi was the last year of the base model, then project it forward
       if(paste(endyr)%in%names(xbi)){
         xi <- c(xbi,xpi)
@@ -1109,6 +1194,10 @@ if(!is.null(run_bam_args)){
         xi <- xbi
       }
       init_p[[nm_i]] <- setNames(paste(xi),names(xi))
+      # reset appropriate _endyr value to make sure it agrees with the projected data (some endyr values might get projected even if the data doesn't)
+      endyr_nm_i <- paste0("endyr_L_",abb_i)
+      if(endyr_nm_i%in%names(init_p)){init_p[[endyr_nm_i]] <- tail(names(xi),1)}
+
       init_p[[paste0("obs_cv_L_",abb_i)]] <- local({
         # setNames(paste(round(C_ts_cv[,paste0("cv.L.",abb_i)],ndigcvi)),rownames(C_ts_cv))[names(xi)]
         a <- setNames(as.numeric(init_p[[nm_i]])*NA,names(init_p[[nm_i]]))
@@ -1187,53 +1276,6 @@ if(!is.null(run_bam_args)){
         xkni <- c(xkni_b,xkni_p)
       }
 
-      # Discards should always be in numbers
-      # if(paste0("Cw.D.",abb_i)%in%names(Cw)){
-      # xkwi <- rowSums(Cw[[paste0("Cw.D.",abb_i)]])*1/DMi # Convert to released (live discards)
-      # xwi <- xkwi*1000
-      # }else{ # ..but if not, compute the init object in the projection as a function init object i
-      #   NOTE That this check doesn't really work for discards because when you compute annual
-      #   discard mortality rates, the estimated values absorb any conversion between weight and numbers,
-      #   so when you try to compare estimates of released fish (live discards) based on numbers or weight,
-      #   they end up being identical
-      #   # from the base and the most similar time series from Cw
-      #   ft_wi <- gsub("^([cr]).*","\\1",abb_i) # identify fleet type i should be "c" or "r"
-      #   # sum all discard matrices in Cw with fleet_type_wi and sum by year across ages
-      #   Ckw_ts_ft_wi <- rowSums(Reduce(sum,Cw[names(Cw)[grepl(paste0("^(Cw.D.",ft_wi,").*"),names(Cw))]]))
-      #   # identify init time series with ft_wi
-      #   init_b_released_ft_wi <- local({
-      #     a <- init_b[init_obs_released_nm[grepl(paste0("^(obs_released_",ft_wi,").*"),init_obs_released_nm)]]
-      #     c <- lapply(a,function(x){
-      #       b <- setNames(rep(0,nyb),paste(yb))
-      #       b[names(x)] <- as.numeric(x)
-      #       b
-      #     }
-      #     )
-      #     as.data.frame(c)
-      #   })
-      #   # Estimate total released (i.e. live discards) during the base model years
-      #   Cw_ts_ft_wi <- Ckw_ts_ft_wi[paste(yb)]*1000
-      #   released_tot_obs_kw_wi <- rowSums(init_b_released_ft_wi)
-      #   Dm_ts_wi <- Ckw_ts_ft_wi[paste(yb)]/released_tot_obs_kw_wi # Annual Dmort
-      #   Dm_ts_wi[!is.finite(Dm_ts_wi)] <- NA
-      #   Cw_released_b_ft_wi <- 1000*Ckw_ts_ft_wi[paste(yb)]*1/Dm_ts_wi
-      #
-      #   # Compute observed released (live discards) as a proportion of total released in ft_wi
-      #   init_b_released_prop_ft_wi <- init_b_released_ft_wi/rowSums(init_b_released_ft_wi)
-      #
-      #   # Estimate xwi_b from values that can be used in projections
-      #   xwi_b <- Cw_released_b_ft_wi*init_b_released_prop_ft_wi[,nm_i]
-      #   xwi_b[!is.finite(xwi_b)] <- 0
-      #   xkwi_b <- xwi_b/1000
-      #
-      #   # Estimate xwi for projection years
-      #   Cw_released_p_ft_wi <- (Cw_ts_ft_wi[paste(yp)])*(1/mean(Dm_ts_wi[paste(tail(yb,nyb_rcn$L))]))
-      #   xwi_p <- Cw_released_p_ft_wi*mean(init_b_released_prop_ft_wi[paste(tail(yb,nyb_rcn$L)),nm_i])
-      #   xkwi_p <- xwi_p/1000
-      #   xwi <- c(xwi_b,xwi_p)
-      #   xkwi <- c(xkwi_b,xkwi_p)
-      # }
-
       xcvi <- init_b[[paste0("obs_cv_D_",abb_i)]]
       SSxbi <- unlist(lapply(list(xni=xni,xkni=xkni
                                   #xkwi=xkwi,xwi=xwi
@@ -1248,12 +1290,9 @@ if(!is.null(run_bam_args)){
         xi <- xbi
       }
       init_p[[nm_i]] <- setNames(paste(xi),names(xi))
-
-      # ## set_log_dev_vals_F_D
-      # set_log_dev_vals_F_D_nm_i <- paste0("set_log_dev_vals_F_D_",abb_i)
-      # if(set_log_dev_vals_F_D_nm_i%in%names(init_b)){
-      #   init_p[[set_log_dev_vals_F_D_nm_i]] <- setNames(rep("0.0",length(xi)),names(xi))
-      # }
+      # reset appropriate _endyr value to make sure it agrees with the projected data (some endyr values might get projected even if the data doesn't)
+      endyr_nm_i <- paste0("endyr_D_",abb_i)
+      if(endyr_nm_i%in%names(init_p)){init_p[[endyr_nm_i]] <- tail(names(xi),1)}
 
     }
 
@@ -1294,7 +1333,7 @@ if(!is.null(run_bam_args)){
       nm_yes <- nm[which(nm_abb%in%names(U))]
       nm_no <- nm[which(!nm_abb%in%names(U))]
       if(length(nm_no)>0){
-        message(paste("message: ",paste(nm_no,collapse=", "), "were found in the bam tpl but not in the rdat. They may not be included in the likelihood."))
+        message(paste(paste(nm_no,collapse=", "), "were found in the bam tpl but not in the rdat. They may not be included in the likelihood."))
       }
       # Only include names found in U (indices reported in the rdat)
       return(nm_yes)
@@ -1462,10 +1501,11 @@ if(!is.null(run_bam_args)){
 
 
   # Cn.D
+  if(nrow(Cn.D)>0){
   p2 <- p %+% Cn.D + aes(y=Dn) +
     geom_text(aes(x=endyr, label="endyr\n",y=max(Dn)), angle=90)
   print(p2)
-
+}
 
   # Cw.L
   p2 <- p %+% Cw.L + aes(y=Lw) +
@@ -1474,10 +1514,11 @@ if(!is.null(run_bam_args)){
 
 
   # Cw.D
+  if(nrow(Cw.D)>0){
   p2 <- p %+% Cw.D + aes(y=Dw) +
     geom_text(aes(x=endyr, label="endyr\n",y=max(Dw)), angle=90)
   print(p2)
-
+}
 
   # cpue
     matplot(as.numeric(rownames(U)),U,type="o",xlab="",xlim=c(styr,endyr+nyp),pch=1)

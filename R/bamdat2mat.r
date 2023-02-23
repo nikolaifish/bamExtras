@@ -513,7 +513,7 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
           message(paste("If you do not want to delete the contents of ",writeFiles_dir,", please specify a new value of writeFiles_dir and rerun bamdat2mat."))
         }
       }else{
-        dir.create(writeFiles_dir)
+        dir.create(writeFiles_dir,recursive=TRUE)
         message(paste("Created",writeFiles_dir))
       }
 

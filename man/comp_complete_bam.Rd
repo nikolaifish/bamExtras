@@ -2,13 +2,13 @@
 % Please edit documentation in R/comp_complete_bam.r
 \name{comp_complete_bam}
 \alias{comp_complete_bam}
-\title{Complete a length or age composition data frame so that all have desired dimensions. This is a modified version of comp_complete. The two functions should probably be combined with options to choose between sub-functions.}
+\title{Complete a length or age composition data frame so that all have desired dimensions}
 \usage{
 comp_complete_bam(
   D_cmp,
-  n_colnames,
-  val_rownames,
-  val_colnames,
+  n_colnames = NULL,
+  val_rownames = NULL,
+  val_colnames = NULL,
   minusGroup = FALSE,
   plusGroup = FALSE
 )

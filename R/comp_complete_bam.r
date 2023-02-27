@@ -1,5 +1,6 @@
-#' Complete a length or age composition data frame so that all have desired dimensions. This is a modified version of comp_complete. The two functions should probably be combined with options to choose between sub-functions.
+#' Complete a length or age composition data frame so that all have desired dimensions
 #'
+#' Complete a length or age composition data frame so that all have desired dimensions. This is a modified version of comp_complete. The two functions should probably be combined with options to choose between sub-functions.
 #' @param D_cmp: comp matrices, where column names are sample size columns (e.g. n.fish, n.trips) as well as bin values (e.g. length or age), and rows are unique observations (e.g. years)
 #' @param n_colnames: column names for sample size columns
 #' @param val_rownames:  row names you want to have included in each comp matrix
@@ -10,12 +11,17 @@
 #' @author Nikolai Klibansky
 #' @export
 
-comp_complete_bam <- function(D_cmp, n_colnames, val_rownames, val_colnames,
-                              minusGroup=FALSE,plusGroup=FALSE){
-  if(missing(n_colnames)){
-    n_colnames <- colnames(D_cmp)[grepl(pattern = "n.",x=colnames(D_cmp),fixed=TRUE)]
+comp_complete_bam <- function(D_cmp,
+                              n_colnames=NULL,
+                              val_rownames=NULL,
+                              val_colnames=NULL,
+                              minusGroup=FALSE,
+                              plusGroup=FALSE){
+  colnames(D_cmp) <- tolower(colnames(D_cmp))
+  if(is.null(n_colnames)){
+    n_colnames <- colnames(D_cmp)[grepl(pattern = "^n",x=colnames(D_cmp))]
   }
-  val_colnames_obs <- colnames(D_cmp)[!colnames(D_cmp)%in%n_colnames]
+  val_colnames_obs <- colnames(D_cmp)[!colnames(D_cmp)%in%c(n_colnames,"year","yr")]
 
   if(missing(val_rownames)){
     val_rownames <- paste(min(as.numeric(rownames(D_cmp))):max(as.numeric(rownames((D_cmp)))))

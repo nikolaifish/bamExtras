@@ -1,7 +1,8 @@
 #' Plot results from MCBE uncertainty analysis
 #'
 #' @param sim_summary Output object from summarize_MCBE
-#' @param bamout
+#' @param dir_figs name of directory that will be created to store figures
+#' @param filter_info list of ranges used to filter out MCBE results
 #' @keywords bam MCBE stock assessment fisheries
 #' @export
 #' @examples
@@ -16,7 +17,6 @@
 
 
 plot_MCBE <- function(sim_summary,
-                      base_out=NULL,
                       dir_figs = "figs",
                       filter_info = list(gradient.max       = c(0,0.01),
                                         Fmsy           = c(0,5),

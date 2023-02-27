@@ -6,7 +6,6 @@
 \usage{
 plot_MCBE(
   sim_summary,
-  base_out = NULL,
   dir_figs = "figs",
   filter_info = list(gradient.max = c(0, 0.01), Fmsy = c(0, 5), Fend.Fmsy.mean = c(0, 5),
     R.sigma.par = c(0.2, 1), R0_prob = c(0.005, 0.995))
@@ -14,6 +13,10 @@ plot_MCBE(
 }
 \arguments{
 \item{sim_summary}{Output object from summarize_MCBE}
+
+\item{dir_figs}{name of directory that will be created to store figures}
+
+\item{filter_info}{list of ranges used to filter out MCBE results}
 }
 \description{
 Plot results from MCBE uncertainty analysis

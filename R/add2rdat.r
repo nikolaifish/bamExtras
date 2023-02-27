@@ -9,7 +9,6 @@
 #'  that begin with "F." The default value of \code{F_names_exclude} is a character vector of column names found in some BAM rdat files that
 #'  that begin with "F." but are not fleet-specific F time series.
 #' to a single fleet.
-#' @details
 #'
 #' @keywords bam stock assessment fisheries MSEtool
 #' @author Nikolai Klibansky

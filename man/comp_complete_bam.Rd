@@ -5,7 +5,7 @@
 \title{Complete a length or age composition data frame so that all have desired dimensions}
 \usage{
 comp_complete_bam(
-  D_cmp,
+  comp_mat,
   n_colnames = NULL,
   val_rownames = NULL,
   val_colnames = NULL,
@@ -14,7 +14,7 @@ comp_complete_bam(
 )
 }
 \arguments{
-\item{D_cmp:}{comp matrices, where column names are sample size columns (e.g. n.fish, n.trips) as well as bin values (e.g. length or age), and rows are unique observations (e.g. years)}
+\item{comp_mat:}{comp matrices, where column names are sample size columns (e.g. n.fish, n.trips) as well as bin values (e.g. length or age), and rows are unique observations (e.g. years)}
 
 \item{n_colnames:}{column names for sample size columns}
 
@@ -22,9 +22,9 @@ comp_complete_bam(
 
 \item{val_colnames:}{column names you want to have included in each comp matrix (excluding sample size columns)}
 
-\item{minusGroup:}{logical. When truncating bin range, should valus below the smallest bin be summed into the smallest bin? The default is to simply truncate.}
+\item{minusGroup:}{logical. When truncating bin range, should values below the smallest bin be summed into the smallest bin? The default is to simply truncate.}
 
-\item{plusGroup:}{logical. When truncating bin range, should valus above the largest bin be summed into the largest bin? The default is to simply truncate.}
+\item{plusGroup:}{logical. When truncating bin range, should values above the largest bin be summed into the largest bin? The default is to simply truncate.}
 }
 \description{
 Complete a length or age composition data frame so that all have desired dimensions. This is a modified version of comp_complete. The two functions should probably be combined with options to choose between sub-functions.

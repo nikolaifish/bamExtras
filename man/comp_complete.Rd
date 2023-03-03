@@ -10,8 +10,8 @@ comp_complete(
   xBinByDataframe = FALSE,
   n_tag = c(".n", ".nfish"),
   n_colname_new = c("ntrip", "nfish"),
-  val_rownames = NULL,
-  val_colnames = NULL,
+  rownames_num = NULL,
+  colnames_num = NULL,
   output_type = "prop",
   minusGroup = FALSE,
   plusGroup = FALSE,
@@ -29,9 +29,9 @@ comp_complete(
 
 \item{n_colname_new}{column name values to associate with n_tag in output}
 
-\item{val_rownames}{Names of data rows for each comp matrix (e.g. years) desired in output.}
+\item{rownames_num}{Names of data rows for each comp matrix (e.g. years) desired in output.}
 
-\item{val_colnames}{Names of data columns for each comp matrix (e.g. age bins, length bins) desired in output.}
+\item{colnames_num}{Names of data columns for each comp matrix (e.g. age bins, length bins) desired in output.}
 
 \item{output_type}{Type of comps to output: "input"= format used in spreadsheets when submitting data, including ntrip and and nfish columns, "prop" = matrix of proportions, "nfish" = matrix of numbers of fish}
 

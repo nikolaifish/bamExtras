@@ -2,8 +2,8 @@
 #'
 #' @param comp_list list of composition matrices, where column names are bin values (e.g. length or age), and rows are unique observations (e.g. years)
 #' @param comp_data_n data frame with annual sample sizes associated with each comp matrix
-#' @param val_rownames Names of data rows for each comp matrix (e.g. years) desired in output.
-#' @param val_colnames Names of data columns for each comp matrix (e.g. age bins, length bins) desired in output.
+#' @param rownames_num Names of data rows for each comp matrix (e.g. years) desired in output.
+#' @param colnames_num Names of data columns for each comp matrix (e.g. age bins, length bins) desired in output.
 #' @param xBinByDataframe If true, x values are determined separately for each data frame (e.g. length comps may be binned separately by fleet)
 #' @param n_tag tag(s) added to end of columns in comp_data_n which indicate sample sizes (e.g. ".n", ".nfish")
 #' @param n_colname_new column name values to associate with n_tag in output
@@ -36,37 +36,47 @@
 comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
                           n_tag= c(".n",".nfish"),
                           n_colname_new= c("ntrip","nfish"),
-                          val_rownames=NULL,
-                          val_colnames=NULL,
+                          rownames_num=NULL,
+                          colnames_num=NULL,
                           output_type="prop",
                           minusGroup=FALSE,
                           plusGroup=FALSE,
                           valsToNA=-99999){
-  rownames_all <- sort(unique(unlist(lapply(comp_list,rownames))))
-  colnames_all <- paste(sort(as.numeric(unique(unlist(lapply(comp_list,colnames))))))
 
-  if(is.null(val_rownames)){
-    val_rownames <- paste(min(as.numeric(rownames_all)):max(as.numeric(rownames_all)))
+  if(is.null(rownames_num)){
+    rownames_all <- sort(unique(unlist(lapply(comp_list,rownames))))
+    rownames_num <- paste(min(as.numeric(rownames_all)):max(as.numeric(rownames_all)))
   }
 
-  if(is.null(val_colnames)){
-    val_colnames <- colnames_all
+  colnames_all <- paste(sort(unique(unlist(lapply(comp_list,colnames)))))
+  colnames_dig <- colnames_all[grepl("[0-9.]+",colnames_all)] # Column names which include only digits
+  colnames_notdig <- colnames_all[!colnames_all%in%colnames_dig]
+  colnames_n <- colnames_all[grepl("^n",colnames_all)] # Column names that start with n
+
+  if(is.null(colnames_num)){
+    # colnames_all <- paste(sort(as.numeric(unique(unlist(lapply(comp_list,colnames))))))
+    if(length(colnames_notdig)!=0){
+      message(paste(paste(colnames_notdig,collapse=", "),"columns found in comp_list"))
+    }
+    colnames_num <- colnames_dig
   }
 
   for (compName_i in names(comp_list)){
     M_i <- comp_list[[compName_i]]
+    Mn_i <- M_i[,grepl("^n",names(M_i))]
+    M_i <- M_i[,grepl("[0-9.]+",colnames(M_i))] # remove non-numeric columns (e.g. nfish)
 
     colnames_obs_i <- colnames(M_i)
 
     if(xBinByDataframe){
-      val_colnames_i <- colnames(M_i)
+      colnames_num_i <- colnames(M_i)
     }else{
-      val_colnames_i <- val_colnames
+      colnames_num_i <- colnames_num
     }
 
     # Identify the specific row and column names missing comp matrix i
-    row_missing <- val_rownames[!val_rownames%in%rownames(M_i)]
-    col_missing <- val_colnames_i[!val_colnames_i%in%colnames(M_i)]
+    row_missing <- rownames_num[!rownames_num%in%rownames(M_i)]
+    col_missing <- colnames_num_i[!as.numeric(colnames_num_i)%in%as.numeric(colnames(M_i))]
 
     ## Add missing rows
     # Create empty matrix of missing rows
@@ -83,19 +93,19 @@ comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
     M_i3 <- local({M_i3 %>% colnames %>% as.numeric %>% order -> o; M_i3[,o]}) # Sort columns of M_i3
 
     # Add minus group if specified, and if data are going to be truncated
-    # (by default, function simply excludes values below minimum val_colnames_i)
-    if(minusGroup&min(as.numeric(val_colnames_i))>min(as.numeric(colnames_obs_i))){
-      M_i3_minus <- M_i3[,as.numeric(colnames_obs_i) <= min(as.numeric(val_colnames_i)),drop=FALSE]
-      M_i3[,paste(min(as.numeric(val_colnames_i)))] <-  rowSums(M_i3_minus) # Add plus group values
-      M_i3[which(!is.na(rowSums(M_i3))),which(as.numeric(colnames_obs_i) < min(as.numeric(val_colnames_i)))] <- 0 # Replace values in bins above with zeros
+    # (by default, function simply excludes values below minimum colnames_num_i)
+    if(minusGroup&min(as.numeric(colnames_num_i))>min(as.numeric(colnames_obs_i))){
+      M_i3_minus <- M_i3[,as.numeric(colnames_obs_i) <= min(as.numeric(colnames_num_i)),drop=FALSE]
+      M_i3[,paste(min(as.numeric(colnames_num_i)))] <-  rowSums(M_i3_minus) # Add plus group values
+      M_i3[which(!is.na(rowSums(M_i3))),which(as.numeric(colnames_obs_i) < min(as.numeric(colnames_num_i)))] <- 0 # Replace values in bins above with zeros
     }
 
     # Add plus group if specified, and if data are going to be truncated
-    # (by default, function simply excludes values above maximum val_colnames_i)
-    if(plusGroup&max(as.numeric(val_colnames_i))<max(as.numeric(colnames_obs_i))){
-      M_i3_plus <- M_i3[,as.numeric(colnames_obs_i) >= max(as.numeric(val_colnames_i)),drop=FALSE]
-      M_i3[,paste(max(as.numeric(val_colnames_i)))] <-  rowSums(M_i3_plus) # Add plus group values
-      M_i3[which(!is.na(rowSums(M_i3))),which(as.numeric(colnames_obs_i) > max(as.numeric(val_colnames_i)))] <- 0 # Replace values in bins above with zeros
+    # (by default, function simply excludes values above maximum colnames_num_i)
+    if(plusGroup&max(as.numeric(colnames_num_i))<max(as.numeric(colnames_obs_i))){
+      M_i3_plus <- M_i3[,as.numeric(colnames_obs_i) >= max(as.numeric(colnames_num_i)),drop=FALSE]
+      M_i3[,paste(max(as.numeric(colnames_num_i)))] <-  rowSums(M_i3_plus) # Add plus group values
+      M_i3[which(!is.na(rowSums(M_i3))),which(as.numeric(colnames_obs_i) > max(as.numeric(colnames_num_i)))] <- 0 # Replace values in bins above with zeros
     }
 
     # Replace NA in rows (years) with data with zeros
@@ -107,17 +117,18 @@ comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
         }
       }))
 
-    M_out_i <- matrix(NA,nrow=length(val_rownames),ncol=length(val_colnames_i),dimnames=list(val_rownames,val_colnames_i))
+    M_out_i <- matrix(NA,nrow=length(rownames_num),ncol=length(colnames_num_i),dimnames=list(rownames_num,colnames_num_i))
 
     # Add observed values to the appropriate cells in the output matrix
     for(obs_rowName_j in rownames(M_i3)[which(rownames(M_i3)%in%rownames(M_out_i))]){
       obs_colname_i <- colnames(M_i3)[which(colnames(M_i3)%in%colnames(M_out_i))]
       #M_out_i[obs_rowName_j,] <- rep(0,ncol(M_out_i)) # First fill with zeros
-      # Linear interpolation to match val_colnames_i (won't change anything if existing column names are desired)
+      # Linear interpolation to match colnames_num_i (won't change anything if existing column names are desired)
       x_ij <- M_i3[obs_rowName_j,]
-      y_ij <- rep(NA,length(val_colnames_i))
+      y_ij <- rep(NA,length(colnames_num_i))
       if(any(!is.na(x_ij))){
-      y_ij <- approx(as.numeric(names(x_ij)),x_ij,xout = as.numeric(val_colnames_i))$y
+        #message(paste("NA values identified when rebinning",compName_i,". NA values filled with linear interpolation using stats::approx."))
+      y_ij <- stats::approx(as.numeric(names(x_ij)),x_ij,xout = as.numeric(colnames_num_i))$y
       }
       M_out_i[obs_rowName_j,] <- y_ij # Now fill with observed data
     }
@@ -129,6 +140,7 @@ comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
       comp_i <- M_out_i
     }else{
       # Add sample size column
+      if(ncol(Mn_i)==0){
       n_tag_cols <- matrix(NA,ncol=length(n_colname_new),nrow=nrow(M_out_i),dimnames=list(rownames(M_out_i),n_colname_new))
       comp_i <- as.data.frame(cbind(n_tag_cols,M_out_i))
       RootComp_i <- compName_i
@@ -136,6 +148,9 @@ comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
       Comp_n_i <- comp_data_n[,paste(RootComp_i,n_tag,sep=""),drop=FALSE]
       rows_Comp_n_i <- match(rownames(comp_i),rownames(Comp_n_i))
       comp_i[,n_colname_new] <- Comp_n_i[rows_Comp_n_i,paste(RootComp_i,n_tag,sep="")]
+      }else{
+        comp_i <- cbind(Mn_i[rownames(M_out_i),],M_out_i)
+      }
     }
 
     if(output_type=="input"){

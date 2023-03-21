@@ -57,6 +57,7 @@ bam2r <- function(CommonName=NULL,init=NULL,
 
 ){
   fcn_args <- as.list(environment()) # Gets function arguments
+  env_tmp <- new.env() # Create new empty environment
 
   if(!is.null(CommonName)){
     dat <- get(paste0("dat_",CommonName))
@@ -205,13 +206,13 @@ bam2r <- function(CommonName=NULL,init=NULL,
           } else if(lim2==3){
             out <- object_labels$bounded_vector
           }
-        } else if (grepl("^nyr",lim2)&exists(gsub("nyr","yrs",lim2))){
-        out <- get(gsub("nyr","yrs",lim2))
-          } else if (grepl("^nages",lim2)&exists(paste0("agebins",gsub("nages","",lim2)))){
-            out <- get(paste0("agebins",gsub("nages","",lim2)))[lim1:get(lim2)]
+        } else if (grepl("^nyr",lim2)&exists(gsub("nyr","yrs",lim2),envir=env_tmp,inherits=FALSE)){
+        out <- get(gsub("nyr","yrs",lim2), envir=env_tmp)
+          } else if (grepl("^nages",lim2)&exists(paste0("agebins",gsub("nages","",lim2)),envir=env_tmp,inherits=FALSE)){
+            out <- get(paste0("agebins",gsub("nages","",lim2)),envir=env_tmp,inherits=FALSE)[lim1:get(lim2,envir=env_tmp,inherits=FALSE)]
             } else {
-          if(is.character(lim1)){lim1 <- get(lim1)}
-          if(is.character(lim2)){lim2 <- get(lim2)}
+          if(is.character(lim1)){lim1 <- get(lim1,envir=env_tmp,inherits=FALSE)}
+          if(is.character(lim2)){lim2 <- get(lim2,envir=env_tmp,inherits=FALSE)}
         out <- lim1:lim2
         }
         return(out)
@@ -240,16 +241,16 @@ bam2r <- function(CommonName=NULL,init=NULL,
       matrix_rownames <- local({
         rowlim1 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][1]
         rowlim1 <- type.convert(rowlim1,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
-        if(is.character(rowlim1)){rowlim1 <- get(rowlim1)}
+        if(is.character(rowlim1)){rowlim1 <- get(rowlim1,envir=env_tmp,inherits=FALSE)}
 
         rowlim2 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][2]
         rowlim2 <- type.convert(rowlim2,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
         if(grepl("^nyr",rowlim2)){
-          out <-  get(gsub("nyr","yrs",rowlim2))
-        } else if (grepl("^nages",rowlim2)&exists(paste0("agebins",gsub("nages","",rowlim2)))){
-          out <- get(paste0("agebins",gsub("nages","",rowlim2)))[rowlim1:get(rowlim2)]
+          out <-  get(gsub("nyr","yrs",rowlim2),envir=env_tmp,inherits=FALSE)
+        } else if (grepl("^nages",rowlim2)&exists(paste0("agebins",gsub("nages","",rowlim2)),envir=env_tmp,inherits=FALSE)){
+          out <- get(paste0("agebins",gsub("nages","",rowlim2)),envir=env_tmp,inherits=FALSE)[rowlim1:get(rowlim2,envir=env_tmp,inherits=FALSE)]
         } else if(is.character(rowlim2)){
-          rowlim2 <- get(rowlim2)
+          rowlim2 <- get(rowlim2,envir=env_tmp,inherits=FALSE)
           out <- rowlim1:rowlim2
           }
       return(out)
@@ -260,16 +261,16 @@ bam2r <- function(CommonName=NULL,init=NULL,
       matrix_colnames <- local({
         collim1 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][3]
         collim1 <- type.convert(collim1,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
-        if(is.character(collim1)){collim1 <- get(collim1)}
+        if(is.character(collim1)){collim1 <- get(collim1,envir=env_tmp,inherits=FALSE)}
 
         collim2 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][4]
         collim2 <- type.convert(collim2,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
         if(grepl("^nlenbins",collim2)){
-          out <- get(gsub("^nlenbins","lenbins",collim2))
-        } else if (grepl("^nages",collim2)&exists(paste0("agebins",gsub("nages","",collim2)))){
-          out <- get(paste0("agebins",gsub("nages","",collim2)))[collim1:get(collim2)]
+          out <- get(gsub("^nlenbins","lenbins",collim2),envir=env_tmp,inherits=FALSE)
+        } else if (grepl("^nages",collim2)&exists(paste0("agebins",gsub("nages","",collim2)),envir=env_tmp,inherits=FALSE)){
+          out <- get(paste0("agebins",gsub("nages","",collim2)),envir=env_tmp,inherits=FALSE)[collim1:get(collim2,envir=env_tmp,inherits=FALSE)]
         } else if(is.character(collim2)&!grepl("^nlenbins",collim2)){
-          collim2 <- get(collim2)
+          collim2 <- get(collim2,envir=env_tmp,inherits=FALSE)
           out <- collim1:collim2
         }
         return(out)
@@ -294,7 +295,7 @@ bam2r <- function(CommonName=NULL,init=NULL,
     }
     varValue_i <- trimws(varValue_i) # Remove extra whitespace from values
 
-    assign(name_i,varValue_i) # Assign object to current environment (important for defining some later objects)
+    assign(name_i,varValue_i, envir = env_tmp) # Assign object to current environment (important for defining some later objects)
     init[[name_i]] <- varValue_i # Assign value to init
   }
 

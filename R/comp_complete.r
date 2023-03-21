@@ -2,11 +2,13 @@
 #'
 #' @param comp_list list of composition matrices, where column names are bin values (e.g. length or age), and rows are unique observations (e.g. years)
 #' @param comp_data_n data frame with annual sample sizes associated with each comp matrix
-#' @param rownames_num Names of data rows for each comp matrix (e.g. years) desired in output.
-#' @param colnames_num Names of data columns for each comp matrix (e.g. age bins, length bins) desired in output.
-#' @param xBinByDataframe If true, x values are determined separately for each data frame (e.g. length comps may be binned separately by fleet)
+#' @param xbin_by_df If true, x values are determined separately for each data frame (e.g. length comps may be binned separately by fleet)
 #' @param n_tag tag(s) added to end of columns in comp_data_n which indicate sample sizes (e.g. ".n", ".nfish")
 #' @param n_colname_new column name values to associate with n_tag in output
+#' @param rownames_num Names of data rows for each comp matrix (e.g. years) desired in output.
+#' @param colnames_num Names of data columns for each comp matrix (e.g. age bins, length bins) desired in output.
+#' @param minus_group logical. Should a minus group be computed? If TRUE, data for groups <=min(colnames_num) will be summed into min(colnames_num). If FALSE data <min(colnames_num) will simply be truncated.
+#' @param plus_group logical. Should a plus group be computed? If TRUE, data for groups >=max(colnames_num) will be summed into max(colnames_num). If FALSE data >max(colnames_num) will simply be truncated.
 #' @param output_type Type of comps to output: "input"= format used in spreadsheets when submitting data, including ntrip and and nfish columns, "prop" = matrix of proportions, "nfish" = matrix of numbers of fish
 #' @param valsToNA Values that should be replaced with NA (e.g. -99999)
 #' @keywords bam stock assessment fisheries
@@ -32,15 +34,16 @@
 #' comp_complete(cma,cbind(cman,cmanfish),output_type="input")
 #' }
 #'
-
-comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
+comp_complete <- function(comp_list,
+                          comp_data_n,
+                          xbin_by_df=FALSE,
                           n_tag= c(".n",".nfish"),
                           n_colname_new= c("ntrip","nfish"),
                           rownames_num=NULL,
                           colnames_num=NULL,
                           output_type="prop",
-                          minusGroup=FALSE,
-                          plusGroup=FALSE,
+                          minus_group=FALSE,
+                          plus_group=FALSE,
                           valsToNA=-99999){
 
   if(is.null(rownames_num)){
@@ -48,13 +51,12 @@ comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
     rownames_num <- paste(min(as.numeric(rownames_all)):max(as.numeric(rownames_all)))
   }
 
-  colnames_all <- paste(sort(unique(unlist(lapply(comp_list,colnames)))))
+  colnames_all <- paste(sort(as.numeric(unique(unlist(lapply(comp_list,colnames))))))
   colnames_dig <- colnames_all[grepl("[0-9.]+",colnames_all)] # Column names which include only digits
   colnames_notdig <- colnames_all[!colnames_all%in%colnames_dig]
   colnames_n <- colnames_all[grepl("^n",colnames_all)] # Column names that start with n
 
   if(is.null(colnames_num)){
-    # colnames_all <- paste(sort(as.numeric(unique(unlist(lapply(comp_list,colnames))))))
     if(length(colnames_notdig)!=0){
       message(paste(paste(colnames_notdig,collapse=", "),"columns found in comp_list"))
     }
@@ -68,7 +70,7 @@ comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
 
     colnames_obs_i <- colnames(M_i)
 
-    if(xBinByDataframe){
+    if(xbin_by_df){
       colnames_num_i <- colnames(M_i)
     }else{
       colnames_num_i <- colnames_num
@@ -94,7 +96,7 @@ comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
 
     # Add minus group if specified, and if data are going to be truncated
     # (by default, function simply excludes values below minimum colnames_num_i)
-    if(minusGroup&min(as.numeric(colnames_num_i))>min(as.numeric(colnames_obs_i))){
+    if(minus_group&min(as.numeric(colnames_num_i))>min(as.numeric(colnames_obs_i))){
       M_i3_minus <- M_i3[,as.numeric(colnames_obs_i) <= min(as.numeric(colnames_num_i)),drop=FALSE]
       M_i3[,paste(min(as.numeric(colnames_num_i)))] <-  rowSums(M_i3_minus) # Add plus group values
       M_i3[which(!is.na(rowSums(M_i3))),which(as.numeric(colnames_obs_i) < min(as.numeric(colnames_num_i)))] <- 0 # Replace values in bins above with zeros
@@ -102,7 +104,7 @@ comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
 
     # Add plus group if specified, and if data are going to be truncated
     # (by default, function simply excludes values above maximum colnames_num_i)
-    if(plusGroup&max(as.numeric(colnames_num_i))<max(as.numeric(colnames_obs_i))){
+    if(plus_group&max(as.numeric(colnames_num_i))<max(as.numeric(colnames_obs_i))){
       M_i3_plus <- M_i3[,as.numeric(colnames_obs_i) >= max(as.numeric(colnames_num_i)),drop=FALSE]
       M_i3[,paste(max(as.numeric(colnames_num_i)))] <-  rowSums(M_i3_plus) # Add plus group values
       M_i3[which(!is.na(rowSums(M_i3))),which(as.numeric(colnames_obs_i) > max(as.numeric(colnames_num_i)))] <- 0 # Replace values in bins above with zeros
@@ -140,7 +142,7 @@ comp_complete <- function(comp_list,comp_data_n,xBinByDataframe=FALSE,
       comp_i <- M_out_i
     }else{
       # Add sample size column
-      if(ncol(Mn_i)==0){
+      if(ncol(Mn_i)==0){ # But only if there are no column names that start with 'n'
       n_tag_cols <- matrix(NA,ncol=length(n_colname_new),nrow=nrow(M_out_i),dimnames=list(rownames(M_out_i),n_colname_new))
       comp_i <- as.data.frame(cbind(n_tag_cols,M_out_i))
       RootComp_i <- compName_i

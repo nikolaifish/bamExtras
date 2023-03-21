@@ -7,14 +7,14 @@
 comp_complete(
   comp_list,
   comp_data_n,
-  xBinByDataframe = FALSE,
+  xbin_by_df = FALSE,
   n_tag = c(".n", ".nfish"),
   n_colname_new = c("ntrip", "nfish"),
   rownames_num = NULL,
   colnames_num = NULL,
   output_type = "prop",
-  minusGroup = FALSE,
-  plusGroup = FALSE,
+  minus_group = FALSE,
+  plus_group = FALSE,
   valsToNA = -99999
 )
 }
@@ -23,7 +23,7 @@ comp_complete(
 
 \item{comp_data_n}{data frame with annual sample sizes associated with each comp matrix}
 
-\item{xBinByDataframe}{If true, x values are determined separately for each data frame (e.g. length comps may be binned separately by fleet)}
+\item{xbin_by_df}{If true, x values are determined separately for each data frame (e.g. length comps may be binned separately by fleet)}
 
 \item{n_tag}{tag(s) added to end of columns in comp_data_n which indicate sample sizes (e.g. ".n", ".nfish")}
 
@@ -34,6 +34,10 @@ comp_complete(
 \item{colnames_num}{Names of data columns for each comp matrix (e.g. age bins, length bins) desired in output.}
 
 \item{output_type}{Type of comps to output: "input"= format used in spreadsheets when submitting data, including ntrip and and nfish columns, "prop" = matrix of proportions, "nfish" = matrix of numbers of fish}
+
+\item{minus_group}{logical. Should a minus group be computed? If TRUE, data for groups <=min(colnames_num) will be summed into min(colnames_num). If FALSE data <min(colnames_num) will simply be truncated.}
+
+\item{plus_group}{logical. Should a plus group be computed? If TRUE, data for groups >=max(colnames_num) will be summed into max(colnames_num). If FALSE data >max(colnames_num) will simply be truncated.}
 
 \item{valsToNA}{Values that should be replaced with NA (e.g. -99999)}
 }

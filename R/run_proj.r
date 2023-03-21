@@ -31,12 +31,24 @@
 #' @param SR_method Spawner-recruit function BH = Beverton-Holt, GM = constant geometric mean of nyb_rcn$R recent years of t.series$recruits. By default, run_proj will try to use BH, but if it can't find all the parameters, it will resort to GM (and will return a message letting you know that)
 #' @param age_error age error matrix to use for the projection years. By default, the function uses the same age_error matrix from the base model
 #' @param project_bam logical. After the projection is run, should the function build a new set of projected bam files?
+#' @param interim_adjust_args list of arguments to pass to interim adjustment function. See Details section below.
 #' @param plot logical. Produce plots of extended base model including projected data
+#' @details \code{interim_adjust_args}:
+#' \itemize{
+#' \item{U_nm}{  The fleet abbreviation for an index of abundance that you want to use to adjust F (e.g. sTV, sCT).}
+#' }
 #' @keywords bam stock assessment fisheries population dynamics
 #' @author Kyle Shertzer, Erik Williams, and Nikolai Klibansky
 #' @export
 #' @examples
 #' \dontrun{
+#' proj_VeSn <- run_proj(rdat_VermilionSnapper)
+#' proj_VeSn <- run_proj(rdat_VermilionSnapper, project_bam=TRUE,
+#' run_bam_args = list(
+#' dat_obj=dat_VermilionSnapper,
+#' tpl_obj=tpl_VermilionSnapper,
+#' cxx_obj=cxx_VermilionSnapper
+#' ))
 #' }
 
 run_proj <- function(rdat = NULL,
@@ -69,12 +81,25 @@ run_proj <- function(rdat = NULL,
                      SR_method = "BH",
                      age_error = NULL,
                      project_bam = FALSE,
+                     interim_adjust_args = list(U_nm = NULL, type = "Uprop"),
                      plot = FALSE
 
 ) {
 library(ggplot2)
 library(tidyr)
 mt2klb <- 2.20462              # conversion of metric tons to 1000 lb
+
+# Compute adjustment to target fishing mortality (F_target)
+# An internal function for now
+F_adjust <- function(data, U_nm, yr_ref, yr,
+                     type = "Uprop"){
+  Ux <- data[,U_nm,drop=FALSE]
+  Uyr <- Ux[paste(yr),]
+  Uref <- Ux[paste(yr_ref),]
+  switch(type,
+         Uprop = Uyr/Uref
+  )
+}
 
 if(!is.null(run_bam_args)){
   if(!"return_obj"%in%names(run_bam_args)){
@@ -611,7 +636,7 @@ if(!is.null(run_bam_args)){
     }
 
     if(is.null(M)){
-      M <- a.series$M
+      M <- setNames(a.series$M,rownames(a.series))
     }
 
   # } # end if(!is.null(rdat))
@@ -637,7 +662,9 @@ if(!is.null(run_bam_args)){
       a
     })
 
-  Z_p <-      emypa  # total mortality by age
+  Z_p   <-      emypa  # total mortality by age
+  F_L_p <-      emypa  # fishing mortality of landings by age
+  F_D_p <-      emypa  # fishing mortality of discards by age
   Nspwn_p <- emypa  # numbers at age at spawn_time
   Nmdyr_p <- emypa  # numbers at age at midyear
   N_p <-      emypa  # numbers at age by year
@@ -648,10 +675,10 @@ if(!is.null(run_bam_args)){
     Nmisc_p <- NULL
   }
 
-  S_p <-   emyp # spawning stock (often biomass in mt, sometimes eggs in n)
-  B_p <-   emyp # population biomass (mt)
-  R_p <-   emyp # recruits (n)
-  Fsum_p <-   emyp # sum F across all fleets (/yr)
+  S_p <-    emyp # spawning stock (often biomass in mt, sometimes eggs in n)
+  B_p <-    emyp # population biomass (mt)
+  R_p <-    emyp # recruits (n)
+  Fsum_p <- emyp # sum F across all fleets (/yr)
 
   Ln_p <- emyp	# total landings (n)
   Lw_p <- emyp	# total landings (weight)
@@ -685,18 +712,19 @@ if(!is.null(run_bam_args)){
   S_p[1] <- S_styr_proj
   B_p[1] <- sum(N_p[1,]*wgt_mt)
 
-  Fsum_p[1:nyp_cur] <- F_cur
-  Fsum_p[(nyp_cur+1):nyp] <- F_proj
-
-  # Compute total Z and F at-age for each year of the projection
-  # Z_p <-   outer(Fsum_p,M+sel_tot,FUN="*") # Z for population
-  Z_p <-   t(M+t(outer(Fsum_p,sel_tot,FUN="*")))   # Z for population
-  F_L_p <-       outer(Fsum_p,sel_L,  FUN="*")     # F for landings
-  if(!is.null(sel_D)){
-    F_D_p <-       outer(Fsum_p,sel_D,  FUN="*")     # F for discards
-  }else{
-    F_D_p <- F_L_p*0
-  }
+  # Do this within the projection loop instead
+  # Fsum_p[1:nyp_cur] <- F_cur
+  # Fsum_p[(nyp_cur+1):nyp] <- F_proj
+  #
+  # # Compute total Z and F at-age for each year of the projection
+  # # Z_p <-   outer(Fsum_p,M+sel_tot,FUN="*") # Z for population
+  # Z_p <-   t(M+t(outer(Fsum_p,sel_tot,FUN="*")))   # Z for population
+  # F_L_p <-       outer(Fsum_p,sel_L,  FUN="*")     # F for landings
+  # if(!is.null(sel_D)){
+  #   F_D_p <-       outer(Fsum_p,sel_D,  FUN="*")     # F for discards
+  # }else{
+  #   F_D_p <- F_L_p*0
+  # }
 
   ## sel during projection years (by py, age, fleet)
   # for any source of F (landings or discards)
@@ -729,35 +757,36 @@ if(!is.null(run_bam_args)){
   names(sel_misc_p) <- names(sel_misc)
   }
 
-  # F during projection years (by py, age, fleet) for any source of F (landings or discards)
-  # (analogous to F_L_p or F_D_p but by fleet)
-  # Note that:
-  #      F.L.tmp <- Reduce("+",F_flt_p[grepl("^F.L.",names(F_flt_p))])
-  #      F.L.tmp == F_L_p
-  F_flt_p <- lapply(1:length(F_flt_p),function(i){
-    sel_F_flt_p[[i]]*Fsum_p
-  })
-  names(F_flt_p) <- names(Fsum_flt)
-
-  # wgt during projection years (by py, age, fleet) for any source of F (landings or discards)
-  # Fill with fish weights from last year of base (endyr)
-  wgt_F_flt_p <- lapply(1:length(F_flt_p),function(i){
-    nm_i <- names(F_flt_p)[i]
-    wgt_i <- wgt_F_flt_klb[[gsub("^F.","wgt.",nm_i)]]
-    wgt_endyr_i <- wgt_i[paste(endyr),]
-    matrix(wgt_endyr_i, nrow=nyp, ncol=nages, byrow=TRUE, dimnames = dimnames(emypa))
-  })
-  names(wgt_F_flt_p) <- gsub("^F.","wgt.",names(F_flt_p))
-
-  # len during projection years (by py, age, fleet) for any source of F (landings or discards)
-  # Fill with fish weights from last year of base (endyr)
-  len_F_flt_p <- lapply(1:length(F_flt_p),function(i){
-    nm_i <- names(F_flt_p)[i]
-    len_i <- len_F_flt_mm[[gsub("^F.","len.",nm_i)]]
-    len_endyr_i <- len_i[paste(endyr),]
-    matrix(len_endyr_i, nrow=nyp, ncol=nages, byrow=TRUE, dimnames = dimnames(emypa))
-  })
-  names(len_F_flt_p) <- gsub("^F.","len.",names(F_flt_p))
+  # Do this within the projection loop
+  # # F during projection years (by py, age, fleet) for any source of F (landings or discards)
+  # # (analogous to F_L_p or F_D_p but by fleet)
+  # # Note that:
+  # #      F.L.tmp <- Reduce("+",F_flt_p[grepl("^F.L.",names(F_flt_p))])
+  # #      F.L.tmp == F_L_p
+  # F_flt_p <- lapply(1:length(F_flt_p),function(i){
+  #   sel_F_flt_p[[i]]*Fsum_p
+  # })
+  # names(F_flt_p) <- names(Fsum_flt)
+  #
+  # # wgt during projection years (by py, age, fleet) for any source of F (landings or discards)
+  # # Fill with fish weights from last year of base (endyr)
+  # wgt_F_flt_p <- lapply(1:length(F_flt_p),function(i){
+  #   nm_i <- names(F_flt_p)[i]
+  #   wgt_i <- wgt_F_flt_klb[[gsub("^F.","wgt.",nm_i)]]
+  #   wgt_endyr_i <- wgt_i[paste(endyr),]
+  #   matrix(wgt_endyr_i, nrow=nyp, ncol=nages, byrow=TRUE, dimnames = dimnames(emypa))
+  # })
+  # names(wgt_F_flt_p) <- gsub("^F.","wgt.",names(F_flt_p))
+  #
+  # # len during projection years (by py, age, fleet) for any source of F (landings or discards)
+  # # Fill with fish weights from last year of base (endyr)
+  # len_F_flt_p <- lapply(1:length(F_flt_p),function(i){
+  #   nm_i <- names(F_flt_p)[i]
+  #   len_i <- len_F_flt_mm[[gsub("^F.","len.",nm_i)]]
+  #   len_endyr_i <- len_i[paste(endyr),]
+  #   matrix(len_endyr_i, nrow=nyp, ncol=nages, byrow=TRUE, dimnames = dimnames(emypa))
+  # })
+  # names(len_F_flt_p) <- gsub("^F.","len.",names(F_flt_p))
 
   # weight associated with cpue during the projection years
   # (mostly used to convert commercial cpue to weight. Otherwise set to 1 which leaves cpue in numbers)
@@ -796,28 +825,81 @@ if(!is.null(run_bam_args)){
   })
 
   #### Projection loop
-  ### years 1 to nyp-1
+  ### years 1 to nyp-1 (i.e. not the last year)
   if(nyp>1){
-    for (i in 1:(nyp-1)) {
+    for (i in 1:nyp) {
       yp_i <- paste(yp[i])
 
+      # Set fishing mortality
+      if(i%in%1:nyp_cur){
+        Fsum_p_i <- F_cur
+      }else if(i%in%((nyp_cur+1):nyp)){
+        Fsum_p_i <- F_proj
+      }
+
+      # Interim adjustment of F (optional)
+      if(!is.null(interim_adjust_args$U_nm)){
+        F_adj <- F_adjust(data=U,
+                          U_nm=interim_adjust_args$U_nm,
+                          yr_ref = paste(endyr),
+                          yr = paste(as.numeric(yp_i)-1),
+                          type = interim_adjust_args$type
+                          )
+        message(paste("For year =",yp_i,"full F was adjusted by", F_adj,"based on the",interim_adjust_args$U_nm, "index"))
+
+      }else{
+        F_adj <- 1
+      }
+
+      Fsum_p[i] <- Fsum_p_i*F_adj
+
+      # Compute total Z and F at-age for year i
+      # Z_p <-   outer(Fsum_p,M+sel_tot,FUN="*") # Z for population
+      Z_p[i,] <-   M+Fsum_p[i]*sel_tot   # Z for population  #t(M+t(outer(Fsum_p,sel_tot,FUN="*")))
+      F_L_p[i,] <- Fsum_p[i]*sel_L       # F for landings outer(Fsum_p,sel_L,  FUN="*")
+      if(!is.null(sel_D)){
+        F_D_p[i,] <-  Fsum_p[i]*sel_D # F for discards outer(Fsum_p,sel_D,  FUN="*")
+      }else{
+        F_D_p[i,] <- F_L_p[i,]*0
+      }
+
+      # F during projection years (by py, age, fleet) for any source of F (landings or discards)
+      # (analogous to F_L_p or F_D_p but by fleet)
+      # Note that:
+      #      F.L.tmp <- Reduce("+",F_flt_p[grepl("^F.L.",names(F_flt_p))])
+      #      F.L.tmp == F_L_p
+      F_flt_p <- lapply(1:length(F_flt_p),function(j){
+        sel_F_flt_p[[j]]*Fsum_p
+      })
+      names(F_flt_p) <- names(Fsum_flt)
+
+      # wgt during projection years (by py, age, fleet) for any source of F (landings or discards)
+      # Fill with fish weights from last year of base (endyr)
+      wgt_F_flt_p <- lapply(1:length(F_flt_p),function(j){
+        nm_i <- names(F_flt_p)[j]
+        wgt_i <- wgt_F_flt_klb[[gsub("^F.","wgt.",nm_i)]]
+        wgt_endyr_i <- wgt_i[paste(endyr),]
+        matrix(wgt_endyr_i, nrow=nyp, ncol=nages, byrow=TRUE, dimnames = dimnames(emypa))
+      })
+      names(wgt_F_flt_p) <- gsub("^F.","wgt.",names(F_flt_p))
+
+      # len during projection years (by py, age, fleet) for any source of F (landings or discards)
+      # Fill with fish weights from last year of base (endyr)
+      len_F_flt_p <- lapply(1:length(F_flt_p),function(j){
+        nm_i <- names(F_flt_p)[j]
+        len_i <- len_F_flt_mm[[gsub("^F.","len.",nm_i)]]
+        len_endyr_i <- len_i[paste(endyr),]
+        matrix(len_endyr_i, nrow=nyp, ncol=nages, byrow=TRUE, dimnames = dimnames(emypa))
+      })
+      names(len_F_flt_p) <- gsub("^F.","len.",names(F_flt_p))
+
       ## Population (year i)
-      B_p[i] <- sum(N_p[i,]*wgt_mt)
-      Nspwn_p[i,] <- N_p[i,]*(exp(-1.0*Z_p[i,]*spawn_time))
-      Nmdyr_p[i,] <- N_p[i,]*(exp(-1.0*Z_p[i,]*0.5))
-      S_p[i] <- sum(Nspwn_p[i,]*reprod)
+      # N_p = number of fish at-age at the start of the year
+      B_p[i] <- sum(N_p[i,]*wgt_mt) # biomass of fish at-age at that start of the year
+      Nmdyr_p[i,] <- N_p[i,]*(exp(-1.0*Z_p[i,]*0.5))        # number of fish at-age at mid-year
+      Nspwn_p[i,] <- N_p[i,]*(exp(-1.0*Z_p[i,]*spawn_time)) # number of fish at-age at spawning time
+      S_p[i] <- sum(Nspwn_p[i,]*reprod)                     # spawning stock at-age at spawning time
 
-      ## Population (year i+1)
-      if(SR_method=="BH"){ # Beverton-Holt stock-recruit relationship
-        N_p[i+1,1] <- biascorr*(0.8*R0*h*S_p[i])/(0.2*R0*Phi0*(1.0-h)+ (h-0.2)*S_p[i])
-      }
-      if(SR_method=="GM"){ # Geometric mean recruitment
-        N_p[i+1,1] <- R_b_gm
-      }
-
-      N_p[(i+1),2:nages] <- N_p[i,1:(nages-1)]*(exp(-1.0*Z_p[i,1:(nages-1)]))
-      N_p[(i+1),nages]   <- N_p[(i+1),nages] +
-        N_p[i,nages]*(exp(-1.0*Z_p[i,nages])) #plus group
       ## cpue
       # By fleet
       for(j in 1:length(U_a_p)){
@@ -859,60 +941,31 @@ if(!is.null(run_bam_args)){
         }
       }
 
+      # Update data structures
+      U_p <- as.data.frame(lapply(U_a_p,rowSums)) # Compute cpue time series (summing across ages)
+      U <- rbind(U,U_p[yp_i,,drop=FALSE])
+
+      if(i<nyp){
+        ## Population (year i+1)
+        # Calculate number of offspring at midyear in year i which will be recruits in first age class in year i+1
+        if(SR_method=="BH"){ # Beverton-Holt stock-recruit relationship
+          N_p[i+1,1] <- biascorr*(0.8*R0*h*S_p[i])/(0.2*R0*Phi0*(1.0-h)+ (h-0.2)*S_p[i])
+        }
+        if(SR_method=="GM"){ # Geometric mean recruitment
+          N_p[i+1,1] <- R_b_gm
+        }
+
+        # Fish from year i either die or become 1 year older in year i+1
+        N_p[(i+1),2:nages] <- N_p[i,1:(nages-1)]*(exp(-1.0*Z_p[i,1:(nages-1)]))
+        N_p[(i+1),nages]   <- N_p[(i+1),nages] +
+          N_p[i,nages]*(exp(-1.0*Z_p[i,nages])) #plus group
+      }
     }  # end i
   }  # end if(nyp>1)
 
-  ### year nyp
-  ## Population (year nyp)
-  B_p[nyp] <- sum(N_p[nyp,]*wgt_mt)
-  Nspwn_p[nyp,] <- N_p[nyp,]*(exp(-1.0*Z_p[nyp,]*spawn_time))
-  Nmdyr_p[nyp,] <- N_p[nyp,]*(exp(-1.0*Z_p[nyp,]*0.5))
-  S_p[nyp] <- sum(Nspwn_p[nyp,]*reprod)
-  R_p <- N_p[,1]
-
-  ## cpue
-  # By fleet
-  for(j in 1:length(U_a_p)){
-    nm_j <- names(U_a_p)[j]
-    NU_p_ji <- Nmdyr_p[nyp,]*sel_U_p[[paste0("sel.U.",nm_j)]][nyp,]*unit_U_p[[nm_j]][nyp,]
-    NU_p[[nm_j]][nyp,] <- NU_p_ji
-    U_a_p[[nm_j]][nyp,] <- NU_p_ji*q_p[nyp,nm_j]
-
-  }
-
-  ## Fishery (year nyp)
-  # Aggregate (Standard calculations)
-  Ln_p[nyp] <- sum(L_calc(F_L_p[nyp,], Z_p[nyp,], N_p[nyp,]))
-  Lw_p[nyp] <- sum(L_calc(F_L_p[nyp,], Z_p[nyp,], N_p[nyp,], wgt_L_klb))
-  if(any(!is.null(c(sel_D,wgt_D_klb)))){
-    Dn_p[nyp] <- sum(L_calc(F_D_p[nyp,], Z_p[nyp,], N_p[nyp,]))
-    Dw_p[nyp] <- sum(L_calc(F_D_p[nyp,], Z_p[nyp,], N_p[nyp,], wgt_D_klb))
-  }
-
-  # By fleet
-  for(j in 1:ncol(Fsum_flt)){
-    Cn_p[[j]][nyp,] <- L_calc(F_flt_p[[j]][nyp,], Z_p[nyp,], N_p[nyp,])
-    Cw_p[[j]][nyp,] <- L_calc(F_flt_p[[j]][nyp,], Z_p[nyp,], N_p[nyp,], wgt_F_flt_p[[j]][nyp,])
-  }
-
-  ## Nmisc_p
-  if(length(sel_misc)>0){
-    for(j in 1:length(Nmisc_p)){
-      nm_j <- names(Nmisc_p)[j]
-      sel_misc_ij <- sel_misc_p[[paste0("sel.misc.",nm_j)]][nyp,]
-      unit_misc_n_ij <- local({ # Set default unit = 1 for computing numbers-at-age
-        a <- sel_misc_ij
-        a*0+1
-      })
-      unit_misc_n_ij <- unit_misc_n_ij
-
-      Nmisc_p_n_ij <- Nmdyr_p[nyp,]*sel_misc_ij*unit_misc_n_ij
-      Nmisc_p_ij <- Nmisc_p_n_ij
-      Nmisc_p[[nm_j]][nyp,] <- Nmisc_p_ij
-    }
-  }
-
-  U_p <- as.data.frame(lapply(U_a_p,rowSums))
+  #### Post-projection computations
+  R_p <- N_p[,1] # Get recruitment vector from N-at-age matrix
+  #U_p <- as.data.frame(lapply(U_a_p,rowSums)) # Compute cpue time series (summing across ages)
 
   ## Compute predicted age and length comps during projection years
   for(nm_i in names(acomp_p)){
@@ -989,7 +1042,7 @@ if(!is.null(run_bam_args)){
 # Add projected values to base values
   N <- rbind(N,N_p)
   R <- c(R,R_p)
-  U <- rbind(U,U_p)
+  # U <- rbind(U,U_p)
   C_ts_cv <- rbind(C_ts_cv,C_ts_cv_p)
   U_ts_cv <- rbind(U_ts_cv,U_ts_cv_p)
   nfish <- rbind(nfish,nfish_p)
@@ -1029,6 +1082,11 @@ if(!is.null(run_bam_args)){
     B <- wgt_mt*N
     Nsum <- rowSums(N)
     Bsum <- rowSums(B)
+
+
+
+
+
 
   # Values by fleet  in long format (for ggplot)
   # Landings (n)
@@ -1528,19 +1586,25 @@ if(!is.null(run_bam_args)){
   }
 
   # Return results
+  names(U_p) <- paste0("U_",names(U_p))
 
   invisible(list(
-              # years_p=yp,
-              # F=Fsum_p,
-              # L_wgt=Lw_p,
-              # L_num=Ln_p,
-              # D_wgt=Dw_p,
-              # D_num=Dn_p,
-              # S=S_p,
-              # B=B_p,
-              # R=R_p,
-              # N=N_p,
-              bam_p = bam_p
-              )
-         )
+    p_results = list(
+      p_series=cbind(data.frame(years_p=yp,
+                          F=Fsum_p,
+                          L_wgt=Lw_p,
+                          L_num=Ln_p,
+                          D_wgt=Dw_p,
+                          D_num=Dn_p,
+                          S=S_p,
+                          B=B_p,
+                          R=R_p
+                          ),
+                     U_p),
+      Nage = N_p,
+      Uage = U_a_p
+    ),
+    bam_p = bam_p
+  )
+  )
 }

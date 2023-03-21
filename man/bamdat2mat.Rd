@@ -7,7 +7,7 @@
 bamdat2mat(
   CommonName = NULL,
   bam = NULL,
-  writeFiles = "",
+  writeFiles = "csv",
   writeFiles_dir = paste("bamdat2mat", writeFiles, sep = "_"),
   prompt_me = TRUE
 )

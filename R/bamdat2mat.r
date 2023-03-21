@@ -30,7 +30,7 @@
 #' }
 
 bamdat2mat <- function(CommonName=NULL,bam=NULL,
-                      writeFiles="",
+                      writeFiles="csv",
                       writeFiles_dir=paste("bamdat2mat",writeFiles,sep="_"),
                       prompt_me=TRUE # Turn on/off prompts that ask for user input before deleting files.
 ){
@@ -328,7 +328,7 @@ bamdat2mat <- function(CommonName=NULL,bam=NULL,
   set_len1_w <- matrix(set_len1_w,ncol=1,dimnames=list(names(set_len1_w),"value"))
 
   set_len1_misc <- unlist(lapply(init[nm_set_len1_misc],as.numeric))
-  set_len1_misc <- matrix(set_len1_misc,ncol=1,dimnames=list(names(set_len1_misc),"value"))
+  set_len1_misc <- matrix(set_len1_misc,ncol=1,dimnames=list(names(set_len1_misc),"value"  ))
 
   set_len3 <- do.call(rbind,lapply(init[nm_set_len3],as.numeric))
   set_len7 <- do.call(rbind,lapply(init[nm_set_len7],as.numeric))

@@ -12,6 +12,8 @@
 #' @param nm_pattern Character vector of additional object names (i.e. patterns) to be replaced
 #' @param nm_replace Character vector of of replacements for nm1
 #' @param match_whole_words Should patterns replace whole words only (pattern is regex enclosed by \\b)
+#' @param fleet_key key to fleet names as a names list of character vectors.
+#' names of list items are the replacements while the character vectors are sets of old fleet names to replace
 #' @keywords bam stock assessment fisheries
 #' @export
 #' @examples

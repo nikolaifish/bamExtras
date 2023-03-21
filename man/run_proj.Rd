@@ -35,6 +35,7 @@ run_proj(
   SR_method = "BH",
   age_error = NULL,
   project_bam = FALSE,
+  interim_adjust_args = list(U_nm = NULL, type = "Uprop"),
   plot = FALSE
 )
 }
@@ -99,13 +100,28 @@ run_proj(
 
 \item{project_bam}{logical. After the projection is run, should the function build a new set of projected bam files?}
 
+\item{interim_adjust_args}{list of arguments to pass to interim adjustment function. See Details section below.}
+
 \item{plot}{logical. Produce plots of extended base model including projected data}
 }
 \description{
 Deterministic projections
 }
+\details{
+\code{interim_adjust_args}:
+\itemize{
+\item{U_nm}{  The fleet abbreviation for an index of abundance that you want to use to adjust F (e.g. sTV, sCT).}
+}
+}
 \examples{
 \dontrun{
+proj_VeSn <- run_proj(rdat_VermilionSnapper)
+proj_VeSn <- run_proj(rdat_VermilionSnapper, project_bam=TRUE,
+run_bam_args = list(
+dat_obj=dat_VermilionSnapper,
+tpl_obj=tpl_VermilionSnapper,
+cxx_obj=cxx_VermilionSnapper
+))
 }
 }
 \author{

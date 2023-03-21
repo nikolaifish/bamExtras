@@ -45,6 +45,9 @@ standardize_bam(
 \item{nm_replace}{Character vector of of replacements for nm1}
 
 \item{match_whole_words}{Should patterns replace whole words only (pattern is regex enclosed by \\b)}
+
+\item{fleet_key}{key to fleet names as a names list of character vectors.
+names of list items are the replacements while the character vectors are sets of old fleet names to replace}
 }
 \description{
 This script reads in BAM dat, tpl, and cxx files, and converts them to R objects (character vectors of each line of the code). It then runs a set of gsub() functions to

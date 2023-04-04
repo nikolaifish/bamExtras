@@ -35,7 +35,8 @@ run_proj(
   SR_method = "BH",
   age_error = NULL,
   project_bam = FALSE,
-  interim_adjust_args = list(U_nm = NULL, type = "Uprop"),
+  ia_args = list(U_nm = NULL),
+  obs_error = list(cv_U_sc = 0),
   plot = FALSE
 )
 }
@@ -100,7 +101,9 @@ run_proj(
 
 \item{project_bam}{logical. After the projection is run, should the function build a new set of projected bam files?}
 
-\item{interim_adjust_args}{list of arguments to pass to interim adjustment function. See Details section below.}
+\item{ia_args}{list of arguments to pass to interim adjustment function. See Details section below.}
+
+\item{obs_error}{list of optional arguments for incorporating observation error into projections. See Details section below.}
 
 \item{plot}{logical. Produce plots of extended base model including projected data}
 }
@@ -108,9 +111,23 @@ run_proj(
 Deterministic projections
 }
 \details{
-\code{interim_adjust_args}:
+\code{ia_args}:
 \itemize{
-\item{U_nm}{  The fleet abbreviation for an index of abundance that you want to use to adjust F (e.g. sTV, sCT).}
+\item{U_nm}{The fleet abbreviation for an index of abundance that you want to use to adjust F (e.g. sTV, sCT).}
+\item{type}{Method used for computing F adjustment. "Uprop" computes the mean U from recent years, divided by U from
+reference year. The reference year is the terminal year of the last full stock assessment. The set of recent years is computed
+as the current projection year plus yr_U_lag. By default, type = "Uprop"}
+\item{yr_U_lag}{A vector of negative integers used to compute the set of years used for computing an interim adjustment
+from the reference index (comma separated example values: -1, -1:-3, -2:4). By default, yr_U_lag = -(2:4).}
+\item{yr_ia_by}{Frequency of interim adjustments, in year units. Used to determine the years between stock
+assessments when interim adjustments will be computed and applied to F. The interim adjustment years are computed as
+\code{yrlim_p <- endyr + c(1,nyp); yr_ia <- seq(yrlim_p[1], yrlim_p[2], by = yr_ia_by)}. By default, yr_ia_by = 5}
+\item{include_yrlim}{Logical. Should interim analysis be conducted in the first and last years of the projection period?
+By default, include_yrlim_p = FALSE}
+}
+\code{obs_error}:
+\itemize{
+\item{cv_U_sc}{Number to multiply by cv values of abundance indices in the projection period.}
 }
 }
 \examples{

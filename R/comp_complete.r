@@ -1,4 +1,4 @@
-#' Complete each data frame in  a list of comp data frames so that all have the same dimensions
+#' Complete each data frame in a list of comp data frames so that all have the same dimensions
 #'
 #' @param comp_list list of composition matrices, where column names are bin values (e.g. length or age), and rows are unique observations (e.g. years)
 #' @param comp_data_n data frame with annual sample sizes associated with each comp matrix

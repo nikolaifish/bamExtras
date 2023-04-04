@@ -31,11 +31,27 @@
 #' @param SR_method Spawner-recruit function BH = Beverton-Holt, GM = constant geometric mean of nyb_rcn$R recent years of t.series$recruits. By default, run_proj will try to use BH, but if it can't find all the parameters, it will resort to GM (and will return a message letting you know that)
 #' @param age_error age error matrix to use for the projection years. By default, the function uses the same age_error matrix from the base model
 #' @param project_bam logical. After the projection is run, should the function build a new set of projected bam files?
-#' @param interim_adjust_args list of arguments to pass to interim adjustment function. See Details section below.
+#' @param ia_args list of arguments to pass to interim adjustment function. See Details section below.
+#' @param obs_error list of optional arguments for incorporating observation error into projections. See Details section below.
 #' @param plot logical. Produce plots of extended base model including projected data
-#' @details \code{interim_adjust_args}:
+#' @details
+#' \code{ia_args}:
 #' \itemize{
-#' \item{U_nm}{  The fleet abbreviation for an index of abundance that you want to use to adjust F (e.g. sTV, sCT).}
+#' \item{U_nm}{The fleet abbreviation for an index of abundance that you want to use to adjust F (e.g. sTV, sCT).}
+#' \item{type}{Method used for computing F adjustment. "Uprop" computes the mean U from recent years, divided by U from
+#' reference year. The reference year is the terminal year of the last full stock assessment. The set of recent years is computed
+#' as the current projection year plus yr_U_lag. By default, type = "Uprop"}
+#' \item{yr_U_lag}{A vector of negative integers used to compute the set of years used for computing an interim adjustment
+#' from the reference index (comma separated example values: -1, -1:-3, -2:4). By default, yr_U_lag = -(2:4).}
+#' \item{yr_ia_by}{Frequency of interim adjustments, in year units. Used to determine the years between stock
+#' assessments when interim adjustments will be computed and applied to F. The interim adjustment years are computed as
+#' \code{yrlim_p <- endyr + c(1,nyp); yr_ia <- seq(yrlim_p[1], yrlim_p[2], by = yr_ia_by)}. By default, yr_ia_by = 5}
+#' \item{include_yrlim}{Logical. Should interim analysis be conducted in the first and last years of the projection period?
+#' By default, include_yrlim_p = FALSE}
+#' }
+#' \code{obs_error}:
+#' \itemize{
+#' \item{cv_U_sc}{Number to multiply by cv values of abundance indices in the projection period.}
 #' }
 #' @keywords bam stock assessment fisheries population dynamics
 #' @author Kyle Shertzer, Erik Williams, and Nikolai Klibansky
@@ -81,7 +97,8 @@ run_proj <- function(rdat = NULL,
                      SR_method = "BH",
                      age_error = NULL,
                      project_bam = FALSE,
-                     interim_adjust_args = list(U_nm = NULL, type = "Uprop"),
+                     ia_args = list(U_nm = NULL),
+                     obs_error = list("cv_U_sc" = 0),
                      plot = FALSE
 
 ) {
@@ -91,15 +108,25 @@ mt2klb <- 2.20462              # conversion of metric tons to 1000 lb
 
 # Compute adjustment to target fishing mortality (F_target)
 # An internal function for now
+
+# data: data frame of index values by year, possibly for multiple indices
+# U_nm: name of index you want to use to adjust F between stock assessments (must match column name of index in data)
+# yr_ref: reference year to compare current index value with
+# yr: year(s) to use for computing the current index value
 F_adjust <- function(data, U_nm, yr_ref, yr,
                      type = "Uprop"){
   Ux <- data[,U_nm,drop=FALSE]
   Uyr <- Ux[paste(yr),]
   Uref <- Ux[paste(yr_ref),]
   switch(type,
-         Uprop = Uyr/Uref
+         Uprop = mean(Uyr,na.rm=TRUE)/Uref
   )
 }
+
+ia_args_default = list(
+  type = "Uprop", yr_U_lag = -(2:4), yr_ia_by = 5, include_yrlim_p=FALSE
+  )
+ia_args <- modifyList(ia_args_default,ia_args)
 
 if(!is.null(run_bam_args)){
   if(!"return_obj"%in%names(run_bam_args)){
@@ -308,7 +335,6 @@ if(!is.null(run_bam_args)){
       Cw2[[j]][i,] <- L_calc(F_flt[[j]][i,], Z[i,], N[i,], wgt_F_flt_klb[[j]][i])
     }
     }
-
 
     # CPUE
     #   From bam tpl for SEDAR53:
@@ -712,19 +738,21 @@ if(!is.null(run_bam_args)){
   S_p[1] <- S_styr_proj
   B_p[1] <- sum(N_p[1,]*wgt_mt)
 
-  # Do this within the projection loop instead
-  # Fsum_p[1:nyp_cur] <- F_cur
-  # Fsum_p[(nyp_cur+1):nyp] <- F_proj
-  #
-  # # Compute total Z and F at-age for each year of the projection
-  # # Z_p <-   outer(Fsum_p,M+sel_tot,FUN="*") # Z for population
-  # Z_p <-   t(M+t(outer(Fsum_p,sel_tot,FUN="*")))   # Z for population
-  # F_L_p <-       outer(Fsum_p,sel_L,  FUN="*")     # F for landings
-  # if(!is.null(sel_D)){
-  #   F_D_p <-       outer(Fsum_p,sel_D,  FUN="*")     # F for discards
-  # }else{
-  #   F_D_p <- F_L_p*0
-  # }
+  # Project cvs for catch and cpue
+  C_ts_cv_p <- local({
+    a <- matrix(apply(C_ts_cv,2,function(x){rep(bamExtras::geomean2(tail(x,nyb_rcn$L)),nyp)}),
+                nrow=nyp,dimnames=list(paste(yp),names(C_ts_cv)))
+    # rownames(a) <- paste(yp)
+    a
+  })
+
+  U_ts_cv_p <- local({
+    a <- matrix(apply(U_ts_cv,2,function(x){rep(bamExtras::geomean2(tail(x,nyb_rcn$U)),nyp)}),
+                nrow=nyp,dimnames=list(paste(yp),names(U_ts_cv)))
+    # rownames(a) <- paste(yp)
+    a
+  })
+
 
   ## sel during projection years (by py, age, fleet)
   # for any source of F (landings or discards)
@@ -756,37 +784,6 @@ if(!is.null(run_bam_args)){
   })
   names(sel_misc_p) <- names(sel_misc)
   }
-
-  # Do this within the projection loop
-  # # F during projection years (by py, age, fleet) for any source of F (landings or discards)
-  # # (analogous to F_L_p or F_D_p but by fleet)
-  # # Note that:
-  # #      F.L.tmp <- Reduce("+",F_flt_p[grepl("^F.L.",names(F_flt_p))])
-  # #      F.L.tmp == F_L_p
-  # F_flt_p <- lapply(1:length(F_flt_p),function(i){
-  #   sel_F_flt_p[[i]]*Fsum_p
-  # })
-  # names(F_flt_p) <- names(Fsum_flt)
-  #
-  # # wgt during projection years (by py, age, fleet) for any source of F (landings or discards)
-  # # Fill with fish weights from last year of base (endyr)
-  # wgt_F_flt_p <- lapply(1:length(F_flt_p),function(i){
-  #   nm_i <- names(F_flt_p)[i]
-  #   wgt_i <- wgt_F_flt_klb[[gsub("^F.","wgt.",nm_i)]]
-  #   wgt_endyr_i <- wgt_i[paste(endyr),]
-  #   matrix(wgt_endyr_i, nrow=nyp, ncol=nages, byrow=TRUE, dimnames = dimnames(emypa))
-  # })
-  # names(wgt_F_flt_p) <- gsub("^F.","wgt.",names(F_flt_p))
-  #
-  # # len during projection years (by py, age, fleet) for any source of F (landings or discards)
-  # # Fill with fish weights from last year of base (endyr)
-  # len_F_flt_p <- lapply(1:length(F_flt_p),function(i){
-  #   nm_i <- names(F_flt_p)[i]
-  #   len_i <- len_F_flt_mm[[gsub("^F.","len.",nm_i)]]
-  #   len_endyr_i <- len_i[paste(endyr),]
-  #   matrix(len_endyr_i, nrow=nyp, ncol=nages, byrow=TRUE, dimnames = dimnames(emypa))
-  # })
-  # names(len_F_flt_p) <- gsub("^F.","len.",names(F_flt_p))
 
   # weight associated with cpue during the projection years
   # (mostly used to convert commercial cpue to weight. Otherwise set to 1 which leaves cpue in numbers)
@@ -838,14 +835,20 @@ if(!is.null(run_bam_args)){
       }
 
       # Interim adjustment of F (optional)
-      if(!is.null(interim_adjust_args$U_nm)){
+      yrlim_p <- paste(endyr+c(1,nyp))
+      yr_ia <- paste(seq(yrlim_p[1],yrlim_p[2],by=ia_args$yr_ia_by))
+      if(!ia_args$include_yrlim_p){
+        yr_ia <- yr_ia[!yr_ia%in%yrlim_p]
+      }
+
+      if(!is.null(ia_args$U_nm)&yp_i%in%yr_ia){
         F_adj <- F_adjust(data=U,
-                          U_nm=interim_adjust_args$U_nm,
+                          U_nm=ia_args$U_nm,
                           yr_ref = paste(endyr),
-                          yr = paste(as.numeric(yp_i)-1),
-                          type = interim_adjust_args$type
+                          yr = paste(sort(as.numeric(yp_i)+ia_args$yr_U_lag)),
+                          type = ia_args$type
                           )
-        message(paste("For year =",yp_i,"full F was adjusted by", F_adj,"based on the",interim_adjust_args$U_nm, "index"))
+        message(paste("For year =",yp_i,"full F was adjusted by", F_adj,"based on the",ia_args$U_nm, "index"))
 
       }else{
         F_adj <- 1
@@ -906,8 +909,15 @@ if(!is.null(run_bam_args)){
         nm_j <- names(U_a_p)[j]
         NU_p_ji <- Nmdyr_p[yp_i,]*sel_U_p[[paste0("sel.U.",nm_j)]][yp_i,]*unit_U_p[[nm_j]][yp_i,]
         NU_p[[nm_j]][yp_i,] <- NU_p_ji
-        U_a_p[[nm_j]][yp_i,] <- NU_p_ji*q_p[yp_i,nm_j]
-
+        U_a_p_ji <- NU_p_ji*q_p[yp_i,nm_j]
+        # Add observation error to cpue (has no effect if obs_error$cv_U_sc = 0)
+        U_p_ji <- local({
+          a <- sum(U_a_p_ji)
+          cv_nm_j <- paste0("cv.U.",nm_j)
+          U_ts_cv_p_ij <- U_ts_cv_p[yp_i,cv_nm_j]*obs_error$cv_U_sc
+          as.numeric(lnorm_vector_boot(a,U_ts_cv_p_ij))
+        })
+        U_a_p[[nm_j]][yp_i,] <- (U_a_p_ji/sum(U_a_p_ji))*U_p_ji
       }
 
       ## Fishery (year i)
@@ -943,7 +953,10 @@ if(!is.null(run_bam_args)){
 
       # Update data structures
       U_p <- as.data.frame(lapply(U_a_p,rowSums)) # Compute cpue time series (summing across ages)
-      U <- rbind(U,U_p[yp_i,,drop=FALSE])
+      U <- local({
+        a <- rbind(U,U_p[yp_i,,drop=FALSE])
+        apply(a,2,function(x){x/mean(x,na.rm=TRUE)}) # standardize indices to mean of 1
+      })
 
       if(i<nyp){
         ## Population (year i+1)
@@ -1024,20 +1037,20 @@ if(!is.null(run_bam_args)){
       lcomp_p[[nm_i]] <- lcomp_p_i
     }
   }
-  # Project cvs for catch and cpue
-  C_ts_cv_p <- local({
-    a <- matrix(apply(C_ts_cv,2,function(x){rep(bamExtras::geomean2(tail(x,nyb_rcn$L)),nyp)}),
-                nrow=nyp,dimnames=list(paste(yp),names(C_ts_cv)))
-    # rownames(a) <- paste(yp)
-    a
-  })
-
-  U_ts_cv_p <- local({
-    a <- matrix(apply(U_ts_cv,2,function(x){rep(bamExtras::geomean2(tail(x,nyb_rcn$U)),nyp)}),
-                nrow=nyp,dimnames=list(paste(yp),names(U_ts_cv)))
-    # rownames(a) <- paste(yp)
-    a
-  })
+  # # Project cvs for catch and cpue
+  # C_ts_cv_p <- local({
+  #   a <- matrix(apply(C_ts_cv,2,function(x){rep(bamExtras::geomean2(tail(x,nyb_rcn$L)),nyp)}),
+  #               nrow=nyp,dimnames=list(paste(yp),names(C_ts_cv)))
+  #   # rownames(a) <- paste(yp)
+  #   a
+  # })
+  #
+  # U_ts_cv_p <- local({
+  #   a <- matrix(apply(U_ts_cv,2,function(x){rep(bamExtras::geomean2(tail(x,nyb_rcn$U)),nyp)}),
+  #               nrow=nyp,dimnames=list(paste(yp),names(U_ts_cv)))
+  #   # rownames(a) <- paste(yp)
+  #   a
+  # })
 
 # Add projected values to base values
   N <- rbind(N,N_p)
@@ -1082,10 +1095,6 @@ if(!is.null(run_bam_args)){
     B <- wgt_mt*N
     Nsum <- rowSums(N)
     Bsum <- rowSums(B)
-
-
-
-
 
 
   # Values by fleet  in long format (for ggplot)
@@ -1388,8 +1397,8 @@ if(!is.null(run_bam_args)){
     init_obs_cpue_nm <- local({
       nm <- names(init_b)[grepl("^obs_cpue",names(init_b))]
       nm_abb <- gsub("^(obs_cpue)(_)(.*)","\\3",nm)
-      nm_yes <- nm[which(nm_abb%in%names(U))]
-      nm_no <- nm[which(!nm_abb%in%names(U))]
+      nm_yes <- nm[which(nm_abb%in%dimnames(U)[[2]])]
+      nm_no <- nm[which(!nm_abb%in%dimnames(U)[[2]])]
       if(length(nm_no)>0){
         message(paste(paste(nm_no,collapse=", "), "were found in the bam tpl but not in the rdat. They may not be included in the likelihood."))
       }
@@ -1401,7 +1410,7 @@ if(!is.null(run_bam_args)){
       abb_i <- gsub("^(obs_cpue)(_)(.*)","\\3",nm_i)
       xbi <- setNames(as.numeric(init_b[[nm_i]]),names(init_b[[nm_i]]))
       yrsbi <- names(xbi)
-      xproji <- setNames(U[,abb_i],rownames(U))
+      xproji <- setNames(U[,abb_i],dimnames(U)[[1]])
       xcvi <- init_b[[paste0("obs_cv_cpue_",abb_i)]]
       ndigi <- round(median(nchar(gsub("([0-9]*.)([0-9]*)","\\2",xbi))))
       ndigcvi <- round(median(nchar(gsub("([0-9]*.)([0-9]*)","\\2",xcvi))))
@@ -1579,9 +1588,9 @@ if(!is.null(run_bam_args)){
 }
 
   # cpue
-    matplot(as.numeric(rownames(U)),U,type="o",xlab="",xlim=c(styr,endyr+nyp),pch=1)
+    matplot(as.numeric(dimnames(U)[[1]]),U,type="o",xlab="",xlim=c(styr,endyr+nyp),pch=1)
     # matpoints(as.numeric(rownames(U_p)),U_p,type="o",pch=1)
-    legend("topleft",legend=colnames(U),col=1:ncol(U),lty=1:ncol(U),pch=1)
+    legend("topleft",legend=dimnames(U)[[2]],col=1:ncol(U),lty=1:ncol(U),pch=1)
     abline(v=endyr)
   }
 

@@ -5,9 +5,7 @@
 #' @param key_data_type_abb data type abbreviation key
 #' @param key_fleet_abb fleet abbreviation key
 #' @param data_types  data types to include in plot
-#' @param t.series.row.trunc truncate rows of t.series object by this value to
-#' avoid plotting projection year or show what available data would look
-#' like in retrospective runs
+#' @param t.series.row.trunc truncate rows of t.series object by this value to avoid plotting projection year or show what available data would look like in retrospective runs
 #' @keywords bam stock assessment fisheries population dynamics
 #' @author Kyle Shertzer and Nikolai Klibansky
 #' @export
@@ -20,9 +18,9 @@
 #'
 #' par(mar=c(3,12,1,8),mgp=c(1,0.3,0),tck=0,las=2)
 #' library(viridisLite)
-#' plot_data_timeline(rdat,data_types = c("acomp","lcomp"),FUN_col = "viridis)
-
+#' plot_data_timeline(rdat,data_types = c("acomp","lcomp"),FUN_col = "viridis")
 #' }
+#'
 
 
 # Data input timeline

@@ -4,7 +4,7 @@
 \alias{lnorm_vector_boot}
 \title{Generating bootstrap vectors of with lognormal error}
 \usage{
-lnorm_vector_boot(x, cv, bootN = 1, standardize = TRUE, digits = NULL)
+lnorm_vector_boot(x, cv, bootN = 1, standardize = FALSE, digits = NULL)
 }
 \arguments{
 \item{x}{observed vector}

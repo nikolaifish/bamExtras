@@ -21,7 +21,11 @@
 #' points(U,type="o",col="blue")
 #' }
 
-lnorm_vector_boot <- function(x,cv,bootN=1,standardize=TRUE,digits=NULL){
+lnorm_vector_boot <- function(x,
+                              cv,
+                              bootN=1,
+                              standardize=FALSE,
+                              digits=NULL){
   cc <- which(complete.cases(x,cv))
   xboot_obs <- rep(x[cc],bootN)
   M_xBoot <- matrix(NA,nrow=length(x),ncol=bootN) # Create matrix from xboot
@@ -30,7 +34,7 @@ lnorm_vector_boot <- function(x,cv,bootN=1,standardize=TRUE,digits=NULL){
   sd <- (log(1.0+cv[cc]^2))^0.5 # Calculate vector of lognormal sd from lognormal CV
   lnormResid <- rlnorm(n=n, mean=-(sd^2)/2, sd=sd) # Generate vector of lognormal residuals (proportions)
   xBoot <- xboot_obs*lnormResid # Multiply observed index vector by bootstrap lognormal residuals
-  xBoot[which(xBoot<=0)]=xboot_obs[which(xBoot<=0)] # If any of the bootstrap index values are <=0, replace them with the observed values
+  xBoot[which(xBoot<=0)]=xboot_obs[which(xBoot<=0)] # If any of the bootstrap values are <=0, replace them with the observed values
   M_xBoot_cc <- matrix(xBoot,nrow=length(cc),ncol=bootN) # Create matrix from xboot
   M_xBoot[cc,] <- M_xBoot_cc # Add values to matrix including NA rows
 

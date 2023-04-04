@@ -25,12 +25,23 @@ plot_data_timeline(
 
 \item{data_types}{data types to include in plot}
 
-\item{t.series.row.trunc}{truncate rows of t.series object by this value to
-avoid plotting projection year or show what available data would look
-like in retrospective runs}
+\item{t.series.row.trunc}{truncate rows of t.series object by this value to avoid plotting projection year or show what available data would look like in retrospective runs}
 }
 \description{
 Make a data timeline table from the BAM rdat output t.series object. Note: plot_data_timeline() uses the plot.matrix package
+}
+\examples{
+\dontrun{
+## Data timeline plot Examples
+par(mar=c(3,12,1,8),mgp=c(1,0.3,0),tck=0,las=2)
+rdat <- rdat_GrayTriggerfish
+plot_data_timeline(rdat,FUN_col = "heat.colors")
+
+par(mar=c(3,12,1,8),mgp=c(1,0.3,0),tck=0,las=2)
+library(viridisLite)
+plot_data_timeline(rdat,data_types = c("acomp","lcomp"),FUN_col = "viridis")
+}
+
 }
 \author{
 Kyle Shertzer and Nikolai Klibansky

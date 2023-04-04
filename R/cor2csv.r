@@ -1,6 +1,6 @@
-#' Convert BAM .cor file to csv
+#' Convert BAM cor file to csv
 #'
-#' Convert BAM .cor file to .csv file. Also invisibly returns the cor matrix.
+#' Convert BAM cor file to .csv file. Also invisibly returns the cor matrix.
 #' @param cor_file 	cor file path
 #' @param rdat 	BAM output rdat (list) object read in with dget(). Optional, but the function can do more if you supply the rdat
 #' @keywords bam stock assessment fisheries

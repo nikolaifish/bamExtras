@@ -20,18 +20,18 @@ run_MCBE(
   par_default = list(cv_U = 0.2, cv_L = 0.2, cv_D = 0.2),
   standardize = TRUE,
   nsim = 10,
-  sclim_gen = c(0.9, 1.1),
   sclim = list(),
+  sclim_gen = c(0.9, 1.1),
   data_type_resamp = c("U", "L", "D", "age", "len"),
-  fn_par = list(M = expression(runif(nsim, min(M_lim), max(M_lim))), K =
-    expression(runif(nsim, min(K_lim), max(K_lim))), Linf = expression(runif(nsim,
-    min(Linf_lim), max(Linf_lim))), t0 = expression(runif(nsim, min(t0_lim),
-    max(t0_lim))), steep = expression(runif(nsim, min(steep_lim), max(steep_lim))),
-    rec_sigma = expression(rtnorm(n = nsim, mean = 0.6, sd = 0.15, lower = 0.3, upper =
-    1)), Dmort = expression(apply(Dmort_lim, 2, function(x) {
-     runif(nsim, min(x),
-    max(x))
- }))),
+  fn_par = list(M = "runif(nsim,M_lim[1],M_lim[2])", K = "runif(nsim,K_lim[1],K_lim[2])",
+    Linf = "runif(nsim,Linf_lim[1],Linf_lim[2])", t0 = "runif(nsim,t0_lim[1],t0_lim[2])",
+    steep = "runif(nsim,steep_lim[1],steep_lim[2])", rec_sigma =
+    "rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)", Dmort =
+    "apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))})", Pf = list(a =
+    "runif(nsim,Pfa_lim[1],Pfa_lim[2]))", b = "runif(nsim,Pfa_lim[1],Pfa_lim[2]))"),
+    Pfmat = list(a = "runif(nsim,Pfmata_lim[1],Pfmata_lim[2]))", 
+     b =
+    "runif(nsim,Pfmata_lim[1],Pfmata_lim[2]))")),
   fix_par = c(),
   coresUse = NULL,
   ndigits = 4,
@@ -77,9 +77,9 @@ run_MCBE(
 
 \item{nsim}{number of simulations to run}
 
-\item{sclim_gen}{Scalar (multipliers) for computing upper and lower bounds of random uniform distribution from mean value from base run output}
-
 \item{sclim}{Optional list of scalars for computing point parameter limits. By default, limits are (generically) computed using sclim_gen. Numeric vectors of length 2, usually centered around 1. e.g. sclim = list(M=c(0.9,1.1), steep=(c(0.8,1.2))). Note that if M_constant is not available in the base model output, sclim$M values will be used to scale M at age.}
+
+\item{sclim_gen}{Scalar (multipliers) for computing upper and lower bounds of random uniform distribution from mean value from base run output}
 
 \item{data_type_resamp}{character vector of abbreviations for types of data sets that should be resampled in the MCBE simulations. L = landings, D = discards, U = cpue indices, age = age compositions, len = length compositions. If you don't want to resample any of the data sets, set data_type_resamp = c().}
 

@@ -17,9 +17,13 @@ bamdat2mat(
 
 \item{bam}{Object returned from \code{bam2r}.}
 
-\item{writeFiles}{File extension of files to write output data to. Current options include "csv".}
+\item{writeFiles}{File extension of files to write output data to. Current options include "csv".
+Set to any other value to run the function without writing output.}
 
 \item{writeFiles_dir}{Name of directory to write files to.}
+}
+\value{
+Silently returns a \code{list} of all data objects,
 }
 \description{
 The script converts objects defined in the DATA SECTION of BAM into a set of
@@ -44,6 +48,18 @@ dm_VeSn <- bamdat2mat("VermilionSnapper")
 
 # Write data objects to csv
 dm_AtMe <- bamdat2mat("AtlanticMenhaden",writeFiles="csv")
+
+# Or don't write them and just do stuff with the data objects
+dm_BlSB <- bamdat2mat("BlackSeaBass",writeFiles = "")
+matplot(rownames(dm_BlSB$obs_L),dm_BlSB$obs_L,type="l")
+
+agec <- dm_BlSB$obs_agec
+par(mfrow=c(length(agec),1),mar=c(2,2,1,1),mgp=c(.8,.1,0),tck=-0.01)
+lapply(seq_along(agec),function(i){
+nmi <- names(agec)[i]
+x <- agec[[i]]
+image(as.numeric(rownames(x)),as.numeric(colnames(x)),x,xlab="year",ylab="age",main=nmi)
+})
 }
 }
 \keyword{assessment}

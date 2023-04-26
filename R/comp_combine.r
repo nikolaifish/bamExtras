@@ -17,11 +17,23 @@
 
 comp_combine <- function(comp_list, FUN=function(x){sum(x,na.rm=TRUE)},scale_rows=TRUE){
   # Identify the complete set of row and column names for all comp matrices
-  all.rownames <- sort(unique(unlist(lapply(comp_list,rownames))))
-  all.colnames <- as.character(sort(as.numeric(unique(unlist(lapply(comp_list,colnames))))))
-
+  all.rownames <- as.character(sort(as.numeric(unique(unlist(lapply(comp_list,rownames))))))
+  all.colnames <- local({
+    a <- unique(unlist(lapply(comp_list,colnames)))
+    ndec <- nchar(gsub("([0-9]+)([.]*)([0-9]*)","\\3",a))
+    b <- sort(as.numeric(a))
+    # add decimal places back in
+    sprintf(paste0("%.",ndec,"f"), b)
+  })
   for (i in names(comp_list)){
-    M.i <- comp_list[[i]]
+    M.i <- local({
+      a <- comp_list[[i]]
+      att <- attributes(a)
+      # convert to numeric and retain attributes
+      b <- apply(a,2,as.numeric)
+      attributes(b) <- att
+      b
+    })
 
     # Identify the specific row and column names missing comp matrix i
     row.missing <- all.rownames[!all.rownames%in%rownames(M.i)]

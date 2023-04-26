@@ -27,7 +27,7 @@
 #' @param sclim_gen Scalar (multipliers) for computing upper and lower bounds of random uniform distribution from mean value from base run output
 #' @param sclim Optional list of scalars for computing point parameter limits. By default, limits are (generically) computed using sclim_gen. Numeric vectors of length 2, usually centered around 1. e.g. sclim = list(M=c(0.9,1.1), steep=(c(0.8,1.2))). Note that if M_constant is not available in the base model output, sclim$M values will be used to scale M at age.
 #' @param data_type_resamp character vector of abbreviations for types of data sets that should be resampled in the MCBE simulations. L = landings, D = discards, U = cpue indices, age = age compositions, len = length compositions. If you don't want to resample any of the data sets, set data_type_resamp = c().
-#' @param fn_par List of unevaluated expressions used to simulate values of fixed parameters. Functions should produce vectors on length nsim, or in some cases
+#' @param fn_par List of character strings used to simulate values of fixed parameters. Strings are internally passed to \code{eval(parse(text=mystring))}. Functions should produce vectors of length nsim, or in some cases matrices with nrow nsim.
 #' @param fix_par Optional character vector of parameter names to fix in the simulations using tpl init object names with a phase setting (e.g. "set_M_constant", "set_steep"). This is mostly used for running sensitivities and parameter profiles. Note that this has no effect on the base model.
 #' @param subset_rdat  Subset objects in sim rdat files. Value should be a list of the object names and either a numeric value indicating how many evenly spaced rows to include in the subset of a matrix, or NULL to set the object to NULL
 #' @param coresUse number of cores to use for parallel processing
@@ -82,17 +82,21 @@ run_MCBE <- function(CommonName = NULL,
                                         cv_D=0.2),
                      standardize=TRUE,
                      nsim=10,
-                     sclim_gen = c(0.9,1.1),
                      sclim = list(),
+                     sclim_gen = c(0.9,1.1),
                      data_type_resamp = c("U","L","D","age","len"),
                      fn_par = list(
-                       M = expression(runif(nsim,min(M_lim),max(M_lim))),
-                       K = expression(runif(nsim,min(K_lim),max(K_lim))),
-                       Linf = expression(runif(nsim,min(Linf_lim),max(Linf_lim))),
-                       t0 = expression(runif(nsim,min(t0_lim),max(t0_lim))),
-                       steep = expression(runif(nsim,min(steep_lim),max(steep_lim))),
-                       rec_sigma = expression(rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)),
-                       Dmort = expression(apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))}))
+                       M = "runif(nsim,M_min,M_max)",
+                       K = "runif(nsim,K_min,K_max)",
+                       Linf = "runif(nsim,Linf_min,Linf_max)",
+                       t0 = "runif(nsim,t0_min,t0_max)",
+                       steep = "runif(nsim,steep_min,steep_max)",
+                       rec_sigma = "rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)",
+                       Dmort = "apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))})",
+                       Pfa=    "runif(nsim,Pfa_min,Pfa_max)",     # these are scalars, not actual parameter values
+                       Pfb=    "runif(nsim,Pfb_min,Pfb_max)",     # these are scalars, not actual parameter values
+                       Pfma=   "runif(nsim,Pfma_min,Pfma_max)",  # these are scalars, not actual parameter values
+                       Pfmb=   "runif(nsim,Pfmb_min,Pfmb_max)"   # these are scalars, not actual parameter values
                      ),
                      fix_par = c(),
                      # parallel=TRUE, # Right now it has to be in parallel
@@ -215,7 +219,11 @@ run_MCBE <- function(CommonName = NULL,
                 Linf=sclim_gen,
                 K=sclim_gen,
                 t0=sclim_gen,
-                Dmort=sclim_gen
+                Dmort=sclim_gen,
+                Pfa=sclim_gen,
+                Pfb=sclim_gen,
+                Pfma=sclim_gen,
+                Pfmb=sclim_gen,
 
   )
 
@@ -223,14 +231,20 @@ run_MCBE <- function(CommonName = NULL,
 
   # fn_par
   fn_par_user <- fn_par
+  # Set some defaults which will effectively repeat the base values for parameters
+  # if nothing else is supplied by the user in the arguments.
   fn_par_default = list(
-    M = expression(rep(M,nsim)),
-    K = expression(rep(K,nsim)),
-    Linf = expression(rep(Linf,nsim)),
-    t0 = expression(rep(t0,nsim)),
-    steep = expression(rep(steep,nsim)),
-    rec_sigma = expression(rep(rec_sigma,nsim)),
-    Dmort = expression(apply(Dmort,2,function(x){rep(x,nsim)}))
+    M = "rep(M,nsim)",
+    K = "rep(K,nsim)",
+    Linf = "rep(Linf,nsim)",
+    t0 = "rep(t0,nsim)",
+    steep = "rep(steep,nsim)",
+    rec_sigma = "rep(rec_sigma,nsim)",
+    Dmort = "apply(Dmort,2,function(x){rep(x,nsim)})",
+    Pfa=     "rep(Pfa,nsim)",
+    Pfb=     "rep(Pfb,nsim)",
+    Pfma=     "rep(Pfma,nsim)",
+    Pfmb=     "rep(Pfmb,nsim)",
   )
   fn_par <- modifyList(fn_par_default, fn_par_user)
 
@@ -266,32 +280,130 @@ run_MCBE <- function(CommonName = NULL,
     message("Discard mortality rates not found in the base model (i.e. no names(init) beginning with set_Dmort).")
   }
 
-  # compute limits of parameter values
-  Linf_lim <- Linf*sclim$Linf
-  K_lim    <- K*sclim$K
-  t0_lim   <- t0*sclim$t0
-  M_lim    <- M*sclim$M
-  steep_lim <- steep*sclim$steep
+  # compute age comps in numbers of fish
+  n_repro_default <- 20 # default number of repro samples per age if age comps are not found in bam
+  agec_nm <- names(init)[grepl(pattern="^obs_agec",names(init))]
+  nfish_agec_nm <- names(init)[grepl("^nfish_agec",names(init))]
+  agec <-  init[agec_nm] # agec in proportions
+  nfish_agec <- init[nfish_agec_nm]
+  agecn <- lapply(seq_along(agec),function(j){
+    nmj <- names(agec)[j]
+    abbj <- gsub("^obs_agec_","",nmj)
+    agecj <- agec[[j]]
+    # convert to numeric and retain attributes
+    att <- attributes(agecj)
+    agecj <- apply(agecj,2,as.numeric)
+    attributes(agecj) <- att
+    nfish_agecj <- nfish_agec[[paste0("nfish_agec_",abbj)]]
+    class(nfish_agecj) <- "numeric"
+    if(!all(rownames(agecj)==names(nfish_agecj))){
+      warning(paste("For",nmi,"not all rownames (years) in agecj match names of nfish_agecj"))
+    }
+    round(agecj*nfish_agecj)
+  })
+  names(agecn) <- names(agec)
 
-  if(Dmort_is){Dmort_lim <- Dmort[c(1,1),,drop=FALSE]*sclim$Dmort}
+  # pool age comps in number to a single distribution
+  agecn_pool <-
+    if(length(agecn)>0){
+      colSums(comp_combine(agecn,scale_rows = FALSE))
+    }else{
+      warning(paste("No age comps found in model. Assuming",n_repro_default, "reproductive samples per age class."))
+      setNames(rep(n_repro_default,length(init$obs_prop_f)),names(init$obs_prop_f))
+    }
+
+  # Proportion female
+  P_repro <- 0.10 # Proportion of age comps for which reproductive data are collected
+  n_repro <- round(agecn_pool*P_repro) # estimated number of repro samples
+  Pf <- local({
+    a <- init$obs_prop_f
+    class(a) <- "numeric"
+    a})
+  age_Pf <- as.numeric(names(Pf))
+  data_Pf <- local({
+    y1 <- round(n_repro*Pf)
+    y0 <- n_repro-y1
+    x <- age_Pf
+    data.frame(x=c(rep(x,y0),rep(x,y1)), y=c(rep(0,sum(y0)),rep(1,sum(y1))))
+  })
+  # logistic fit to prop_f
+  fit_Pf <- glm(y~x,data=data_Pf,family="binomial")
+  coef_Pf <- setNames(coef(fit_Pf),c("intercept","slope"))
+  intercept_Pf <- coef_Pf[[1]]
+  Pfa <- slope_Pf <- coef_Pf[[2]]
+  Pfb <- a50_Pf <- as.numeric(coef_Pf[[1]]/-coef_Pf[[2]])
+
+  # Plot observed values and prediction
+  plot(age_Pf,Pf,xlab="age",ylab="proportion female",ylim=c(0,1))
+  lines(age_Pf,predict.glm(fit_Pf,newdata = data.frame(x=age_Pf),type="response"))
+
+  # Code to make random draws of parameters from multivariate normal distribution
+  # mvtnorm::rmvnorm(n=nsim, mean=coef_Pf, sigma=vcov(fit_Pf), method="chol")
+
+  # Female maturity
+  nf <- round(n_repro*Pf)  # estimated number of females
+  Pfm <- local({
+    a <- init$obs_maturity_f
+    class(a) <- "numeric"
+    a})
+  age_Pfm <- as.numeric(names(Pfm))
+  data_Pfm <- local({
+    y1 <- round(nf*Pfm)
+    y0 <- nf-y1
+    x <- age_Pfm
+    data.frame(x=c(rep(x,y0),rep(x,y1)), y=c(rep(0,sum(y0)),rep(1,sum(y1))))
+  })
+  # logistic fit to prop_f
+  fit_Pfm <- glm(y~x,data=data_Pfm,family="binomial")
+  coef_Pfm <- setNames(coef(fit_Pfm),c("intercept","slope"))
+  intercept_Pfm <- coef_Pfm[[1]]
+  Pfma <- slope_Pfm <- coef_Pfm[[2]]
+  Pfmb <- a50_Pfm <- as.numeric(coef_Pfm[[1]]/-coef_Pfm[[2]])
+
+  # Plot observed values and prediction
+  plot(age_Pfm,Pfm,xlab="age",ylab="proportion female mature",ylim=c(0,1))
+  lines(age_Pf,predict.glm(fit_Pfm,newdata = data.frame(x=age_Pfm),type="response"))
+
+
+  # compute limits of parameter values
+  Linf_lim  <- Linf*sclim$Linf
+  K_lim     <- K*sclim$K
+  t0_lim    <- t0*sclim$t0
+  M_lim     <- M*sclim$M
+  steep_lim <- steep*sclim$steep
+  Pfma_lim   <-
+
+  Linf_min  <- min(Linf_lim)
+  K_min     <- min(K_lim)
+  t0_min    <- min(t0_lim)
+  M_min     <- min(M_lim)
+  steep_min <- min(steep_lim)
+
+  Linf_max  <- max(Linf_lim)
+  K_max     <- max(K_lim)
+  t0_max    <- max(t0_lim)
+  M_max     <- max(M_lim)
+  steep_max <- max(steep_lim)
+
+  if(Dmort_is){Dmort_lim <- Dmort[c(1,1),,drop=FALSE] * sclim$Dmort}
 
   ## Conduct Monte Carlo draws
   # Vectors (sim)
-  sim_Linf <- eval(fn_par$Linf)
-  sim_K <- eval(fn_par$K)
-  sim_t0 <- eval(fn_par$t0)
+  sim_Linf <- eval(parse(text=fn_par$Linf))
+  sim_K <- eval(parse(text=fn_par$K))
+  sim_t0 <- eval(parse(text=fn_par$t0))
   if(M_constant_is){
-    sim_M <- eval(fn_par$M)
+    sim_M <- eval(parse(text=fn_par$M))
     sim_Masc <- sim_M/M # Multiply by M-at-age to rescale appropriately with sim M
   }else{
     sim_M <- rep(NA,nsim)
     sim_Masc <- runif(nsim,sclim$M[1],sclim$M[2])
   }
-  sim_steep <- eval(eval(fn_par$steep))
-  sim_rec_sigma <- round(eval(fn_par$rec_sigma),ndigits) # values from meta-analysis. HARDCODED VALUES!!!  MAP TO FUNCTION ARGUMENTS !!!
+  sim_steep <- eval(parse(text=fn_par$steep))
+  sim_rec_sigma <- round(eval(parse(text=fn_par$rec_sigma)),ndigits)
 
   if(Dmort_is){
-    sim_Dmort <- eval(fn_par$Dmort)
+    sim_Dmort <- eval(parse(text=fn_par$Dmort))
   }
 
   # Matrices (sim,age)
@@ -499,7 +611,7 @@ run_MCBE <- function(CommonName = NULL,
 
 
   #%% Age composition %%#
-  obs_agec_nm <- names(init)[grepl(pattern="obs_agec",names(init))]
+  # obs_agec_nm <- names(init)[grepl(pattern="obs_agec",names(init))]
   sim_acomp <- list()
 
   if(length(obs_agec_nm)>0){

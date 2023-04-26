@@ -5,9 +5,11 @@
 #' @param CommonName Common name of species modeled in BAM files. Only used when accessing dat, tpl, and cxx character vectors named as e.g. dat_CommonName
 #' @param bam Object returned from \code{bam2r}.
 #' @param writeFiles File extension of files to write output data to. Current options include "csv".
+#' Set to any other value to run the function without writing output.
 #' @param writeFiles_dir Name of directory to write files to.
 #' @keywords bam stock assessment fisheries
 #' @export
+#' @returns Silently returns a \code{list} of all data objects,
 #' @examples
 #' \dontrun{
 #' # Read in any of the current BAM models
@@ -27,6 +29,18 @@
 #'
 #' # Write data objects to csv
 #' dm_AtMe <- bamdat2mat("AtlanticMenhaden",writeFiles="csv")
+#'
+#' # Or don't write them and just do stuff with the data objects
+#' dm_BlSB <- bamdat2mat("BlackSeaBass",writeFiles = "")
+#' matplot(rownames(dm_BlSB$obs_L),dm_BlSB$obs_L,type="l")
+#'
+#' agec <- dm_BlSB$obs_agec
+#' par(mfrow=c(length(agec),1),mar=c(2,2,1,1),mgp=c(.8,.1,0),tck=-0.01)
+#' lapply(seq_along(agec),function(i){
+#' nmi <- names(agec)[i]
+#' x <- agec[[i]]
+#' image(as.numeric(rownames(x)),as.numeric(colnames(x)),x,xlab="year",ylab="age",main=nmi)
+#' })
 #' }
 
 bamdat2mat <- function(CommonName=NULL,bam=NULL,

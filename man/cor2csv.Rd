@@ -2,7 +2,7 @@
 % Please edit documentation in R/cor2csv.r
 \name{cor2csv}
 \alias{cor2csv}
-\title{Convert BAM .cor file to csv}
+\title{Convert BAM cor file to csv}
 \usage{
 cor2csv(cor_file, rdat = NULL)
 }
@@ -12,7 +12,7 @@ cor2csv(cor_file, rdat = NULL)
 \item{rdat}{BAM output rdat (list) object read in with dget(). Optional, but the function can do more if you supply the rdat}
 }
 \description{
-Convert BAM .cor file to .csv file. Also invisibly returns the cor matrix.
+Convert BAM cor file to .csv file. Also invisibly returns the cor matrix.
 }
 \examples{
 \dontrun{

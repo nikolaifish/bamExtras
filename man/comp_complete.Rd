@@ -2,7 +2,7 @@
 % Please edit documentation in R/comp_complete.r
 \name{comp_complete}
 \alias{comp_complete}
-\title{Complete each data frame in  a list of comp data frames so that all have the same dimensions}
+\title{Complete each data frame in a list of comp data frames so that all have the same dimensions}
 \usage{
 comp_complete(
   comp_list,
@@ -42,7 +42,7 @@ comp_complete(
 \item{valsToNA}{Values that should be replaced with NA (e.g. -99999)}
 }
 \description{
-Complete each data frame in  a list of comp data frames so that all have the same dimensions
+Complete each data frame in a list of comp data frames so that all have the same dimensions
 }
 \examples{
 \dontrun{

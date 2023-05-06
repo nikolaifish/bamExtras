@@ -16,7 +16,7 @@ plot_MCBE(
 
 \item{dir_figs}{name of directory that will be created to store figures}
 
-\item{filter_info}{list of ranges used to filter out MCBE results}
+\item{filter_info}{list of ranges used to filter out MCBE results. set to NULL to retain all results.}
 }
 \description{
 Plot results from MCBE uncertainty analysis

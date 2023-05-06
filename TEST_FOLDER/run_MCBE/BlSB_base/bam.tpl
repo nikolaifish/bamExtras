@@ -3,7 +3,7 @@
 //##  Species: Black Sea Bass
 //##  Region: US South Atlantic
 //##  SEDAR: 56
-//##  Date: 2022-11-18 22:17:15
+//##  Date: 2023-01-13 13:51:00
 
 
 //##--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
@@ -301,9 +301,9 @@ init_matrix obs_lenc_rGN(1,nyr_lenc_rGN,1,nlenbins);
 //init_matrix obs_rGN_agec(1,nyr_rGN_agec,1,nages);
 
 //Discard mortality constants
-init_number set_Dmort_HL;   //handline (commercial)
-init_number set_Dmort_rHB_HL; //headboat-specific hook and line
-init_number set_Dmort_rGN_HL; //charterboat and private hook and line
+init_number set_Dmort_cHL;   //handline (commercial)
+init_number set_Dmort_rHB_cHL; //headboat-specific hook and line
+init_number set_Dmort_rGN_cHL; //charterboat and private hook and line
 init_number set_Dmort_cPT1;  //pots 1.5 inch panel
 init_number set_Dmort_cPT2;  //pots 2.0 inch panel
 //--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>--><>
@@ -1575,9 +1575,9 @@ LOCAL_CALCS
   number log_F_dev_init_rGN_D;
   number log_F_dev_end_rGN_D;  
 
-  number Dmort_HL;
-  number Dmort_rHB_HL;
-  number Dmort_rGN_HL;
+  number Dmort_cHL;
+  number Dmort_rHB_cHL;
+  number Dmort_rGN_cHL;
   number Dmort_cPT1;
   number Dmort_cPT2;  
 
@@ -1747,19 +1747,19 @@ PRELIMINARY_CALCS_SECTION
  huge_number=1.0e+10;   
  onehalf=0.5;
 
-  Dmort_HL=set_Dmort_HL;
-  Dmort_rHB_HL=set_Dmort_rHB_HL;
-  Dmort_rGN_HL=set_Dmort_rGN_HL;
+  Dmort_cHL=set_Dmort_cHL;
+  Dmort_rHB_cHL=set_Dmort_rHB_cHL;
+  Dmort_rGN_cHL=set_Dmort_rGN_cHL;
   Dmort_cPT1=set_Dmort_cPT1;
   Dmort_cPT2=set_Dmort_cPT2;
 
   //values used for weighting selex and avg weight of cGN discards in yrs with quotas
   //geometric mean of last three yrs
   //avg weights of landings were near 1 lb, so those values are left in weight
-  Dopen_cHL=Dmort_HL*pow((obs_released_cHL(endyr_D_cHL-2)*obs_released_cHL(endyr_D_cHL-1)*obs_released_cHL(endyr_D_cHL)),(1.0/3.0));
-  Dclosed_cHL=Dmort_HL*((obs_released_cHL_closed(endyr_D_cHL-3)+obs_released_cHL_closed(endyr_D_cHL-2)+obs_released_cHL_closed(endyr_D_cHL-1)+obs_released_cHL_closed(endyr_D_cHL))/4.0);
-  //Dclosed_cHL=Dmort_HL*pow((obs_released_cHL_closed(endyr_D_cHL-2)*obs_released_cHL_closed(endyr_D_cHL-1)*obs_released_cHL_closed(endyr_D_cHL)),(1.0/3.0));
-  Lopen_cHL=Dmort_HL*pow((obs_L_cHL(endyr_L_cHL-2)*obs_L_cHL(endyr_L_cHL-1)*obs_L_cHL(endyr_L_cHL)),(1.0/3.0));
+  Dopen_cHL=Dmort_cHL*pow((obs_released_cHL(endyr_D_cHL-2)*obs_released_cHL(endyr_D_cHL-1)*obs_released_cHL(endyr_D_cHL)),(1.0/3.0));
+  Dclosed_cHL=Dmort_cHL*((obs_released_cHL_closed(endyr_D_cHL-3)+obs_released_cHL_closed(endyr_D_cHL-2)+obs_released_cHL_closed(endyr_D_cHL-1)+obs_released_cHL_closed(endyr_D_cHL))/4.0);
+  //Dclosed_cHL=Dmort_cHL*pow((obs_released_cHL_closed(endyr_D_cHL-2)*obs_released_cHL_closed(endyr_D_cHL-1)*obs_released_cHL_closed(endyr_D_cHL)),(1.0/3.0));
+  Lopen_cHL=Dmort_cHL*pow((obs_L_cHL(endyr_L_cHL-2)*obs_L_cHL(endyr_L_cHL-1)*obs_L_cHL(endyr_L_cHL)),(1.0/3.0));
   
   Dopen_cPT=Dmort_cPT2*pow((obs_released_cPT(endyr_D_cPT-2)*obs_released_cPT(endyr_D_cPT-1)*obs_released_cPT(endyr_D_cPT)),(1.0/3.0));
   Dclosed_cPT=Dmort_cPT2*(obs_released_cPT_closed(endyr_D_cPT-3)+(obs_released_cPT_closed(endyr_D_cPT-2)+obs_released_cPT_closed(endyr_D_cPT-1)+obs_released_cPT_closed(endyr_D_cPT))/4.0);
@@ -1775,8 +1775,8 @@ PRELIMINARY_CALCS_SECTION
 
   //discards values for fitting, include discard mortality
   
-  obs_cHL_D=Dmort_HL*obs_released_cHL;
-  obs_cHL_D(styr_D_cHL_closed,endyr_D_cHL_closed)+=Dmort_HL*obs_released_cHL_closed;
+  obs_cHL_D=Dmort_cHL*obs_released_cHL;
+  obs_cHL_D(styr_D_cHL_closed,endyr_D_cHL_closed)+=Dmort_cHL*obs_released_cHL_closed;
   
   obs_cPT_D(styr_D_cPT,endyr_selex_phase3)=Dmort_cPT1*obs_released_cPT(styr_D_cPT,endyr_selex_phase3);
   obs_cPT_D(endyr_selex_phase3+1,endyr_D_cPT)=Dmort_cPT2*obs_released_cPT(endyr_selex_phase3+1,endyr_D_cPT);
@@ -1784,8 +1784,8 @@ PRELIMINARY_CALCS_SECTION
   
   obs_cGN_D=obs_cHL_D+obs_cPT_D;
   
-  obs_rHB_D=Dmort_rHB_HL*obs_released_rHB;
-  obs_rGN_D=Dmort_rGN_HL*obs_released_rGN;
+  obs_rHB_D=Dmort_rHB_cHL*obs_released_rHB;
+  obs_rGN_D=Dmort_rGN_cHL*obs_released_rGN;
   
   cGN_D_cv=obs_cv_D_cHL;
  

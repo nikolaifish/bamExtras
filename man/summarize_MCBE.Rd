@@ -7,17 +7,28 @@
 summarize_MCBE(
   dir_bam_sim = "sim",
   dir_bam_base = "base",
+  nm_model = "",
   obj_collect = c("info", "parms", "like", "spr.brps", "mse", "a.series", "t.series",
-    "N.age", "Z.age", "sel.age"),
-  coresUse = NULL
+    "N.age", "Z.age", "sel.age")
 )
 }
 \arguments{
-\item{dir_bam_sim}{Name of directory where run_MCBE results files have been saved, relative to the working directory.}
+\item{dir_bam_sim}{Name of directory where run_MCBE results files are stored, relative to the working directory.}
+
+\item{dir_bam_base}{Name of directory where base model results are stored, relative to the working directory.}
+
+\item{nm_model}{character string indicating the model name as part of the MCBE file names.
+For example, "bam" is the \code{nm_model} in "1-bam.rdat". This optional argument should be specified if there
+are .rdat files in \code{dir_bam_sim} other than the MCBE output files. Otherwise, this function
+will try to read all .rdat files.}
 
 \item{obj_collect}{Names of objects in MCBE rdat files to collect and summarize}
 
 \item{coresUse}{Number of cores to use when running parallel processes}
+}
+\value{
+list of summarized outputs, most of which are named similar to typical BAM output (rdat) files.
+This list can be passed to \code{plot_MCBE} to make a variety of useful plots
 }
 \description{
 Summarize results from MCBE uncertainty analysis

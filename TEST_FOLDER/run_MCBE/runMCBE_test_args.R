@@ -1,7 +1,9 @@
-CommonName = "BlackSeaBass"
+rm(list=ls())
+
+CommonName = "ScampGrouper"
 fileName="bam"
-dir_bam_sim  = "BlSB_sim"
-dir_bam_base = "BlSB_base"
+dir_bam_sim  = "ScmG_sim"
+dir_bam_base = "ScmG_base"
 bam=NULL
 dat_file=NULL
 tpl_file=NULL
@@ -24,8 +26,10 @@ fn_par = list(
   steep = "runif(nsim,steep_min,steep_max)",
   rec_sigma = "rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)",
   Dmort = "apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))})",
-  Pf=     "apply(Pf_lim,2,function(x){runif(nsim,min(x),max(x))})", # these are scalars, not actual parameter values
-  Pfmat=  "apply(Pfmat_lim,2,function(x){runif(nsim,min(x),max(x))})"
+  Pfa=    "runif(nsim,Pfa_min,Pfa_max)",     # these are scalars, not actual parameter values
+  Pfb=    "runif(nsim,Pfb_min,Pfb_max)",     # these are scalars, not actual parameter values
+  Pfma=   "runif(nsim,Pfma_min,Pfma_max)",  # these are scalars, not actual parameter values
+  Pfmb=   "runif(nsim,Pfmb_min,Pfmb_max)"   # these are scalars, not actual parameter values
 )
 fix_par = c()
 # fn_par = list(

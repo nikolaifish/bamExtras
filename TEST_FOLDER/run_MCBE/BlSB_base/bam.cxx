@@ -3,7 +3,7 @@
 //##  Species: Black Sea Bass
 //##  Region: US South Atlantic
 //##  SEDAR: 56
-//##  Date: 2022-11-18 22:17:15
+//##  Date: 2023-01-13 13:51:00
 
 
 // Create a file with an R object from AD Model Builder
@@ -48,9 +48,9 @@ open_r_info_list("parms", false);
 	wrt_r_item("fec.batches", fecpar_batches);
 	wrt_r_item("fec.scale", fecpar_scale);
 	    wrt_r_item("spawn.time", spawn_time_frac);
-	wrt_r_item("D.mort.lines", Dmort_HL);
-	wrt_r_item("D.mort.rHB.lines", Dmort_rHB_HL);
-	wrt_r_item("D.mort.rGN.lines", Dmort_rGN_HL);
+	wrt_r_item("D.mort.lines", Dmort_cHL);
+	wrt_r_item("D.mort.rHB.lines", Dmort_rHB_cHL);
+	wrt_r_item("D.mort.rGN.lines", Dmort_rGN_cHL);
 	wrt_r_item("D.mort.cPT1", Dmort_cPT1);
 	wrt_r_item("D.mort.cPT2", Dmort_cPT2);
 	wrt_r_item("q.sBT", mfexp(log_q_sBT));

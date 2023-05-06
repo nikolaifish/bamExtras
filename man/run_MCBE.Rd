@@ -19,19 +19,18 @@ run_MCBE(
   data_sim = list(cv_U = NULL, cv_L = NULL, cv_D = NULL),
   par_default = list(cv_U = 0.2, cv_L = 0.2, cv_D = 0.2),
   standardize = TRUE,
-  nsim = 10,
+  nsim = 11,
   sclim = list(),
   sclim_gen = c(0.9, 1.1),
   data_type_resamp = c("U", "L", "D", "age", "len"),
-  fn_par = list(M = "runif(nsim,M_lim[1],M_lim[2])", K = "runif(nsim,K_lim[1],K_lim[2])",
-    Linf = "runif(nsim,Linf_lim[1],Linf_lim[2])", t0 = "runif(nsim,t0_lim[1],t0_lim[2])",
-    steep = "runif(nsim,steep_lim[1],steep_lim[2])", rec_sigma =
+  fn_par = list(M_constant = "runif(nsim,M_min,M_max)", K = "runif(nsim,K_min,K_max)",
+    Linf = "runif(nsim,Linf_min,Linf_max)", t0 = "runif(nsim,t0_min,t0_max)", steep =
+    "runif(nsim,steep_min,steep_max)", rec_sigma =
     "rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)", Dmort =
-    "apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))})", Pf = list(a =
-    "runif(nsim,Pfa_lim[1],Pfa_lim[2]))", b = "runif(nsim,Pfa_lim[1],Pfa_lim[2]))"),
-    Pfmat = list(a = "runif(nsim,Pfmata_lim[1],Pfmata_lim[2]))", 
-     b =
-    "runif(nsim,Pfmata_lim[1],Pfmata_lim[2]))")),
+    "apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))})", Pfa =
+    "runif(nsim,Pfa_min,Pfa_max)", Pfb = "runif(nsim,Pfb_min,Pfb_max)", Pfma =
+    "runif(nsim,Pfma_min,Pfma_max)", Pfmb = "runif(nsim,Pfmb_min,Pfmb_max)"),
+  repro_sim = list(P_repro = 0.1, nagecfishage = 10),
   fix_par = c(),
   coresUse = NULL,
   ndigits = 4,
@@ -73,17 +72,19 @@ run_MCBE(
 
 \item{par_default}{list for supplying default values for particular parameters to use if values cannot be found by in the usual locations (e.g. if a time series of landings does not have a corresponding time series of cvs, the default cv_L will be used)}
 
-\item{standardize}{Should \code{\link[bamExtras]{standardize_bam}} be run by the function before running the BAM}
+\item{standardize}{Should \code{\link[bamExtras]{standardize_bam}} be run by the function before running the BAM?}
 
 \item{nsim}{number of simulations to run}
 
-\item{sclim}{Optional list of scalars for computing point parameter limits. By default, limits are (generically) computed using sclim_gen. Numeric vectors of length 2, usually centered around 1. e.g. sclim = list(M=c(0.9,1.1), steep=(c(0.8,1.2))). Note that if M_constant is not available in the base model output, sclim$M values will be used to scale M at age.}
+\item{sclim}{Optional list of scalars for computing point parameter limits. By default, limits are (generically) computed using sclim_gen. Numeric vectors of length 2, usually centered around 1. e.g. sclim = list(M_constant=c(0.9,1.1), steep=(c(0.8,1.2))). Note that if M_constant is not available in the base model output, sclim$M_constant values will be used to scale M at age.}
 
 \item{sclim_gen}{Scalar (multipliers) for computing upper and lower bounds of random uniform distribution from mean value from base run output}
 
 \item{data_type_resamp}{character vector of abbreviations for types of data sets that should be resampled in the MCBE simulations. L = landings, D = discards, U = cpue indices, age = age compositions, len = length compositions. If you don't want to resample any of the data sets, set data_type_resamp = c().}
 
-\item{fn_par}{List of unevaluated expressions used to simulate values of fixed parameters. Functions should produce vectors on length nsim, or in some cases}
+\item{fn_par}{List of character strings used to simulate values of fixed parameters (see \code{Details}). Strings are internally passed to \code{eval(parse(text=mystring))}. Functions should produce vectors of length nsim, or in some cases matrices with nrow nsim.}
+
+\item{repro_sim}{List of settings to be used to simulate reproductive data sets. \code{P_repro} defines the proportion of age comps for which reproductive data are available.  \code{nagecfishage} is the assumed number of age samples per age, used only if age comp data is not found in BAM.}
 
 \item{fix_par}{Optional character vector of parameter names to fix in the simulations using tpl init object names with a phase setting (e.g. "set_M_constant", "set_steep"). This is mostly used for running sensitivities and parameter profiles. Note that this has no effect on the base model.}
 
@@ -111,7 +112,8 @@ run_MCBE(
 \item{random_seed}{random seed value. If NULL, random seed is not set within the function.}
 }
 \value{
-Invisibly returns a data frame, MCBE_out, containing basic results of sim runs, including total likelihood and maximum gradient values. This data frame is also written to a csv file in \code{dir_bam_sim}.
+Invisibly returns a data frame containing basic results of sim runs, including the following objects
+typically stored in the rdat output from BAM: \code{parms}, \code{parm.cons} (estimated values only), \code{like}, and \code{sdnr}. This data frame is also written to a csv file in \code{dir_bam_sim}.
 }
 \description{
 This function reruns the base model, from user supplied input files or objects, creating all standard BAM ADMB files
@@ -123,6 +125,46 @@ is run, \code{run_BAM} checks if the objective function value (i.e. total likeli
 runs are moved to \code{dir_bam_sim}. If any runs fail (which is not common) a folder is created (named \code{dir_bam_sim}
 with suffix '_fail') and failed runs are moved there. \code{run_BAM}
 and results file (\code{rdat}) are copied to \code{dir_bam_sim}.
+}
+\details{
+\strong{Estimating reproductive (sex and maturity) functions}
+\cr
+Sex ratio (proportion of females; \code{obs_prop_f}) and female maturity (proportion of females mature;
+\code{obs_maturity_f}) at age are typically provided to BAM data as vectors of proportions at age. In
+most cases, those proportions have been computed with a logistic model. The \code{run_MCBE} function
+characterizes uncertainty in those relationships by first building a composite age-frequency distribution
+of all age samples used in to the assessment (in numbers) multiplied by an assumed proportion
+(\code{repro_sim$P_repro}) of age samples which also have sex and maturity estimates to approximate the
+number of fish per age for which sex was determined (\code{nrepro}. \code{nrepro} is then used as the number
+of trials-at-age while successes-at-age approximated by \code{nrepro} times \code{obs_prop_f}, in logistic
+regression of the form \eqn{1/(1+exp(-a*(x-b)))}. The computed number of females-at-age (\code{nf}) is then used as the
+numbers of trials in a logistic regression to estimate a continuous function predicting proportion of females
+mature. Uncertainty or alternate values of parameters \code{a} (slope) and \code{b} (a50) of either relationship
+can then be specified by \code{fn_par$Pfa}, \code{fn_par$Pfb}, \code{fn_par$Pfma}, or \code{fn_par$Pfmb} when running the MCBE analysis
+to simulate uncertainty in sex- or female maturity-at-age.
+\cr \cr
+There are two special cases in which the function will not try to estimate a logistic fit: \code{obs_prop_f} or
+\code{obs_maturity_f} is either constant (e.g. all equal to 0.5) or completely binary (i.e. only 0 or 1). In the constant
+case the \code{a} parameter can be used to simulate variation in constant sex or maturity. In the binary case, the \code{b} parameter
+can be used to simulate variation in \code{a50}.
+\cr \cr
+Note that this process doesn't currently fit reproductive data in a time varying manner,
+so if \code{obs_prop_f} or \code{obs_maturity_f} is a time-varying matrix,
+a logistic model will only be fit to the last year of data, and the results
+will be repeated for all years of the matrix.
+
+\strong{Values currently supported by \code{fn_par}}
+\tabular{ll}{
+\code{M_constant} \tab Natural mortality constant. Corresponds to the \code{set_M_constant} parameter in the BAM tpl file. \cr
+\code{K} \tab Von-Bertalanffy growth model \code{K} K parameter. Corresponds to the \code{set_K} parameter in the BAM tpl file. \cr
+\code{Linf} \tab Von-Bertalanffy growth model \code{Linf} parameter. Corresponds to the \code{set_Linf} parameter in the BAM tpl file. \cr
+\code{steep} \tab Beverton-Holt stock recruitment function \code{h} (steepness) parameter. Corresponds to the \code{set_steep} parameter in the BAM tpl file. \cr
+\code{R0} \tab  Beverton-Holt stock recruitment function \code{R0} (unfished recruitment) parameter. Corresponds to the \code{set_rec_sigma} parameter in the BAM tpl file. \cr
+\code{Dmort} \tab Discard mortality rate parameter(s). Corresponds to the parameters beginning with \code{set_Dmort} in the BAM tpl file. \cr
+\code{Pfa, Pfb} \tab Scalar for sex ratio model parameter \code{a} or \code{b}. \code{run_MCBE} fits a logistic function of the form \eqn{1/(1+exp(-a*(x-b)))} to \code{obs_prop_f} (see Details).\cr
+\code{Pfma, Pfmb} \tab Scalar for female maturity model parameter \code{a} or \code{b}. \code{run_MCBE} fits a logistic function of the form \eqn{1/(1+exp(-a*(x-b)))} to \code{obs_maturity_f}  (see Details).\cr
+
+}
 }
 \examples{
 \dontrun{

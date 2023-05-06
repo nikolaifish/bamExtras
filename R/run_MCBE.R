@@ -23,11 +23,12 @@
 #' @param nsim number of simulations to run
 #' @param data_sim list for supplying optional data not available in input data or rdat (e.g. cvs for simulating time series of landings, discards, and cpue)
 #' @param par_default list for supplying default values for particular parameters to use if values cannot be found by in the usual locations (e.g. if a time series of landings does not have a corresponding time series of cvs, the default cv_L will be used)
-#' @param standardize Should \code{\link[bamExtras]{standardize_bam}} be run by the function before running the BAM
+#' @param standardize Should \code{\link[bamExtras]{standardize_bam}} be run by the function before running the BAM?
 #' @param sclim_gen Scalar (multipliers) for computing upper and lower bounds of random uniform distribution from mean value from base run output
-#' @param sclim Optional list of scalars for computing point parameter limits. By default, limits are (generically) computed using sclim_gen. Numeric vectors of length 2, usually centered around 1. e.g. sclim = list(M=c(0.9,1.1), steep=(c(0.8,1.2))). Note that if M_constant is not available in the base model output, sclim$M values will be used to scale M at age.
+#' @param sclim Optional list of scalars for computing point parameter limits. By default, limits are (generically) computed using sclim_gen. Numeric vectors of length 2, usually centered around 1. e.g. sclim = list(M_constant=c(0.9,1.1), steep=(c(0.8,1.2))). Note that if M_constant is not available in the base model output, sclim$M_constant values will be used to scale M at age.
 #' @param data_type_resamp character vector of abbreviations for types of data sets that should be resampled in the MCBE simulations. L = landings, D = discards, U = cpue indices, age = age compositions, len = length compositions. If you don't want to resample any of the data sets, set data_type_resamp = c().
-#' @param fn_par List of character strings used to simulate values of fixed parameters. Strings are internally passed to \code{eval(parse(text=mystring))}. Functions should produce vectors of length nsim, or in some cases matrices with nrow nsim.
+#' @param fn_par List of character strings used to simulate values of fixed parameters (see \code{Details}). Strings are internally passed to \code{eval(parse(text=mystring))}. Functions should produce vectors of length nsim, or in some cases matrices with nrow nsim.
+#' @param repro_sim List of settings to be used to simulate reproductive data sets. \code{P_repro} defines the proportion of age comps for which reproductive data are available.  \code{nagecfishage} is the assumed number of age samples per age, used only if age comp data is not found in BAM.
 #' @param fix_par Optional character vector of parameter names to fix in the simulations using tpl init object names with a phase setting (e.g. "set_M_constant", "set_steep"). This is mostly used for running sensitivities and parameter profiles. Note that this has no effect on the base model.
 #' @param subset_rdat  Subset objects in sim rdat files. Value should be a list of the object names and either a numeric value indicating how many evenly spaced rows to include in the subset of a matrix, or NULL to set the object to NULL
 #' @param coresUse number of cores to use for parallel processing
@@ -43,7 +44,48 @@
 #' @param prompt_me Turn on/off prompts that ask for user input before deleting files.
 #' @param subset_rdat list of rdat objects to subset to decrease rdat file size
 #' @param random_seed random seed value. If NULL, random seed is not set within the function.
-#' @return Invisibly returns a data frame, MCBE_out, containing basic results of sim runs, including total likelihood and maximum gradient values. This data frame is also written to a csv file in \code{dir_bam_sim}.
+#' @details
+#' \strong{Estimating reproductive (sex and maturity) functions}
+#' \cr
+#' Sex ratio (proportion of females; \code{obs_prop_f}) and female maturity (proportion of females mature;
+#' \code{obs_maturity_f}) at age are typically provided to BAM data as vectors of proportions at age. In
+#' most cases, those proportions have been computed with a logistic model. The \code{run_MCBE} function
+#' characterizes uncertainty in those relationships by first building a composite age-frequency distribution
+#' of all age samples used in to the assessment (in numbers) multiplied by an assumed proportion
+#' (\code{repro_sim$P_repro}) of age samples which also have sex and maturity estimates to approximate the
+#' number of fish per age for which sex was determined (\code{nrepro}. \code{nrepro} is then used as the number
+#' of trials-at-age while successes-at-age approximated by \code{nrepro} times \code{obs_prop_f}, in logistic
+#' regression of the form \eqn{1/(1+exp(-a*(x-b)))}. The computed number of females-at-age (\code{nf}) is then used as the
+#' numbers of trials in a logistic regression to estimate a continuous function predicting proportion of females
+#' mature. Uncertainty or alternate values of parameters \code{a} (slope) and \code{b} (a50) of either relationship
+#' can then be specified by \code{fn_par$Pfa}, \code{fn_par$Pfb}, \code{fn_par$Pfma}, or \code{fn_par$Pfmb} when running the MCBE analysis
+#' to simulate uncertainty in sex- or female maturity-at-age.
+#' \cr \cr
+#' There are two special cases in which the function will not try to estimate a logistic fit: \code{obs_prop_f} or
+#' \code{obs_maturity_f} is either constant (e.g. all equal to 0.5) or completely binary (i.e. only 0 or 1). In the constant
+#' case the \code{a} parameter can be used to simulate variation in constant sex or maturity. In the binary case, the \code{b} parameter
+#' can be used to simulate variation in \code{a50}.
+#' \cr \cr
+#' Note that this process doesn't currently fit reproductive data in a time varying manner,
+#' so if \code{obs_prop_f} or \code{obs_maturity_f} is a time-varying matrix,
+#' a logistic model will only be fit to the last year of data, and the results
+#' will be repeated for all years of the matrix.
+#'
+#' \strong{Values currently supported by \code{fn_par}}
+#' \tabular{ll}{
+#'  \code{M_constant} \tab Natural mortality constant. Corresponds to the \code{set_M_constant} parameter in the BAM tpl file. \cr
+#'  \code{K} \tab Von-Bertalanffy growth model \code{K} K parameter. Corresponds to the \code{set_K} parameter in the BAM tpl file. \cr
+#'  \code{Linf} \tab Von-Bertalanffy growth model \code{Linf} parameter. Corresponds to the \code{set_Linf} parameter in the BAM tpl file. \cr
+#'  \code{steep} \tab Beverton-Holt stock recruitment function \code{h} (steepness) parameter. Corresponds to the \code{set_steep} parameter in the BAM tpl file. \cr
+#'  \code{R0} \tab  Beverton-Holt stock recruitment function \code{R0} (unfished recruitment) parameter. Corresponds to the \code{set_rec_sigma} parameter in the BAM tpl file. \cr
+#'  \code{Dmort} \tab Discard mortality rate parameter(s). Corresponds to the parameters beginning with \code{set_Dmort} in the BAM tpl file. \cr
+#'  \code{Pfa, Pfb} \tab Scalar for sex ratio model parameter \code{a} or \code{b}. \code{run_MCBE} fits a logistic function of the form \eqn{1/(1+exp(-a*(x-b)))} to \code{obs_prop_f} (see Details).\cr
+#'  \code{Pfma, Pfmb} \tab Scalar for female maturity model parameter \code{a} or \code{b}. \code{run_MCBE} fits a logistic function of the form \eqn{1/(1+exp(-a*(x-b)))} to \code{obs_maturity_f}  (see Details).\cr
+#'
+#'
+#' }
+#' @return Invisibly returns a data frame containing basic results of sim runs, including the following objects
+#' typically stored in the rdat output from BAM: \code{parms}, \code{parm.cons} (estimated values only), \code{like}, and \code{sdnr}. This data frame is also written to a csv file in \code{dir_bam_sim}.
 #' @keywords bam MCBE stock assessment fisheries
 #' @export
 #' @examples
@@ -81,23 +123,30 @@ run_MCBE <- function(CommonName = NULL,
                                         cv_L=0.2,
                                         cv_D=0.2),
                      standardize=TRUE,
-                     nsim=10,
+                     nsim=11,
                      sclim = list(),
                      sclim_gen = c(0.9,1.1),
                      data_type_resamp = c("U","L","D","age","len"),
                      fn_par = list(
-                       M = "runif(nsim,M_min,M_max)",
+                       M_constant = "runif(nsim,M_min,M_max)",
                        K = "runif(nsim,K_min,K_max)",
                        Linf = "runif(nsim,Linf_min,Linf_max)",
                        t0 = "runif(nsim,t0_min,t0_max)",
                        steep = "runif(nsim,steep_min,steep_max)",
                        rec_sigma = "rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)",
                        Dmort = "apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))})",
-                       Pfa=    "runif(nsim,Pfa_min,Pfa_max)",     # these are scalars, not actual parameter values
-                       Pfb=    "runif(nsim,Pfb_min,Pfb_max)",     # these are scalars, not actual parameter values
-                       Pfma=   "runif(nsim,Pfma_min,Pfma_max)",  # these are scalars, not actual parameter values
-                       Pfmb=   "runif(nsim,Pfmb_min,Pfmb_max)"   # these are scalars, not actual parameter values
+                       Pfa=    "runif(nsim,Pfa_min,Pfa_max)",
+                       Pfb=    "runif(nsim,Pfb_min,Pfb_max)",
+                       Pfma=   "runif(nsim,Pfma_min,Pfma_max)",
+                       Pfmb=   "runif(nsim,Pfmb_min,Pfmb_max)",
+                       fecpar_a= "runif(nsim,fecpar_a_min,fecpar_a_max)",
+                       fecpar_b= "runif(nsim,fecpar_b_min,fecpar_b_max)",
+                       fecpar_c= "runif(nsim,fecpar_c_min,fecpar_c_max)",
+                       fecpar_batches_sc="runif(nsim,sclim_gen[1],sclim_gen[1])",    # scalars, not actual parameter values
                      ),
+                     repro_sim= list(P_repro = 0.10,
+                                     nagecfishage = 10
+                                     ),
                      fix_par = c(),
                      # parallel=TRUE, # Right now it has to be in parallel
                      coresUse=NULL,
@@ -190,30 +239,34 @@ run_MCBE <- function(CommonName = NULL,
       message(paste("The folder",paste0("'",dir_bam_base,"'"),"already exists."))
       if(overwrite_bam_base){
         message(paste("Since overwrite_bam_base = TRUE, files in ",dir_bam_base,"will be overwritten when run_bam is called"))
-        spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)$rdat
+        rdat_base <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)$rdat
       }else{
         message(paste("Since overwrite_bam_base = FALSE, run_bam will not be called to rerun the base run"))
-        spp <- dget(file.path(dir_bam_base,paste0(fileName,".rdat")))
+        rdat_base <- dget(file.path(dir_bam_base,paste0(fileName,".rdat")))
       }
     }else{
       dir.create(dir_bam_base)
-      spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)$rdat
+      rdat_base <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)$rdat
 
     }
   }else{
-    spp <- dget(file.path(dir_bam_base,paste0(fileName,".rdat")))
+    rdat_base <- dget(file.path(dir_bam_base,paste0(fileName,".rdat")))
   }
 
   ## Identify objects from bam base output
-  comp.mats <- spp$comp.mats
-  t.series <- spp$t.series
+  comp.mats <- rdat_base$comp.mats
+  t.series <- rdat_base$t.series
+
+  P_repro <- repro_sim$P_repro
+  nagecfishage <- repro_sim$nagecfishage
+
 
   ##############################
   ## Conduct Monte Carlo draws and bootstrap data
 
   # sclim
   sclim_user <- sclim
-  sclim_default <- list(M=sclim_gen,
+  sclim_default <- list(M_constant=sclim_gen,
                 steep=sclim_gen,
                 rec_sigma=sclim_gen,
                 Linf=sclim_gen,
@@ -224,6 +277,10 @@ run_MCBE <- function(CommonName = NULL,
                 Pfb=sclim_gen,
                 Pfma=sclim_gen,
                 Pfmb=sclim_gen,
+                fecpar_a= sclim_gen,
+                fecpar_b= sclim_gen,
+                fecpar_c= sclim_gen,
+                fecpar_batches_sc=sclim_gen
 
   )
 
@@ -234,7 +291,7 @@ run_MCBE <- function(CommonName = NULL,
   # Set some defaults which will effectively repeat the base values for parameters
   # if nothing else is supplied by the user in the arguments.
   fn_par_default = list(
-    M = "rep(M,nsim)",
+    M_constant = "rep(M_constant,nsim)",
     K = "rep(K,nsim)",
     Linf = "rep(Linf,nsim)",
     t0 = "rep(t0,nsim)",
@@ -245,12 +302,20 @@ run_MCBE <- function(CommonName = NULL,
     Pfb=     "rep(Pfb,nsim)",
     Pfma=     "rep(Pfma,nsim)",
     Pfmb=     "rep(Pfmb,nsim)",
+    fecpar_a= "rep(fecpar_a,nsim)",
+    fecpar_b= "rep(fecpar_b,nsim)",
+    fecpar_c= "rep(fecpar_b,nsim)",
+    fecpar_batches_sc= "rep(1,nsim)"
   )
   fn_par <- modifyList(fn_par_default, fn_par_user)
 
   # Check for values
   M_constant_is <- "set_M_constant"%in%names(init)
   Dmort_is <- length(grep("^set_Dmort",names(init),value=TRUE))>0
+  fecpar_a_is <- "fecpar_a"%in%names(init)
+  fecpar_b_is <- "fecpar_b"%in%names(init)
+  fecpar_c_is <- "fecpar_c"%in%names(init)
+  fecpar_batches_is <- "fecpar_batches"%in%names(init)
 
   # get base parameter values
   agebins <- as.numeric(init$agebins)
@@ -259,13 +324,24 @@ run_MCBE <- function(CommonName = NULL,
   K <- as.numeric(init$set_K[1])
   t0 <- as.numeric(init$set_t0[1])
 
+  fecpar_a <- if(fecpar_a_is){as.numeric(init$fecpar_a)}else{NULL}
+  fecpar_b <- if(fecpar_b_is){as.numeric(init$fecpar_b)}else{NULL}
+  fecpar_c <- if(fecpar_c_is){as.numeric(init$fecpar_c)}else{NULL}
+  fecpar_batches <- if(fecpar_batches_is){as.numeric(init$fecpar_batches)}else{NULL}
+
+
   if(M_constant_is){
-    M <- as.numeric(init$set_M_constant[1])
+    M_constant <- as.numeric(init$set_M_constant[1])
   }else{
-    M <- NA
+    M_constant <- NA
     message("M_constant not found in names(init)")
   }
-  Ma <- as.numeric(init$set_M)
+  if("set_M"%in%names(init)){
+    Ma <- as.numeric(init[["set_M"]])
+  }else{
+    message("set_M not found in init object. getting rdat_base$a.series$M")
+    Ma <- setNames(rdat_base$a.series$M,rdat_base$a.series$age)
+  }
   steep <- as.numeric(init$set_steep[1])
   rec_sigma <- as.numeric(init$set_rec_sigma[1])
 
@@ -281,12 +357,11 @@ run_MCBE <- function(CommonName = NULL,
   }
 
   # compute age comps in numbers of fish
-  n_repro_default <- 20 # default number of repro samples per age if age comps are not found in bam
   agec_nm <- names(init)[grepl(pattern="^obs_agec",names(init))]
   nfish_agec_nm <- names(init)[grepl("^nfish_agec",names(init))]
   agec <-  init[agec_nm] # agec in proportions
   nfish_agec <- init[nfish_agec_nm]
-  agecn <- lapply(seq_along(agec),function(j){
+  nagec <- lapply(seq_along(agec),function(j){
     nmj <- names(agec)[j]
     abbj <- gsub("^obs_agec_","",nmj)
     agecj <- agec[[j]]
@@ -301,28 +376,67 @@ run_MCBE <- function(CommonName = NULL,
     }
     round(agecj*nfish_agecj)
   })
-  names(agecn) <- names(agec)
+  names(nagec) <- names(agec)
 
   # pool age comps in number to a single distribution
-  agecn_pool <-
-    if(length(agecn)>0){
-      colSums(comp_combine(agecn,scale_rows = FALSE))
+  nagec_pool <-
+    if(length(nagec)>0){
+      colSums(comp_combine(nagec,scale_rows = FALSE))
     }else{
-      warning(paste("No age comps found in model. Assuming",n_repro_default, "reproductive samples per age class."))
-      setNames(rep(n_repro_default,length(init$obs_prop_f)),names(init$obs_prop_f))
+      warning(paste("No age comps found in model. Assuming",nagecfishage, "age samples per age class for estimating uncertainty in reproductive estimates."))
+      setNames(rep(nagecfishage,length(init$obs_prop_f)),names(init$obs_prop_f))
     }
 
   # Proportion female
-  P_repro <- 0.10 # Proportion of age comps for which reproductive data are collected
-  n_repro <- round(agecn_pool*P_repro) # estimated number of repro samples
   Pf <- local({
     a <- init$obs_prop_f
+    if(is.matrix(a)){
+      warning(paste("obs_prop_f a matrix. The last row will be used and repeated to fill the matrix in simulations."))
+      a <- setNames(as.numeric(tail(a,1)),colnames(tail(a,1)))
+    }else{
+      a
+    }
     class(a) <- "numeric"
-    a})
+    a
+  })
+  nrepro <- local({
+    agec_agemax <- max(as.numeric(names(nagec_pool)))
+    a <- round(nagec_pool*P_repro) # estimated number of repro samples
+
+    # If any ages in Pf are older than in agec, spread out the n fish from the
+    # oldest age of agec among that age and the older ages
+    if(any(as.numeric(names(Pf))>agec_agemax)){
+      ages2add <- names(Pf)[which(as.numeric(names(Pf))>=agec_agemax)]
+      Nage_est <- setNames(bamExtras::exp_decay(age=as.numeric(names(Pf)),Z=as.numeric(init[["set_M"]]),N0=1),names(Pf))
+      nagec_plus <- tail(a,1)
+      Page_plus <- Nage_est[ages2add]*nagec_plus
+      nrepro2add <- round(nagec_plus*(Page_plus/sum(Page_plus)))
+      a <- c(a[1:(length(a)-1)],nrepro2add)
+    }
+    a
+  })
+
+
   age_Pf <- as.numeric(names(Pf))
+  # Check for atypical situations
+  Pf_constant <- ifelse(length(unique(Pf))==1,TRUE,FALSE)
+  Pf_binary <-   ifelse((all(Pf%in%c(0,1))),TRUE,FALSE)
+  if(Pf_constant){ # If all values are the same
+    Pfa <- unique(Pf)
+    Pfb <- NA
+    warning(paste("all values of Pf are equal to",Pfa,". Will not attempt to estimate logistic function."))
+  }else if(Pf_binary){ # If all values are either 0 or 1
+    Pfa <- NA
+    Pfb <- mean(c(max(age_Pf[which(Pf==0)]),min(age_Pf[which(Pf==1)])))
+    warning(paste("all values of Pf are either 0 or 1. Will not attempt to estimate logistic function. a50 is approximately",Pfb))
+  }
+
+  # Estimate logistic relationship if possible
+  if(!any(c(Pf_constant,Pf_binary))){
+
   data_Pf <- local({
-    y1 <- round(n_repro*Pf)
-    y0 <- n_repro-y1
+    y1 <- round(nrepro*Pf)
+    y0 <- nrepro-y1
     x <- age_Pf
     data.frame(x=c(rep(x,y0),rep(x,y1)), y=c(rep(0,sum(y0)),rep(1,sum(y1))))
   })
@@ -331,22 +445,49 @@ run_MCBE <- function(CommonName = NULL,
   coef_Pf <- setNames(coef(fit_Pf),c("intercept","slope"))
   intercept_Pf <- coef_Pf[[1]]
   Pfa <- slope_Pf <- coef_Pf[[2]]
-  Pfb <- a50_Pf <- as.numeric(coef_Pf[[1]]/-coef_Pf[[2]])
+  Pfb <- a50_Pf <- max(-1e6,as.numeric(coef_Pf[[1]]/-coef_Pf[[2]])) # don't let it be -Inf, as when Pf is a constant 0.5
+  Pf_pr <- lgs(x=age_Pf,a=Pfa,b=Pfb)
 
   # Plot observed values and prediction
   plot(age_Pf,Pf,xlab="age",ylab="proportion female",ylim=c(0,1))
-  lines(age_Pf,predict.glm(fit_Pf,newdata = data.frame(x=age_Pf),type="response"))
+  lines(age_Pf,Pf_pr)
+  }
 
-  # Code to make random draws of parameters from multivariate normal distribution
+  # NOTE: Code to make random draws of parameters from multivariate normal distribution
   # mvtnorm::rmvnorm(n=nsim, mean=coef_Pf, sigma=vcov(fit_Pf), method="chol")
 
   # Female maturity
-  nf <- round(n_repro*Pf)  # estimated number of females
+  nf <- round(nrepro*Pf)  # estimated number of females
+
   Pfm <- local({
     a <- init$obs_maturity_f
+    if(is.matrix(a)){
+      warning(paste("obs_maturity_f a matrix. The last row will be used and repeated to fill the matrix in simulations."))
+      a <- setNames(as.numeric(tail(a,1)),colnames(tail(a,1)))
+    }else{
+      a
+    }
     class(a) <- "numeric"
-    a})
+    a
+    })
+
+
   age_Pfm <- as.numeric(names(Pfm))
+  # Check for atypical situations
+  Pfm_constant <- ifelse(length(unique(Pfm))==1,TRUE,FALSE)
+  Pfm_binary <-   ifelse((all(Pfm%in%c(0,1))),TRUE,FALSE)
+  if(Pfm_constant){ # If all values are the same
+    Pfma <- unique(Pfm)
+    Pfmb <- NA
+    warning(paste("all values of Pfm are equal to",Pfma,". Will not attempt to estimate logistic function."))
+  }else if(Pfm_binary){ # If all values are either 0 or 1
+    Pfma <- NA
+    Pfmb <- mean(c(max(age_Pfm[which(Pfm==0)]),min(age_Pfm[which(Pfm==1)])))
+    warning(paste("all values of Pfm are either 0 or 1. Will not attempt to estimate logistic function. a50 is approximately",Pfmb))
+  }
+
+  # Estimate logistic relationship if possible
+  if(!any(c(Pfm_constant,Pfm_binary))){
   data_Pfm <- local({
     y1 <- round(nf*Pfm)
     y0 <- nf-y1
@@ -357,75 +498,169 @@ run_MCBE <- function(CommonName = NULL,
   fit_Pfm <- glm(y~x,data=data_Pfm,family="binomial")
   coef_Pfm <- setNames(coef(fit_Pfm),c("intercept","slope"))
   intercept_Pfm <- coef_Pfm[[1]]
-  Pfma <- slope_Pfm <- coef_Pfm[[2]]
-  Pfmb <- a50_Pfm <- as.numeric(coef_Pfm[[1]]/-coef_Pfm[[2]])
+  Pfma <- coef_Pfm[[2]]
+  Pfmb <- as.numeric(coef_Pfm[[1]]/-coef_Pfm[[2]])
+  Pfm_pr <- lgs(x=age_Pfm,a=Pfma,b=Pfmb)
 
   # Plot observed values and prediction
   plot(age_Pfm,Pfm,xlab="age",ylab="proportion female mature",ylim=c(0,1))
-  lines(age_Pf,predict.glm(fit_Pfm,newdata = data.frame(x=age_Pfm),type="response"))
-
+  lines(age_Pfm,Pfm_pr)
+}
 
   # compute limits of parameter values
   Linf_lim  <- Linf*sclim$Linf
   K_lim     <- K*sclim$K
   t0_lim    <- t0*sclim$t0
-  M_lim     <- M*sclim$M
+  M_lim     <- M_constant*sclim$M_constant
   steep_lim <- steep*sclim$steep
-  Pfma_lim   <-
+  Pfa_lim   <- Pfa*sclim$Pfa
+  Pfb_lim   <- Pfb*sclim$Pfb
+  Pfma_lim   <- Pfma*sclim$Pfma
+  Pfmb_lim   <- Pfmb*sclim$Pfmb
+  fecpar_a_lim <- fecpar_a*sclim$fecpar_a
+  fecpar_b_lim <- fecpar_b*sclim$fecpar_b
+  fecpar_c_lim <- fecpar_c*sclim$fecpar_c
+  fecpar_batches_sc_lim <- sclim$fecpar_batches_sc
 
   Linf_min  <- min(Linf_lim)
   K_min     <- min(K_lim)
   t0_min    <- min(t0_lim)
   M_min     <- min(M_lim)
   steep_min <- min(steep_lim)
+  Pfa_min   <- min(Pfa_lim)
+  Pfb_min   <- min(Pfb_lim)
+  Pfma_min  <- min(Pfma_lim)
+  Pfmb_min  <- min(Pfmb_lim)
+  fecpar_a_min  <- min(fecpar_a_lim)
+  fecpar_b_min  <- min(fecpar_b_lim)
+  fecpar_c_min  <- min(fecpar_c_lim)
+  fecpar_batches_sc_min  <- min(fecpar_batches_sc_lim)
 
   Linf_max  <- max(Linf_lim)
   K_max     <- max(K_lim)
   t0_max    <- max(t0_lim)
   M_max     <- max(M_lim)
   steep_max <- max(steep_lim)
+  Pfa_max   <- max(Pfa_lim)
+  Pfb_max   <- max(Pfb_lim)
+  Pfma_max  <- max(Pfma_lim)
+  Pfmb_max  <- max(Pfmb_lim)
+  fecpar_a_max  <- max(fecpar_a_lim)
+  fecpar_b_max  <- max(fecpar_b_lim)
+  fecpar_c_max  <- max(fecpar_c_lim)
+  fecpar_batches_sc_max  <- max(fecpar_batches_sc_lim)
 
   if(Dmort_is){Dmort_lim <- Dmort[c(1,1),,drop=FALSE] * sclim$Dmort}
 
   ## Conduct Monte Carlo draws
+
   # Vectors (sim)
-  sim_Linf <- eval(parse(text=fn_par$Linf))
-  sim_K <- eval(parse(text=fn_par$K))
-  sim_t0 <- eval(parse(text=fn_par$t0))
+  Linf_sim <- eval(parse(text=fn_par$Linf))
+  K_sim <- eval(parse(text=fn_par$K))
+  t0_sim <- eval(parse(text=fn_par$t0))
   if(M_constant_is){
-    sim_M <- eval(parse(text=fn_par$M))
-    sim_Masc <- sim_M/M # Multiply by M-at-age to rescale appropriately with sim M
+    M_sim <- eval(parse(text=fn_par$M_constant))
+    Masc_sim <- M_sim/M_constant # Multiply by M-at-age to rescale appropriately with sim M_constant
   }else{
-    sim_M <- rep(NA,nsim)
-    sim_Masc <- runif(nsim,sclim$M[1],sclim$M[2])
+    M_sim <- rep(NA,nsim)
+    Masc_sim <- runif(nsim,sclim$M_constant[1],sclim$M_constant[2])
   }
-  sim_steep <- eval(parse(text=fn_par$steep))
-  sim_rec_sigma <- round(eval(parse(text=fn_par$rec_sigma)),ndigits)
+  rec_sigma_sim <- eval(parse(text=fn_par$rec_sigma))
+  steep_sim <- eval(parse(text=fn_par$steep))
 
   if(Dmort_is){
-    sim_Dmort <- eval(parse(text=fn_par$Dmort))
+    Dmort_sim <- eval(parse(text=fn_par$Dmort))
   }
 
-  # Matrices (sim,age)
-  sim_Ma <- round(t(matrix(rep(Ma,nsim),ncol=nsim,dimnames=list(age=agebins,sim=nm_sim)))*sim_Masc,ndigits)
+  # Proportion female (sex ratio)
+  Pfa_sim <- if(!Pf_binary){eval(parse(text=fn_par$Pfa))}else{
+    rep(NA,nsim)
+  }
+  Pfb_sim <- if(!Pf_constant){eval(parse(text=fn_par$Pfb))}else{
+    rep(NA,nsim)
+  }
 
-  sim_vectors <- local({
-    a <- data.frame(Linf=sim_Linf,
-                    K=sim_K,
-                    t0=sim_t0,
-                    M=sim_M,
-                    Masc=sim_Masc,
-                    steep=sim_steep,
-                    rec_sigma=sim_rec_sigma
+  Pf_sim <- local({
+    if(Pf_constant){
+      fn <- expression(rep(Pfa_sim[i],length(age_Pf)))
+    }else if(Pf_binary){
+      fn <- expression((age_Pf>=Pfb_sim[i])*1)
+    }else{
+      fn <- expression(bamExtras::lgs(x=age_Pf,a=Pfa_sim[i],b=Pfb_sim[i],type = "slope_inflection"))
+    }
+    a <- lapply(1:nsim,function(i){
+      round(pmin(1,pmax(0,eval(fn))),ndigits)
+    })
+    b <- do.call(rbind,a)
+    dimnames(b) <- list(sim=nm_sim,age=age_Pf)
+    return(b)
+  })
+
+
+  # Proportion of females mature (maturity)
+  Pfma_sim <- if(!Pfm_binary){eval(parse(text=fn_par$Pfma))}else{
+    rep(NA,nsim)
+  }
+  Pfmb_sim <- if(!Pfm_constant){eval(parse(text=fn_par$Pfmb))}else{
+    rep(NA,nsim)
+  }
+
+  Pfm_sim <- local({
+    if(Pfm_constant){
+      fn <- expression(rep(Pfma_sim[i],length(age_Pfm)))
+    }else if(Pfm_binary){
+      fn <- expression((age_Pfm>=Pfmb_sim[i])*1)
+    }else{
+      fn <- expression(bamExtras::lgs(x=age_Pfm,a=Pfma_sim[i],b=Pfmb_sim[i],type = "slope_inflection"))
+    }
+    a <- lapply(1:nsim,function(i){
+      round(pmin(1,pmax(0,eval(fn))),ndigits)
+    })
+    b <- do.call(rbind,a)
+    dimnames(b) <- list(sim=nm_sim,age=age_Pfm)
+    return(b)
+  })
+
+  if(fecpar_a_is){
+    fecpar_a_sim <- eval(parse(text=fn_par$fecpar_a))
+  }
+  if(fecpar_b_is){
+    fecpar_b_sim <- eval(parse(text=fn_par$fecpar_b))
+  }
+  if(fecpar_c_is){
+    fecpar_c_sim <- eval(parse(text=fn_par$fecpar_c))
+  }
+
+  if(fecpar_batches_is){
+    fecpar_batches_sc_sim <- eval(parse(text=fn_par$fecpar_batches_sc))
+  }
+
+
+  ## Matrices (sim,age)
+  # collected par values
+  par_sim <- local({
+    a <- data.frame(Linf=Linf_sim,
+                    K=K_sim,
+                    t0=t0_sim,
+                    M_constant=M_sim,
+                    Masc=Masc_sim,
+                    steep=steep_sim,
+                    rec_sigma=rec_sigma_sim,
+                    Pfa=Pfa_sim,
+                    Pfb=Pfb_sim,
+                    Pfma=Pfma_sim,
+                    Pfmb=Pfmb_sim
     )
-    if(Dmort_is) {b <- cbind(a,sim_Dmort)
+    if(Dmort_is) {b <- cbind(a,Dmort_sim)
     }else{
       b <- a
     }
-    round(b,ndigits)
+    c <- apply(b,2,function(x){round(x,ndigits)})
+    rownames(c) <- nm_sim
+    return(as.data.frame(c))
   })
-
-  # reproductive parameters
+  # Natural mortality
+  Ma_sim <- round(t(matrix(rep(Ma,nsim),ncol=nsim,dimnames=list(age=agebins,sim=nm_sim)))*Masc_sim,ndigits)
 
   # Bootstrap data
 
@@ -611,11 +846,11 @@ run_MCBE <- function(CommonName = NULL,
 
 
   #%% Age composition %%#
-  # obs_agec_nm <- names(init)[grepl(pattern="obs_agec",names(init))]
+  # agec_nm <- names(init)[grepl(pattern="obs_agec",names(init))]
   sim_acomp <- list()
 
-  if(length(obs_agec_nm)>0){
-    agec_root <- gsub("^obs_agec_","",obs_agec_nm)
+  if(length(agec_nm)>0){
+    agec_root <- gsub("^obs_agec_","",agec_nm)
 
     for(agec_root_i in agec_root){
       acomp_ob_nm_i <- gsub("\\_","\\.",paste0("acomp.",agec_root_i,".ob"))
@@ -625,7 +860,7 @@ run_MCBE <- function(CommonName = NULL,
 
       yrs_i <- as.numeric(rownames(x_i))
 
-      # Get nfish from init instead of spp. If years of comps are excluded from
+      # Get nfish from init instead of rdat_base. If years of comps are excluded from
       # fitting by bam based on minSS then values of -99999 will appear for
       # values of nfish in the rdat. This won't affect results, but the -99999
       # values cause an error when trying to simulate comps.
@@ -662,11 +897,11 @@ run_MCBE <- function(CommonName = NULL,
   }
 
   #%% Length composition %%#
-  obs_lenc_nm <- names(init)[grepl(pattern="obs_lenc",names(init))]
+  lenc_nm <- names(init)[grepl(pattern="obs_lenc",names(init))]
   sim_lcomp <- list()
 
-  if(length(obs_lenc_nm)>0){
-    lenc_root <- gsub("^obs_lenc_","",obs_lenc_nm)
+  if(length(lenc_nm)>0){
+    lenc_root <- gsub("^obs_lenc_","",lenc_nm)
 
     for(lenc_root_i in lenc_root){
       lcomp_ob_nm_i <- gsub("\\_","\\.",paste0("lcomp.",lenc_root_i,".ob"))
@@ -676,7 +911,7 @@ run_MCBE <- function(CommonName = NULL,
 
       yrs_i <- as.numeric(rownames(x_i))
 
-      # Get nfish from init instead of spp. If years of comps are excluded from
+      # Get nfish from init instead of rdat_base. If years of comps are excluded from
       # fitting by bam based on minSS then values of -99999 will appear for
       # values of nfish in the rdat. This won't affect results, but the -99999
       # values cause an error when trying to simulate comps.
@@ -745,7 +980,7 @@ run_MCBE <- function(CommonName = NULL,
 
     message(paste("Running MCBE for", nsim,"sims in parallel on",coresUse,"cores at",Sys.time()))
 
-    MCBE_out <- foreach(i=1:nsim,
+    sim_out <- foreach(i=1:nsim,
                         #, .export = ls()[grepl("xboot.obs",ls())] # Pass additional objects to foreach
                         .packages=c("bamExtras")
     ) %dopar% {
@@ -761,25 +996,40 @@ run_MCBE <- function(CommonName = NULL,
 
 
       ##### Monte Carlo #####
-      # M
+      # natural mortality
       if(M_constant_is){
-        init_i$set_M_constant[c(1,5)] <- paste(sim_vectors$M[i])
+        init_i$set_M_constant[c(1,5)] <- paste(par_sim$M_constant[i])
       }
-      init_i$set_M <- paste(sim_Ma[i,])
+      if("set_M"%in%names(init)){
+        init_i$set_M <- paste(Ma_sim[i,])
+      }
 
       # Dmort
       if(Dmort_is){
         for(j in colnames(Dmort)){
-          set_Dmort_ij <- sim_vectors[i,j]
+          set_Dmort_ij <- par_sim[i,j]
           init_i[[j]] <- paste(set_Dmort_ij)
         }
       }
 
       # steepness
-      init_i$set_steep[c(1,5)] <- paste(sim_vectors$steep[i])
+      init_i$set_steep[c(1,5)] <- paste(par_sim$steep[i])
 
       # rec_sigma
-      init_i$set_rec_sigma[c(1,5)] <- paste(sim_vectors$rec_sigma[i])
+      init_i$set_rec_sigma[c(1,5)] <- paste(par_sim$rec_sigma[i])
+
+      # obs_prop_f
+      init_i$obs_prop_f <- Pf_sim[i,]
+
+      # # obs_maturity_f
+      # init_i$obs_maturity_f <- Pfm_sim[i,]
+      # obs_maturity_f
+      if(is.matrix(init_i$obs_maturity_f)){
+        a <- init_i$obs_maturity_f
+        init_i$obs_maturity_f <- matrix(Pfm_sim[i,],byrow=TRUE,nrow=nrow(a),ncol=ncol(a),dimnames=dimnames(a))
+      }else{
+        init_i$obs_maturity_f <- Pfm_sim[i,]
+      }
 
       ##### Bootstrap #####
       spf <- paste0("%01.",ndigits,"f")
@@ -804,27 +1054,27 @@ run_MCBE <- function(CommonName = NULL,
       }
 
       # Add age comps
-      if(length(obs_agec_nm)>0){
+      if(length(agec_nm)>0){
         for(agec_root_j in agec_root){
           # acomp_ob_nm_j <- paste0("acomp.",agec_root_j,".ob") # rdat naming convention
-          obs_agec_nm_j <- gsub("\\.","\\_",paste0("obs_agec_",agec_root_j))    # tpl naming convention
+          agec_nm_j <- gsub("\\.","\\_",paste0("obs_agec_",agec_root_j))    # tpl naming convention
           agec_ij <- sim_acomp[[agec_root_j]][,,i,drop=FALSE]
           dim_agec_ij <- dim(agec_ij)
           agec_ij <- matrix(apply(agec_ij,2,function(x){sprintf(spf,x)}),nrow=dim_agec_ij[1])
           dimnames(agec_ij) <- NULL
-          init_i[[obs_agec_nm_j]] <- agec_ij
+          init_i[[agec_nm_j]] <- agec_ij
         }
       }
 
-      if(length(obs_lenc_nm)>0){
+      if(length(lenc_nm)>0){
         for(lenc_root_j in lenc_root){
           # lcomp_ob_nm_j <- paste0("lcomp.",lenc_root_j,".ob") # rdat naming convention
-          obs_lenc_nm_j <- gsub("\\.","\\_",paste0("obs_lenc_",lenc_root_j))    # tpl naming convention
+          lenc_nm_j <- gsub("\\.","\\_",paste0("obs_lenc_",lenc_root_j))    # tpl naming convention
           lenc_ij <- sim_lcomp[[lenc_root_j]][,,i,drop=FALSE]
           dim_lenc_ij <- dim(lenc_ij)
           lenc_ij <- matrix(apply(lenc_ij,2,function(x){sprintf(spf,x)}),nrow=dim_lenc_ij[1])
           dimnames(lenc_ij) <- NULL
-          init_i[[obs_lenc_nm_j]] <- lenc_ij
+          init_i[[lenc_nm_j]] <- lenc_ij
         }
       }
 
@@ -861,8 +1111,23 @@ run_MCBE <- function(CommonName = NULL,
       grad_max_i <- gsub("^.*component = ","\\1",par_i[1])
 
       if(!is.na(as.numeric(lk_total_i))){ # If the total likelihood of the model was a numeric result
-        # Subset rdat to decrease size on disk
         rdat_i <- dget(file=fileName_rdat_i)
+        # Collect the most important values from rdat
+        parms_i <- unlist(rdat_i$parms)
+        # Add values from par.sim to parms, unless there is already a parameter with the same name in parms
+        rdat_i$parms <- c(parms_i,par_sim[i,which(!names(par_sim)%in%names(parms_i))])
+
+        parm.cons.result_i <- unlist(lapply(rdat_i$parm.cons,function(x){x[8]}))
+        like_i <- rdat_i$like
+        sdnr_i <- rdat_i$sdnr
+        vals_i <- c(parms_i[!names(parms_i)%in%names(parm.cons.result_i)],
+                    parm.cons.result_i,
+                    like_i,
+                    sdnr_i)
+
+
+
+        # Subset rdat to decrease size on disk
         for(nm_k in names(subset_rdat)){
           k <- rdat_i[[nm_k]]
           if(is.null(subset_rdat[[nm_k]])){
@@ -875,6 +1140,16 @@ run_MCBE <- function(CommonName = NULL,
         dput(x=rdat_i,file=fileName_rdat_i)
         file_to <- file.path("..",dir_bam_sim)
       }else{
+        rdat_i <- rdat_base
+        # Collect the most important values from rdat
+        parms_i <- unlist(rdat_i$parms)
+        parm.cons.result_i <- unlist(lapply(rdat_i$parm.cons,function(x){x[8]}))
+        like_i <- rdat_i$like
+        sdnr_i <- rdat_i$sdnr
+        vals_i <- c(parms_i[!names(parms_i)%in%names(parm.cons.result_i)],
+                    parm.cons.result_i,
+                    like_i,
+                    sdnr_i)*NA
         file_to <- file.path("..",dir_bam_sim_fail)
         if(!dir.exists(file_to)){
           dir.create(file_to)
@@ -890,23 +1165,20 @@ run_MCBE <- function(CommonName = NULL,
       setwd(wd)
       unlink(sim_dir_i, recursive=T)
 
-      return(setNames(c(lk_total_i,grad_max_i),c("lk_total","grad_max")))
+      return(c(setNames(c(lk_total_i,grad_max_i),c("lk_total","grad_max")),vals_i))
     } #end MCBE foreach loop
 
 
     message(paste("Finished running MCBE for", nsim,"sims in parallel on",coresUse,"cores at",Sys.time()))
 
-    MCBE_out <- apply(do.call(rbind,MCBE_out),2,as.numeric)
-    MCBE_out <- cbind("sim"=nm_sim,as.data.frame(MCBE_out),
-                      sim_vectors
-                      # "Linf"=sim_Linf,"K"=sim_K, "t0"=sim_t0, "M"=sim_M, "Mage_scale"=sim_Masc,
-                      # "steep"=sim_steep,"rec_sigma"=sim_rec_sigma
+    sim_out <- apply(do.call(rbind,sim_out),2,as.numeric)
+    sim_out <- cbind("sim"=nm_sim,as.data.frame(sim_out)
                       )
 
-    write.csv(x=MCBE_out,file=file.path(dir_bam_sim,"MCBE_results.csv"),row.names = FALSE)
+    write.csv(x=sim_out,file=file.path(dir_bam_sim,"MCBE_results.csv"),row.names = FALSE)
 
     ### Return stuff
-    invisible(MCBE_out)
+    invisible(sim_out)
 
   } # end if(run_sim)
 

@@ -377,6 +377,44 @@ registerDoParallel(cl)
     writeLines(text=bam_i$tpl, con=gsub("dat$","tpl",fileName_dat_i))
     writeLines(text=bam_i$dat, con=fileName_dat_i)
 
+  #   #######Run bam for sim_i
+  #   shell(paste(fileName_exe_i, admb_switch_sim, fileName_dat_i, sep=" "))
+  #
+  #   par_i <- readLines(fileName_par_i)
+  #   lk_total_i <- gsub("^.*Objective function value = (.*)  Maximum.*$","\\1",par_i[1])
+  #   grad_max_i <- gsub("^.*component = ","\\1",par_i[1])
+  #
+  #   if(!is.na(as.numeric(lk_total_i))){ # If the total likelihood of the model was a numeric result
+  #   # Subset rdat to decrease size on disk
+  #   rdat_i <- dget(file=fileName_rdat_i)
+  #   for(nm_k in names(subset_rdat)){
+  #     k <- rdat_i[[nm_k]]
+  #     if(is.null(subset_rdat[[nm_k]])){
+  #       rdat_i[[nm_k]] <- NULL
+  #     }else{
+  #       rdat_i[[nm_k]] <- k[seq(1,nrow(k),length=subset_rdat[[nm_k]]),,drop=FALSE]
+  #     }
+  #   }
+  #   # Save file over previous
+  #   dput(x=rdat_i,file=fileName_rdat_i)
+  #   file_to <- file.path("..",dir_bam_sim)
+  #   }else{
+  #     file_to <- file.path("..",dir_bam_sim_fail)
+  #     if(!dir.exists(file_to)){
+  #       dir.create(file_to)
+  #     }
+  #   }
+  #
+  #   ########## Copy data files to folder
+  #   file.copy(from=c(fileName_dat_i,fileName_rdat_i),
+  #             to=file_to,
+  #             overwrite = TRUE)
+  #
+  #   #######Remove individual processing folders
+  #   setwd(wd)
+  #   unlink(sim_dir_i, recursive=T)
+  #
+  # return(setNames(c(lk_total_i,grad_max_i),c("lk_total","grad_max")))
     #######Run bam for sim_i
     shell(paste(fileName_exe_i, admb_switch_sim, fileName_dat_i, sep=" "))
 
@@ -385,20 +423,43 @@ registerDoParallel(cl)
     grad_max_i <- gsub("^.*component = ","\\1",par_i[1])
 
     if(!is.na(as.numeric(lk_total_i))){ # If the total likelihood of the model was a numeric result
-    # Subset rdat to decrease size on disk
-    rdat_i <- dget(file=fileName_rdat_i)
-    for(nm_k in names(subset_rdat)){
-      k <- rdat_i[[nm_k]]
-      if(is.null(subset_rdat[[nm_k]])){
-        rdat_i[[nm_k]] <- NULL
-      }else{
-        rdat_i[[nm_k]] <- k[seq(1,nrow(k),length=subset_rdat[[nm_k]]),,drop=FALSE]
+      rdat_i <- dget(file=fileName_rdat_i)
+      # Collect the most important values from rdat
+      parms_i <- unlist(rdat_i$parms)
+
+      parm.cons.result_i <- unlist(lapply(rdat_i$parm.cons,function(x){x[8]}))
+      like_i <- rdat_i$like
+      sdnr_i <- rdat_i$sdnr
+      vals_i <- c(parms_i[!names(parms_i)%in%names(parm.cons.result_i)],
+                  parm.cons.result_i,
+                  like_i,
+                  sdnr_i)
+
+
+
+      # Subset rdat to decrease size on disk
+      for(nm_k in names(subset_rdat)){
+        k <- rdat_i[[nm_k]]
+        if(is.null(subset_rdat[[nm_k]])){
+          rdat_i[[nm_k]] <- NULL
+        }else{
+          rdat_i[[nm_k]] <- k[seq(1,nrow(k),length=subset_rdat[[nm_k]]),,drop=FALSE]
+        }
       }
-    }
-    # Save file over previous
-    dput(x=rdat_i,file=fileName_rdat_i)
-    file_to <- file.path("..",dir_bam_sim)
+      # Save file over previous
+      dput(x=rdat_i,file=fileName_rdat_i)
+      file_to <- file.path("..",dir_bam_sim)
     }else{
+      rdat_i <- rdat_base
+      # Collect the most important values from rdat
+      parms_i <- unlist(rdat_i$parms)
+      parm.cons.result_i <- unlist(lapply(rdat_i$parm.cons,function(x){x[8]}))
+      like_i <- rdat_i$like
+      sdnr_i <- rdat_i$sdnr
+      vals_i <- c(parms_i[!names(parms_i)%in%names(parm.cons.result_i)],
+                  parm.cons.result_i,
+                  like_i,
+                  sdnr_i)*NA
       file_to <- file.path("..",dir_bam_sim_fail)
       if(!dir.exists(file_to)){
         dir.create(file_to)
@@ -414,7 +475,7 @@ registerDoParallel(cl)
     setwd(wd)
     unlink(sim_dir_i, recursive=T)
 
-  return(setNames(c(lk_total_i,grad_max_i),c("lk_total","grad_max")))
+    return(c(setNames(c(lk_total_i,grad_max_i),c("lk_total","grad_max")),vals_i))
   } #end retrospective analysis foreach loop
 
 

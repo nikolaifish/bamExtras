@@ -8,8 +8,8 @@
 An object of class \code{"list"}
 }
 \source{
-SEDAR 56 Stock Assessment Report South Atlantic Black Sea Bass
-(\href{http://sedarweb.org/docs/sar/S56_SA_BSB_SAR_FINAL_4.6.2018.pdf}{PDF})
+SEDAR 76 Stock Assessment Report South Atlantic Black Sea Bass
+(\href{https://sedarweb.org/documents/sedar-76-stock-assessment-report-south-atlantic-black-sea-bass/}{PDF})
 }
 \usage{
 rdat_BlackSeaBass

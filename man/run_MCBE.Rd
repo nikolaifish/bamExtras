@@ -29,7 +29,12 @@ run_MCBE(
     "rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)", Dmort =
     "apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))})", Pfa =
     "runif(nsim,Pfa_min,Pfa_max)", Pfb = "runif(nsim,Pfb_min,Pfb_max)", Pfma =
-    "runif(nsim,Pfma_min,Pfma_max)", Pfmb = "runif(nsim,Pfmb_min,Pfmb_max)"),
+    "runif(nsim,Pfma_min,Pfma_max)", Pfmb = "runif(nsim,Pfmb_min,Pfmb_max)", fecpar_a =
+    "runif(nsim,fecpar_a_min,fecpar_a_max)", 
+     fecpar_b =
+    "runif(nsim,fecpar_b_min,fecpar_b_max)", fecpar_c =
+    "runif(nsim,fecpar_c_min,fecpar_c_max)", fecpar_batches_sc =
+    "runif(nsim,sclim_gen[1],sclim_gen[1])"),
   repro_sim = list(P_repro = 0.1, nagecfishage = 10),
   fix_par = c(),
   coresUse = NULL,

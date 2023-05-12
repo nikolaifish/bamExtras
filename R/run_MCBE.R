@@ -142,7 +142,7 @@ run_MCBE <- function(CommonName = NULL,
                        fecpar_a= "runif(nsim,fecpar_a_min,fecpar_a_max)",
                        fecpar_b= "runif(nsim,fecpar_b_min,fecpar_b_max)",
                        fecpar_c= "runif(nsim,fecpar_c_min,fecpar_c_max)",
-                       fecpar_batches_sc="runif(nsim,sclim_gen[1],sclim_gen[1])",    # scalars, not actual parameter values
+                       fecpar_batches_sc="runif(nsim,sclim_gen[1],sclim_gen[1])"    # scalars, not actual parameter values
                      ),
                      repro_sim= list(P_repro = 0.10,
                                      nagecfishage = 10
@@ -281,7 +281,6 @@ run_MCBE <- function(CommonName = NULL,
                 fecpar_b= sclim_gen,
                 fecpar_c= sclim_gen,
                 fecpar_batches_sc=sclim_gen
-
   )
 
   sclim <- modifyList(sclim_default,sclim_user)
@@ -324,10 +323,14 @@ run_MCBE <- function(CommonName = NULL,
   K <- as.numeric(init$set_K[1])
   t0 <- as.numeric(init$set_t0[1])
 
-  fecpar_a <- if(fecpar_a_is){as.numeric(init$fecpar_a)}else{NULL}
-  fecpar_b <- if(fecpar_b_is){as.numeric(init$fecpar_b)}else{NULL}
-  fecpar_c <- if(fecpar_c_is){as.numeric(init$fecpar_c)}else{NULL}
-  fecpar_batches <- if(fecpar_batches_is){as.numeric(init$fecpar_batches)}else{NULL}
+  fecpar_a <- if(fecpar_a_is){as.numeric(init$fecpar_a)}else{NA}
+  fecpar_b <- if(fecpar_b_is){as.numeric(init$fecpar_b)}else{NA}
+  fecpar_c <- if(fecpar_c_is){as.numeric(init$fecpar_c)}else{NA}
+  fecpar_batches <- if(fecpar_batches_is){
+    a <- init$fecpar_batches
+    class(a) <- "numeric"
+    a
+    }else{NA}
 
 
   if(M_constant_is){
@@ -621,20 +624,32 @@ run_MCBE <- function(CommonName = NULL,
     return(b)
   })
 
-  if(fecpar_a_is){
-    fecpar_a_sim <- eval(parse(text=fn_par$fecpar_a))
+  fecpar_a_sim <- if(fecpar_a_is){
+    eval(parse(text=fn_par$fecpar_a))
+  }else{
+    rep(NA,nsim)
+    }
+  fecpar_b_sim <- if(fecpar_b_is){
+    eval(parse(text=fn_par$fecpar_b))
+  }else{
+    rep(NA,nsim)
   }
-  if(fecpar_b_is){
-    fecpar_b_sim <- eval(parse(text=fn_par$fecpar_b))
-  }
-  if(fecpar_c_is){
-    fecpar_c_sim <- eval(parse(text=fn_par$fecpar_c))
+  fecpar_c_sim <- if(fecpar_c_is){
+    eval(parse(text=fn_par$fecpar_c))
+  }else{
+    rep(NA,nsim)
   }
 
   if(fecpar_batches_is){
     fecpar_batches_sc_sim <- eval(parse(text=fn_par$fecpar_batches_sc))
+    if(length(fecpar_batches)==1){
+      fecpar_batches_sim <- fecpar_batches_sc_sim*fecpar_batches
+    }else{
+      fecpar_batches_sim <- round(t(matrix(rep(fecpar_batches,nsim),ncol=nsim,dimnames=list(age=agebins,sim=nm_sim)))*fecpar_batches_sc_sim,ndigits)
+    }
+  }else{
+    fecpar_batches_sc_sim <- rep(NA,nsim)
   }
-
 
   ## Matrices (sim,age)
   # collected par values
@@ -649,7 +664,11 @@ run_MCBE <- function(CommonName = NULL,
                     Pfa=Pfa_sim,
                     Pfb=Pfb_sim,
                     Pfma=Pfma_sim,
-                    Pfmb=Pfmb_sim
+                    Pfmb=Pfmb_sim,
+                    fecpar_a=fecpar_a_sim,
+                    fecpar_b=fecpar_b_sim,
+                    fecpar_c=fecpar_c_sim,
+                    fecpar_batches_sc=fecpar_batches_sc_sim
     )
     if(Dmort_is) {b <- cbind(a,Dmort_sim)
     }else{
@@ -1029,6 +1048,17 @@ run_MCBE <- function(CommonName = NULL,
         init_i$obs_maturity_f <- matrix(Pfm_sim[i,],byrow=TRUE,nrow=nrow(a),ncol=ncol(a),dimnames=dimnames(a))
       }else{
         init_i$obs_maturity_f <- Pfm_sim[i,]
+      }
+
+      if(fecpar_a_is){init_i$fecpar_a <- fecpar_a_sim[i]}
+      if(fecpar_b_is){init_i$fecpar_b <- fecpar_b_sim[i]}
+      if(fecpar_c_is){init_i$fecpar_c <- fecpar_c_sim[i]}
+      if(fecpar_batches_is){
+        init_i$fecpar_batches <- if(is.matrix(fecpar_batches_sim)){
+          fecpar_batches_sim[i,]
+        }else{
+          fecpar_batches_sim[i]
+        }
       }
 
       ##### Bootstrap #####

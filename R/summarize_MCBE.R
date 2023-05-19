@@ -7,7 +7,7 @@
 #' are .rdat files in \code{dir_bam_sim} other than the MCBE output files. Otherwise, this function
 #' will try to read all .rdat files.
 #' @param obj_collect Names of objects in MCBE rdat files to collect and summarize
-#' @param coresUse Number of cores to use when running parallel processes
+#' @param obj_labels list of names for each value of each parameter in parm.cons
 #' @returns list of summarized outputs, most of which are named similar to typical BAM output (rdat) files.
 #' This list can be passed to \code{plot_MCBE} to make a variety of useful plots
 #' @keywords bam MCBE stock assessment fisheries
@@ -26,8 +26,13 @@ summarize_MCBE <- function(dir_bam_sim="sim",
                            dir_bam_base="base",
                            nm_model="",
                            obj_collect = c("info","parms","like","spr.brps","mse",
-                                           "a.series","t.series","N.age","Z.age",
-                                           "sel.age")
+                                           "a.series","t.series","parm.cons",
+                                           "N.age","Z.age","sel.age"),
+                           obj_labels = list(parm.cons = c("init", "lower", "upper", "phase",
+                                                           "prior_mean","prior_var", "prior_pdf",
+                                                           "out")
+                           ),
+                           coresUse = NULL
                      ){
 
 # Test args
@@ -37,8 +42,8 @@ summarize_MCBE <- function(dir_bam_sim="sim",
 # obj_collect = c("info","parms","like","spr.brps","a.series","t.series","sel.age","N.age","Z.age","mse")
 
 #######################
-  library(doParallel)
-  library(foreach)
+library(doParallel)
+library(foreach)
 
 #### parallel setup
 if(is.null(coresUse)){
@@ -79,6 +84,7 @@ spp1 <- dget(paste(dir_bam_sim,simFilesRdat[1],sep="/"))
 
 a.series.names <- names(spp1$a.series)
 t.series.names <- names(spp1$t.series)
+parm.cons.names <- names(spp1$parm.cons)
 ages <- spp1$a.series$age
 years <- spp1$t.series$year
 
@@ -282,6 +288,20 @@ if("Z.age"%in%obj_collect){
   }
   names(L.sim.Z.age) <- Z.age.dn2
   out.Z.age <- L.sim.Z.age
+}
+
+if("parm.cons"%in%obj_collect){
+  # parm.cons
+  L.sim.parm.cons <- foreach(i=seq_along(parm.cons.names),
+                            .multicombine=TRUE
+  ) %dopar% {
+    a <- lapply(simSummary,FUN=function(x){x[["parm.cons"]][[parm.cons.names[i]]]})
+    b <- do.call(rbind.data.frame,a)
+    names(b) <- obj_labels$parm.cons # Rename columns
+    return(b)
+  }
+  names(L.sim.parm.cons) <- parm.cons.names
+  out.parm.cons <- L.sim.parm.cons
 }
 
 ## Lists

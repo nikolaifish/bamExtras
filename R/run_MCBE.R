@@ -34,6 +34,7 @@
 #' @param coresUse number of cores to use for parallel processing
 #' @param ndigits number of digits to round simulated values to
 #' @param unlink_dir_bam_base Should dir_bam_base be deleted after this function is run?
+#' @param unlink_dir_bam_sim  Should dir_bam_sim be deleted after this function is run?
 #' @param run_bam_base If FALSE, the function will look for an executable named fileName.exe in dir_bam_base and use it as the base model.
 # If TRUE and overwrite_bam_base=TRUE, the function will call run_bam.
 #' @param overwrite_bam_base If FALSE, the files in dir_bam_base will not be overwritten if run_bam_base=TRUE
@@ -152,6 +153,7 @@ run_MCBE <- function(CommonName = NULL,
                      coresUse=NULL,
                      ndigits=4,
                      unlink_dir_bam_base=FALSE,
+                     unlink_dir_bam_sim=FALSE,
                      run_bam_base=TRUE,
                      overwrite_bam_base=TRUE,
                      admb_switch_base = '-nox',
@@ -651,6 +653,16 @@ run_MCBE <- function(CommonName = NULL,
     fecpar_batches_sc_sim <- rep(NA,nsim)
   }
 
+  # Custom fn_par
+  fn_par_custom <- fn_par_user[!names(fn_par_user)%in%names(fn_par_default)]
+  par_sim_custom <- list()
+  if(length(fn_par_custom)>0){
+    for(i in seq_along(fn_par_custom)){
+      par_sim_custom[[i]] <- setNames(eval(parse(text=fn_par_custom[[i]])),nm_sim)
+    }
+    names(par_sim_custom) <- names(fn_par_custom)
+  }
+
   ## Matrices (sim,age)
   # collected par values
   par_sim <- local({
@@ -1061,6 +1073,18 @@ run_MCBE <- function(CommonName = NULL,
         }
       }
 
+      # Add values from custom parameters
+      for(j in seq_along(par_sim_custom)){
+        nm_j <- names(par_sim_custom)[j]
+        x_j <- init_i[[nm_j]]
+        par_ji <- par_sim_custom[[nm_j]][[i]] # New par value
+        if(length(x_j)==1){
+          init_i[[nm_j]] <- par_ji
+        }else if(length(x_j)==7){
+          init_i[[nm_j]][c(1,5)] <- par_ji
+        }
+      }
+
       ##### Bootstrap #####
       spf <- paste0("%01.",ndigits,"f")
       # Add indices (cpue)
@@ -1206,6 +1230,11 @@ run_MCBE <- function(CommonName = NULL,
                       )
 
     write.csv(x=sim_out,file=file.path(dir_bam_sim,"MCBE_results.csv"),row.names = FALSE)
+
+    if(unlink_dir_bam_sim){
+      # delete a directory -- must add recursive = TRUE
+      unlink(dir_bam_sim, recursive = TRUE)
+    }
 
     ### Return stuff
     invisible(sim_out)

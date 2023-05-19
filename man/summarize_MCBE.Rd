@@ -9,7 +9,10 @@ summarize_MCBE(
   dir_bam_base = "base",
   nm_model = "",
   obj_collect = c("info", "parms", "like", "spr.brps", "mse", "a.series", "t.series",
-    "N.age", "Z.age", "sel.age")
+    "parm.cons", "N.age", "Z.age", "sel.age"),
+  obj_labels = list(parm.cons = c("init", "lower", "upper", "phase", "prior_mean",
+    "prior_var", "prior_pdf", "out")),
+  coresUse = NULL
 )
 }
 \arguments{
@@ -24,7 +27,7 @@ will try to read all .rdat files.}
 
 \item{obj_collect}{Names of objects in MCBE rdat files to collect and summarize}
 
-\item{coresUse}{Number of cores to use when running parallel processes}
+\item{obj_labels}{list of names for each value of each parameter in parm.cons}
 }
 \value{
 list of summarized outputs, most of which are named similar to typical BAM output (rdat) files.

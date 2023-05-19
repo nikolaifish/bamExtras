@@ -40,6 +40,7 @@ run_MCBE(
   coresUse = NULL,
   ndigits = 4,
   unlink_dir_bam_base = FALSE,
+  unlink_dir_bam_sim = FALSE,
   run_bam_base = TRUE,
   overwrite_bam_base = TRUE,
   admb_switch_base = "-nox",
@@ -98,6 +99,8 @@ run_MCBE(
 \item{ndigits}{number of digits to round simulated values to}
 
 \item{unlink_dir_bam_base}{Should dir_bam_base be deleted after this function is run?}
+
+\item{unlink_dir_bam_sim}{Should dir_bam_sim be deleted after this function is run?}
 
 \item{run_bam_base}{If FALSE, the function will look for an executable named fileName.exe in dir_bam_base and use it as the base model.}
 

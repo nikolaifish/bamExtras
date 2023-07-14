@@ -6,6 +6,7 @@
 \usage{
 standardize_bam(
   CommonName = NULL,
+  bam = NULL,
   dat_file = NULL,
   tpl_file = NULL,
   cxx_file = NULL,
@@ -27,6 +28,8 @@ standardize_bam(
 }
 \arguments{
 \item{CommonName}{Common name of species modeled in BAM files. Only used when accessing dat, tpl, and cxx character vectors named as e.g. dat_CommonName}
+
+\item{bam}{Output of \code{bam2r}.}
 
 \item{dat_file}{dat file path}
 

@@ -28,22 +28,25 @@
 #' @param sclim Optional list of scalars for computing point parameter limits. By default, limits are (generically) computed using sclim_gen. Numeric vectors of length 2, usually centered around 1. e.g. sclim = list(M_constant=c(0.9,1.1), steep=(c(0.8,1.2))). Note that if M_constant is not available in the base model output, sclim$M_constant values will be used to scale M at age.
 #' @param data_type_resamp character vector of abbreviations for types of data sets that should be resampled in the MCBE simulations. L = landings, D = discards, U = cpue indices, age = age compositions, len = length compositions. If you don't want to resample any of the data sets, set data_type_resamp = c().
 #' @param fn_par List of character strings used to simulate values of fixed parameters (see \code{Details}). Strings are internally passed to \code{eval(parse(text=mystring))}. Functions should produce vectors of length nsim, or in some cases matrices with nrow nsim.
-#' @param repro_sim List of settings to be used to simulate reproductive data sets. \code{P_repro} defines the proportion of age comps for which reproductive data are available.  \code{nagecfishage} is the assumed number of age samples per age, used only if age comp data is not found in BAM.
+#' @param repro_sim List of settings to be used to simulate reproductive data sets. Set to NULL to shut it off. \code{P_repro} defines the proportion of age comps for which reproductive data are available.  \code{nagecfishage} is the assumed number of age samples per age, used only if age comp data is not found in BAM.
 #' @param fix_par Optional character vector of parameter names to fix in the simulations using tpl init object names with a phase setting (e.g. "set_M_constant", "set_steep"). This is mostly used for running sensitivities and parameter profiles. Note that this has no effect on the base model.
 #' @param subset_rdat  Subset objects in sim rdat files. Value should be a list of the object names and either a numeric value indicating how many evenly spaced rows to include in the subset of a matrix, or NULL to set the object to NULL
-#' @param coresUse number of cores to use for parallel processing
+#' @param ncores number of cores to use for parallel processing
 #' @param ndigits number of digits to round simulated values to
 #' @param unlink_dir_bam_base Should dir_bam_base be deleted after this function is run?
 #' @param unlink_dir_bam_sim  Should dir_bam_sim be deleted after this function is run?
 #' @param run_bam_base If FALSE, the function will look for an executable named fileName.exe in dir_bam_base and use it as the base model.
 # If TRUE and overwrite_bam_base=TRUE, the function will call run_bam.
 #' @param overwrite_bam_base If FALSE, the files in dir_bam_base will not be overwritten if run_bam_base=TRUE
-#' @param admb_switch_base Character string pasted to fileName to build \code{run_command} for the base model when running BAM with \code{shell(run_command)}
-#' (i.e. \code{run_command <- paste(fileName, admb_switch)})
-#' @param run_sim If FALSE, the simulated data will be generated but won't be used in new BAM runs
-#' @param admb_switch_sim ADMB code snippet used in shell script when running bam
+#' @param admb_options_base Character string pasted to fileName to build \code{run_command} for the base model when running BAM with \code{shell(run_command)}
+#' (i.e. \code{run_command <- paste(fileName, admb_options)})
+#' @param run_est Do you want to run the estimation model (BAM)? If FALSE, the simulated data will be generated but won't be used in new BAM runs
+#' @param sim_type_return Type of simulated data to return: "init" or "dat". Has no effect in run_est=TRUE.
+#' @param admb_options_sim ADMB code snippet used in shell script when running bam
 #' @param prompt_me Turn on/off prompts that ask for user input before deleting files.
-#' @param subset_rdat list of rdat objects to subset to decrease rdat file size
+#' @param subset_rdat list of rdat objects to subset and number of values to retain.
+#' This option can substantially decrease rdat file size, without affecting precision of
+#' reference point calculations.
 #' @param random_seed random seed value. If NULL, random seed is not set within the function.
 #' @details
 #' \strong{Estimating reproductive (sex and maturity) functions}
@@ -134,7 +137,7 @@ run_MCBE <- function(CommonName = NULL,
                        Linf = "runif(nsim,Linf_min,Linf_max)",
                        t0 = "runif(nsim,t0_min,t0_max)",
                        steep = "runif(nsim,steep_min,steep_max)",
-                       rec_sigma = "rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)",
+                       rec_sigma = "msm::rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)",
                        Dmort = "apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))})",
                        Pfa=    "runif(nsim,Pfa_min,Pfa_max)",
                        Pfb=    "runif(nsim,Pfb_min,Pfb_max)",
@@ -146,19 +149,21 @@ run_MCBE <- function(CommonName = NULL,
                        fecpar_batches_sc="runif(nsim,sclim_gen[1],sclim_gen[1])"    # scalars, not actual parameter values
                      ),
                      repro_sim= list(P_repro = 0.10,
-                                     nagecfishage = 10
+                                     nagecfishage = 10,
+                                     plot_fits = FALSE
                                      ),
                      fix_par = c(),
                      # parallel=TRUE, # Right now it has to be in parallel
-                     coresUse=NULL,
+                     ncores=NULL,
                      ndigits=4,
                      unlink_dir_bam_base=FALSE,
                      unlink_dir_bam_sim=FALSE,
                      run_bam_base=TRUE,
                      overwrite_bam_base=TRUE,
-                     admb_switch_base = '-nox',
-                     run_sim=TRUE,
-                     admb_switch_sim = '-est -nox -ind',
+                     admb_options_base = '-nox',
+                     run_est=TRUE,
+                     sim_type_return = "dat",
+                     admb_options_sim = '-est -nox -ind',
                      prompt_me=FALSE,
                      subset_rdat=list("eq.series"=101,"pr.series"=101),
                      random_seed=12345
@@ -170,9 +175,9 @@ run_MCBE <- function(CommonName = NULL,
                      #           "variance","*.dep","*.hes","*.tmp"))
 ){
   #######################
-  library(doParallel)
-  library(foreach)
-  library(msm)
+  # library(doParallel)
+  # library(foreach)
+  # library(msm)
 
   dir_bam_sim_fail <- paste0(dir_bam_sim,"_fail")
 
@@ -181,13 +186,13 @@ run_MCBE <- function(CommonName = NULL,
   }
 
   # parallel setup
-  if(is.null(coresUse)){
-    coresAvail <- detectCores()
-    coresUse <- coresAvail-1
+  if(is.null(ncores)){
+    coresAvail <- parallel::detectCores()
+    ncores <- coresAvail-1
   }
-  coresUse  <- min(c(coresUse,coresAvail))
-  cl <- makeCluster(coresUse)
-  registerDoParallel(cl)
+  ncores  <- min(c(ncores,coresAvail))
+  cl <- parallel::makeCluster(ncores)
+  doParallel::registerDoParallel(cl)
 
   nm_sim <- sprintf(paste("%0",nchar(nsim),".0f",sep=""),1:nsim)
 
@@ -241,17 +246,26 @@ run_MCBE <- function(CommonName = NULL,
       message(paste("The folder",paste0("'",dir_bam_base,"'"),"already exists."))
       if(overwrite_bam_base){
         message(paste("Since overwrite_bam_base = TRUE, files in ",dir_bam_base,"will be overwritten when run_bam is called"))
-        rdat_base <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)$rdat
+        rdat_base <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_options=admb_options_base)$rdat
       }else{
         message(paste("Since overwrite_bam_base = FALSE, run_bam will not be called to rerun the base run"))
         rdat_base <- dget(file.path(dir_bam_base,paste0(fileName,".rdat")))
       }
     }else{
       dir.create(dir_bam_base)
-      rdat_base <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)$rdat
+      rdat_base <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_options=admb_options_base)$rdat
 
     }
+  }else if(!is.null(CommonName)){
+    rdat_base <- get(paste0("rdat_",CommonName))
   }else{
+    nm_rdat_base <- paste0(fileName,".rdat")
+    #message(paste("Looking for",nm_rdat_base,"in directory:",dir_bam_base))
+    if(nm_rdat_base%in%list.files(file.path(dir_bam_base))){
+      message(paste("Found",nm_rdat_base,"in directory:",dir_bam_base))
+    }else{
+      message(paste("Did not find",nm_rdat_base,"in directory:",dir_bam_base))
+    }
     rdat_base <- dget(file.path(dir_bam_base,paste0(fileName,".rdat")))
   }
 
@@ -259,9 +273,11 @@ run_MCBE <- function(CommonName = NULL,
   comp.mats <- rdat_base$comp.mats
   t.series <- rdat_base$t.series
 
-  P_repro <- repro_sim$P_repro
-  nagecfishage <- repro_sim$nagecfishage
-
+  if(!is.null(repro_sim)){
+    P_repro <- repro_sim$P_repro
+    nagecfishage <- repro_sim$nagecfishage
+    plot_fits_repro <- repro_sim$plot_fits
+  }
 
   ##############################
   ## Conduct Monte Carlo draws and bootstrap data
@@ -325,6 +341,8 @@ run_MCBE <- function(CommonName = NULL,
   K <- as.numeric(init$set_K[1])
   t0 <- as.numeric(init$set_t0[1])
 
+  # set defaults
+  Pfa <- Pfb <- Pfma <- Pfmb <- NA
   fecpar_a <- if(fecpar_a_is){as.numeric(init$fecpar_a)}else{NA}
   fecpar_b <- if(fecpar_b_is){as.numeric(init$fecpar_b)}else{NA}
   fecpar_c <- if(fecpar_c_is){as.numeric(init$fecpar_c)}else{NA}
@@ -392,6 +410,7 @@ run_MCBE <- function(CommonName = NULL,
       setNames(rep(nagecfishage,length(init$obs_prop_f)),names(init$obs_prop_f))
     }
 
+  # General repro stuff (should work whether or not repro_sim is TRUE)
   # Proportion female
   Pf <- local({
     a <- init$obs_prop_f
@@ -404,65 +423,7 @@ run_MCBE <- function(CommonName = NULL,
     class(a) <- "numeric"
     a
   })
-  nrepro <- local({
-    agec_agemax <- max(as.numeric(names(nagec_pool)))
-    a <- round(nagec_pool*P_repro) # estimated number of repro samples
-
-    # If any ages in Pf are older than in agec, spread out the n fish from the
-    # oldest age of agec among that age and the older ages
-    if(any(as.numeric(names(Pf))>agec_agemax)){
-      ages2add <- names(Pf)[which(as.numeric(names(Pf))>=agec_agemax)]
-      Nage_est <- setNames(bamExtras::exp_decay(age=as.numeric(names(Pf)),Z=as.numeric(init[["set_M"]]),N0=1),names(Pf))
-      nagec_plus <- tail(a,1)
-      Page_plus <- Nage_est[ages2add]*nagec_plus
-      nrepro2add <- round(nagec_plus*(Page_plus/sum(Page_plus)))
-      a <- c(a[1:(length(a)-1)],nrepro2add)
-    }
-    a
-  })
-
-
   age_Pf <- as.numeric(names(Pf))
-  # Check for atypical situations
-  Pf_constant <- ifelse(length(unique(Pf))==1,TRUE,FALSE)
-  Pf_binary <-   ifelse((all(Pf%in%c(0,1))),TRUE,FALSE)
-  if(Pf_constant){ # If all values are the same
-    Pfa <- unique(Pf)
-    Pfb <- NA
-    warning(paste("all values of Pf are equal to",Pfa,". Will not attempt to estimate logistic function."))
-  }else if(Pf_binary){ # If all values are either 0 or 1
-    Pfa <- NA
-    Pfb <- mean(c(max(age_Pf[which(Pf==0)]),min(age_Pf[which(Pf==1)])))
-    warning(paste("all values of Pf are either 0 or 1. Will not attempt to estimate logistic function. a50 is approximately",Pfb))
-  }
-
-  # Estimate logistic relationship if possible
-  if(!any(c(Pf_constant,Pf_binary))){
-
-  data_Pf <- local({
-    y1 <- round(nrepro*Pf)
-    y0 <- nrepro-y1
-    x <- age_Pf
-    data.frame(x=c(rep(x,y0),rep(x,y1)), y=c(rep(0,sum(y0)),rep(1,sum(y1))))
-  })
-  # logistic fit to prop_f
-  fit_Pf <- glm(y~x,data=data_Pf,family="binomial")
-  coef_Pf <- setNames(coef(fit_Pf),c("intercept","slope"))
-  intercept_Pf <- coef_Pf[[1]]
-  Pfa <- slope_Pf <- coef_Pf[[2]]
-  Pfb <- a50_Pf <- max(-1e6,as.numeric(coef_Pf[[1]]/-coef_Pf[[2]])) # don't let it be -Inf, as when Pf is a constant 0.5
-  Pf_pr <- lgs(x=age_Pf,a=Pfa,b=Pfb)
-
-  # Plot observed values and prediction
-  plot(age_Pf,Pf,xlab="age",ylab="proportion female",ylim=c(0,1))
-  lines(age_Pf,Pf_pr)
-  }
-
-  # NOTE: Code to make random draws of parameters from multivariate normal distribution
-  # mvtnorm::rmvnorm(n=nsim, mean=coef_Pf, sigma=vcov(fit_Pf), method="chol")
-
-  # Female maturity
-  nf <- round(nrepro*Pf)  # estimated number of females
 
   Pfm <- local({
     a <- init$obs_maturity_f
@@ -474,43 +435,110 @@ run_MCBE <- function(CommonName = NULL,
     }
     class(a) <- "numeric"
     a
-    })
-
+  })
 
   age_Pfm <- as.numeric(names(Pfm))
-  # Check for atypical situations
-  Pfm_constant <- ifelse(length(unique(Pfm))==1,TRUE,FALSE)
-  Pfm_binary <-   ifelse((all(Pfm%in%c(0,1))),TRUE,FALSE)
-  if(Pfm_constant){ # If all values are the same
-    Pfma <- unique(Pfm)
-    Pfmb <- NA
-    warning(paste("all values of Pfm are equal to",Pfma,". Will not attempt to estimate logistic function."))
-  }else if(Pfm_binary){ # If all values are either 0 or 1
-    Pfma <- NA
-    Pfmb <- mean(c(max(age_Pfm[which(Pfm==0)]),min(age_Pfm[which(Pfm==1)])))
-    warning(paste("all values of Pfm are either 0 or 1. Will not attempt to estimate logistic function. a50 is approximately",Pfmb))
+
+  ### repro_sim stuff
+  if(!is.null(repro_sim)){
+    nrepro <- local({
+      agec_agemax <- max(as.numeric(names(nagec_pool)))
+      a <- round(nagec_pool*P_repro) # estimated number of repro samples
+
+      # If any ages in Pf are older than in agec, spread out the n fish from the
+      # oldest age of agec among that age and the older ages
+      if(any(as.numeric(names(Pf))>agec_agemax)){
+        ages2add <- names(Pf)[which(as.numeric(names(Pf))>=agec_agemax)]
+        Nage_est <- setNames(bamExtras::exp_decay(age=as.numeric(names(Pf)),Z=as.numeric(init[["set_M"]]),N0=1),names(Pf))
+        nagec_plus <- tail(a,1)
+        Page_plus <- Nage_est[ages2add]*nagec_plus
+        nrepro2add <- round(nagec_plus*(Page_plus/sum(Page_plus)))
+        a <- c(a[1:(length(a)-1)],nrepro2add)
+      }
+      a
+    })
+
+    # Check for atypical situations
+    Pf_constant <- ifelse(length(unique(Pf))==1,TRUE,FALSE)
+    Pf_binary <-   ifelse((all(Pf%in%c(0,1))),TRUE,FALSE)
+    if(Pf_constant){ # If all values are the same
+      Pfa <- unique(Pf)
+      Pfb <- NA
+      warning(paste("all values of Pf are equal to",Pfa,". Will not attempt to estimate logistic function."))
+    }else if(Pf_binary){ # If all values are either 0 or 1
+      Pfa <- NA
+      Pfb <- mean(c(max(age_Pf[which(Pf==0)]),min(age_Pf[which(Pf==1)])))
+      warning(paste("all values of Pf are either 0 or 1. Will not attempt to estimate logistic function. a50 is approximately",Pfb))
+    }
+
+    # Estimate logistic relationship if possible
+    if(!any(c(Pf_constant,Pf_binary))){
+
+      data_Pf <- local({
+        y1 <- round(nrepro*Pf)
+        y0 <- nrepro-y1
+        x <- age_Pf
+        data.frame(x=c(rep(x,y0),rep(x,y1)), y=c(rep(0,sum(y0)),rep(1,sum(y1))))
+      })
+      # logistic fit to prop_f
+      fit_Pf <- glm(y~x,data=data_Pf,family="binomial")
+      coef_Pf <- setNames(coef(fit_Pf),c("intercept","slope"))
+      intercept_Pf <- coef_Pf[[1]]
+      Pfa <- slope_Pf <- coef_Pf[[2]]
+      Pfb <- a50_Pf <- max(-1e6,as.numeric(coef_Pf[[1]]/-coef_Pf[[2]])) # don't let it be -Inf, as when Pf is a constant 0.5
+      Pf_pr <- lgs(x=age_Pf,a=Pfa,b=Pfb)
+
+      # Plot observed values and prediction
+      if(plot_fits_repro){
+        plot(age_Pf,Pf,xlab="age",ylab="proportion female",ylim=c(0,1))
+        lines(age_Pf,Pf_pr)
+      }
+    }
+
+    # NOTE: Code to make random draws of parameters from multivariate normal distribution
+    # mvtnorm::rmvnorm(n=nsim, mean=coef_Pf, sigma=vcov(fit_Pf), method="chol")
+
+    # Female maturity
+    nf <- round(nrepro*Pf)  # estimated number of females
+
+    # Check for atypical situations
+    Pfm_constant <- ifelse(length(unique(Pfm))==1,TRUE,FALSE)
+    Pfm_binary <-   ifelse((all(Pfm%in%c(0,1))),TRUE,FALSE)
+    if(Pfm_constant){ # If all values are the same
+      Pfma <- unique(Pfm)
+      Pfmb <- NA
+      warning(paste("all values of Pfm are equal to",Pfma,". Will not attempt to estimate logistic function."))
+    }else if(Pfm_binary){ # If all values are either 0 or 1
+      Pfma <- NA
+      Pfmb <- mean(c(max(age_Pfm[which(Pfm==0)]),min(age_Pfm[which(Pfm==1)])))
+      warning(paste("all values of Pfm are either 0 or 1. Will not attempt to estimate logistic function. a50 is approximately",Pfmb))
+    }
+
+    # Estimate logistic relationship if possible
+    if(!any(c(Pfm_constant,Pfm_binary))){
+      data_Pfm <- local({
+        y1 <- round(nf*Pfm)
+        y0 <- nf-y1
+        x <- age_Pfm
+        data.frame(x=c(rep(x,y0),rep(x,y1)), y=c(rep(0,sum(y0)),rep(1,sum(y1))))
+      })
+      # logistic fit to prop_f
+      fit_Pfm <- glm(y~x,data=data_Pfm,family="binomial")
+      coef_Pfm <- setNames(coef(fit_Pfm),c("intercept","slope"))
+      intercept_Pfm <- coef_Pfm[[1]]
+      Pfma <- coef_Pfm[[2]]
+      Pfmb <- as.numeric(coef_Pfm[[1]]/-coef_Pfm[[2]])
+      Pfm_pr <- lgs(x=age_Pfm,a=Pfma,b=Pfmb)
+
+      # Plot observed values and prediction
+      if(plot_fits_repro){
+        plot(age_Pfm,Pfm,xlab="age",ylab="proportion female mature",ylim=c(0,1))
+        lines(age_Pfm,Pfm_pr)
+      }
+    }
+  }else{ # end of repro_sim stuff
+
   }
-
-  # Estimate logistic relationship if possible
-  if(!any(c(Pfm_constant,Pfm_binary))){
-  data_Pfm <- local({
-    y1 <- round(nf*Pfm)
-    y0 <- nf-y1
-    x <- age_Pfm
-    data.frame(x=c(rep(x,y0),rep(x,y1)), y=c(rep(0,sum(y0)),rep(1,sum(y1))))
-  })
-  # logistic fit to prop_f
-  fit_Pfm <- glm(y~x,data=data_Pfm,family="binomial")
-  coef_Pfm <- setNames(coef(fit_Pfm),c("intercept","slope"))
-  intercept_Pfm <- coef_Pfm[[1]]
-  Pfma <- coef_Pfm[[2]]
-  Pfmb <- as.numeric(coef_Pfm[[1]]/-coef_Pfm[[2]])
-  Pfm_pr <- lgs(x=age_Pfm,a=Pfma,b=Pfmb)
-
-  # Plot observed values and prediction
-  plot(age_Pfm,Pfm,xlab="age",ylab="proportion female mature",ylim=c(0,1))
-  lines(age_Pfm,Pfm_pr)
-}
 
   # compute limits of parameter values
   Linf_lim  <- Linf*sclim$Linf
@@ -577,6 +605,17 @@ run_MCBE <- function(CommonName = NULL,
     Dmort_sim <- eval(parse(text=fn_par$Dmort))
   }
 
+  # Initialize
+  Pfa_sim <- Pfb_sim <- Pfma_sim <- Pfmb_sim <- rep(NA,nsim)
+
+  # These should have actual values if they are in the assessment
+  fecpar_a_sim <- rep(fecpar_a,nsim)
+  fecpar_b_sim <- rep(fecpar_b,nsim)
+  fecpar_c_sim <- rep(fecpar_c,nsim)
+  Pf_sim <-  matrix(Pf,nrow=nsim,ncol=length(age_Pf),dimnames=list(sim=nm_sim,age=age_Pf),byrow = TRUE)
+  Pfm_sim <- matrix(Pfm,nrow=nsim,ncol=length(age_Pfm),dimnames=list(sim=nm_sim,age=age_Pfm),byrow = TRUE)
+
+  if(!is.null(repro_sim)){
   # Proportion female (sex ratio)
   Pfa_sim <- if(!Pf_binary){eval(parse(text=fn_par$Pfa))}else{
     rep(NA,nsim)
@@ -600,7 +639,6 @@ run_MCBE <- function(CommonName = NULL,
     dimnames(b) <- list(sim=nm_sim,age=age_Pf)
     return(b)
   })
-
 
   # Proportion of females mature (maturity)
   Pfma_sim <- if(!Pfm_binary){eval(parse(text=fn_par$Pfma))}else{
@@ -641,7 +679,9 @@ run_MCBE <- function(CommonName = NULL,
   }else{
     rep(NA,nsim)
   }
+  } # end if(!is.null(repro_sim)){
 
+  # This should always work
   if(fecpar_batches_is){
     fecpar_batches_sc_sim <- eval(parse(text=fn_par$fecpar_batches_sc))
     if(length(fecpar_batches)==1){
@@ -758,11 +798,31 @@ run_MCBE <- function(CommonName = NULL,
     }
 
     if(any(c("U","cpue")%in%data_type_resamp)){
+
       message(paste("bootstrapping",nm_i))
-      sim_cpue_i <- lnorm_vector_boot(cpue_i,cv_cpue_i,nsim,
+      # look for negative values in observed data (e.g. missing values in bam dat coded as -999)
+      # and replace them with NA for bootstrapping
+      cpue_i2 <- cpue_i
+      cv_cpue_i2 <- cv_cpue_i
+      neg_cpue_ij <- which(cpue_i<0)
+      if(length(neg_cpue_ij)>0){
+        message(paste("Negative values found in",nm_i,"will be ignored when bootstrapping."))
+      }
+
+      neg_cv_cpue_ij <- which(cv_cpue_i<0)
+      if(length(neg_cv_cpue_ij)>0){
+        message(paste("Negative values found in",cv_cpue_nm_i,"will be ignored when bootstrapping."))
+      }
+
+      cpue_i2[neg_cpue_ij] <- NA
+      cv_cpue_i2[neg_cv_cpue_ij] <- NA
+
+      sim_cpue_i <- lnorm_vector_boot(cpue_i2,cv_cpue_i2,nsim,
                                       standardize=TRUE,digits=ndigits)
+      sim_cpue_i[neg_cpue_ij,] <- cpue_i[neg_cpue_ij] # replace NA with original negative values to run bam
+
     }else{
-      sim_cpue_i <- matrix(cpue_i,nrow=length(yrs_cpue_i),ncol=nsim)
+      sim_cpue_i <- matrix(cpue_i, nrow=length(yrs_cpue_i), ncol=nsim)
     }
     dimnames(sim_cpue_i) <- list("year"=yrs_cpue_i,"sim"=nm_sim)
     sim_cpue[[cpue_root_i]] <- sim_cpue_i
@@ -903,7 +963,7 @@ run_MCBE <- function(CommonName = NULL,
 
       if(any(c("age","agec")%in%data_type_resamp)){
         message(paste("bootstrapping",paste0("obs_agec_",agec_root_i)))
-        sim_acomp_i <- foreach(i=1:nsim) %dopar% {
+        sim_acomp_i <- foreach::foreach(i=1:nsim) %dopar% {
           out <- apply(x_i,1,function(y){
             if(sum(y[names(y)!="nfish"])>0&y["nfish"]>0){
               ages_y <- sample(x=agebins_acomp_i, size=y["nfish"], replace=TRUE, prob=y[paste(agebins_acomp_i)])
@@ -955,7 +1015,7 @@ run_MCBE <- function(CommonName = NULL,
 
       if(any(c("len","lenc")%in%data_type_resamp)){
         message(paste("bootstrapping",paste0("obs_lenc_",lenc_root_i)))
-        sim_lcomp_i <- foreach(i=1:nsim) %dopar% {
+        sim_lcomp_i <- foreach::foreach(i=1:nsim) %dopar% {
           out <- apply(x_i,1,function(y){
             if(sum(y[names(y)!="nfish"])>0&y["nfish"]>0){
               lens_y <- sample(x=lenbins_lcomp_i, size=y["nfish"], replace=TRUE, prob=y[paste(lenbins_lcomp_i)])
@@ -978,12 +1038,152 @@ run_MCBE <- function(CommonName = NULL,
     message("No length compositions found in the base model (i.e. no names(init) beginning with obs_lenc).")
   }
 
+  ###########################
+  ## Build list of init objects for all sim
+
+  sim_out <- foreach::foreach(i=1:nsim,
+                     #, .export = ls()[grepl("xboot.obs",ls())] # Pass additional objects to foreach
+                     .packages=c("bamExtras")
+  ) %dopar% {
+    nm_sim_i <- nm_sim[i]
+
+    init_i <- init # Copy init from base for each bootstrap run, to initialize
+
+    #%%%%  Modify init_i %%%%#
+
+    #%% Create Monte Carlo/bootstrap data set %%#
+    # Fix parameters
+    init_i[fix_par] <- lapply(init_i[fix_par],function(x){x["phase"] <- paste(-abs(as.numeric(x["phase"]))); x})
+
+
+    ##### Monte Carlo #####
+    # natural mortality
+    if(M_constant_is){
+      init_i$set_M_constant[c(1,5)] <- paste(par_sim$M_constant[i])
+    }
+    if("set_M"%in%names(init)){
+      init_i$set_M <- paste(Ma_sim[i,])
+    }
+
+    # Dmort
+    if(Dmort_is){
+      for(j in colnames(Dmort)){
+        set_Dmort_ij <- par_sim[i,j]
+        init_i[[j]] <- paste(set_Dmort_ij)
+      }
+    }
+
+    # steepness
+    init_i$set_steep[c(1,5)] <- paste(par_sim$steep[i])
+
+    # rec_sigma
+    init_i$set_rec_sigma[c(1,5)] <- paste(par_sim$rec_sigma[i])
+
+    # obs_prop_f
+    init_i$obs_prop_f <- Pf_sim[i,]
+
+    # # obs_maturity_f
+    # init_i$obs_maturity_f <- Pfm_sim[i,]
+    # obs_maturity_f
+    if(is.matrix(init_i$obs_maturity_f)){
+      a <- init_i$obs_maturity_f
+      init_i$obs_maturity_f <- matrix(Pfm_sim[i,],byrow=TRUE,nrow=nrow(a),ncol=ncol(a),dimnames=dimnames(a))
+    }else{
+      init_i$obs_maturity_f <- Pfm_sim[i,]
+    }
+
+    if(fecpar_a_is){init_i$fecpar_a <- fecpar_a_sim[i]}
+    if(fecpar_b_is){init_i$fecpar_b <- fecpar_b_sim[i]}
+    if(fecpar_c_is){init_i$fecpar_c <- fecpar_c_sim[i]}
+    if(fecpar_batches_is){
+      init_i$fecpar_batches <- if(is.matrix(fecpar_batches_sim)){
+        fecpar_batches_sim[i,]
+      }else{
+        fecpar_batches_sim[i]
+      }
+    }
+
+    # Add values from custom parameters
+    for(j in seq_along(par_sim_custom)){
+      nm_j <- names(par_sim_custom)[j]
+      x_j <- init_i[[nm_j]]
+      par_ji <- par_sim_custom[[nm_j]][[i]] # New par value
+      if(length(x_j)==1){
+        init_i[[nm_j]] <- par_ji
+      }else if(length(x_j)==7){
+        init_i[[nm_j]][c(1,5)] <- par_ji
+      }
+    }
+
+    ##### Bootstrap #####
+    spf <- paste0("%01.",ndigits,"f")
+    # Add indices (cpue)
+    for(nm_j in obs_cpue_nm){
+      cpue_root_j <- gsub("obs_cpue_","",nm_j)
+      init_i[[nm_j]] <- sprintf(spf,sim_cpue[[cpue_root_j]][,i])
+    }
+
+    # Add landings (L)
+    for(nm_j in obs_L_nm){
+      L_root_j <- gsub("obs_L_","",nm_j)
+      init_i[[nm_j]] <- sprintf(spf,sim_L[[L_root_j]][,i])
+    }
+
+    # Add discards (D)
+    if(length(obs_released_nm)>0){
+      for(nm_j in obs_released_nm){
+        released_root_j <- gsub("obs_released_","",nm_j)
+        init_i[[nm_j]] <- sprintf(spf,sim_D[[released_root_j]][,i])
+      }
+    }
+
+    # Add age comps
+    if(length(agec_nm)>0){
+      for(agec_root_j in agec_root){
+        # acomp_ob_nm_j <- paste0("acomp.",agec_root_j,".ob") # rdat naming convention
+        agec_nm_j <- gsub("\\.","\\_",paste0("obs_agec_",agec_root_j))    # tpl naming convention
+        agec_ij <- sim_acomp[[agec_root_j]][,,i,drop=FALSE]
+        dim_agec_ij <- dim(agec_ij)
+        agec_ij <- matrix(apply(agec_ij,2,function(x){sprintf(spf,x)}),nrow=dim_agec_ij[1])
+        dimnames(agec_ij) <- NULL
+        init_i[[agec_nm_j]] <- agec_ij
+      }
+    }
+
+    if(length(lenc_nm)>0){
+      for(lenc_root_j in lenc_root){
+        # lcomp_ob_nm_j <- paste0("lcomp.",lenc_root_j,".ob") # rdat naming convention
+        lenc_nm_j <- gsub("\\.","\\_",paste0("obs_lenc_",lenc_root_j))    # tpl naming convention
+        lenc_ij <- sim_lcomp[[lenc_root_j]][,,i,drop=FALSE]
+        dim_lenc_ij <- dim(lenc_ij)
+        lenc_ij <- matrix(apply(lenc_ij,2,function(x){sprintf(spf,x)}),nrow=dim_lenc_ij[1])
+        dimnames(lenc_ij) <- NULL
+        init_i[[lenc_nm_j]] <- lenc_ij
+      }
+    }
+
+    #%% Incorporate changes to init_i back into BAM dat %%#
+    if(!run_est&sim_type_return!="init"){
+    bam_i <- bam2r(
+      dat_obj = dat,
+      tpl_obj = tpl,
+      cxx_obj = cxx,
+      init = init_i)
+
+    out_i <- bam_i[[sim_type_return]]
+    }else{
+      out_i <- init_i
+    }
+  invisible(out_i)
+}
+names(sim_out) <- nm_sim
+
   ############################
   ## Run the bam base model to build the executable and establish a reference?
   #%%%%%%%%%%%%%%%%%%%%%
   #### Run MCBE (maybe this should be a separate function?) ####
   #%%%%%%%%%%%%%%%%%%%%%
-  if(run_sim){
+  if(run_est){
     if(dir.exists(dir_bam_sim)){
       if(prompt_me){
         delete_files <- readline(prompt=paste0(paste("The folder",paste0("'",dir_bam_sim,"'"),"already exists. "),"Are you sure you want to delete all files in ",dir_bam_sim,"? (Enter TRUE or FALSE)"))
@@ -1009,128 +1209,15 @@ run_MCBE <- function(CommonName = NULL,
       message(paste("Created the folder",paste0("'",dir_bam_sim,"'.")))
     }
 
-    message(paste("Running MCBE for", nsim,"sims in parallel on",coresUse,"cores at",Sys.time()))
+    message(paste("Running MCBE for", nsim,"sims in parallel on",ncores,"cores at",Sys.time()))
 
-    sim_out <- foreach(i=1:nsim,
+    est_out <- foreach::foreach(i=1:nsim,
                         #, .export = ls()[grepl("xboot.obs",ls())] # Pass additional objects to foreach
                         .packages=c("bamExtras")
     ) %dopar% {
       nm_sim_i <- nm_sim[i]
 
-      init_i <- init # Copy init from base for each bootstrap run, to initialize
-
-      #%%%%  Modify init_i %%%%#
-
-      #%% Create Monte Carlo/bootstrap data set %%#
-      # Fix parameters
-      init_i[fix_par] <- lapply(init_i[fix_par],function(x){x["phase"] <- paste(-abs(as.numeric(x["phase"]))); x})
-
-
-      ##### Monte Carlo #####
-      # natural mortality
-      if(M_constant_is){
-        init_i$set_M_constant[c(1,5)] <- paste(par_sim$M_constant[i])
-      }
-      if("set_M"%in%names(init)){
-        init_i$set_M <- paste(Ma_sim[i,])
-      }
-
-      # Dmort
-      if(Dmort_is){
-        for(j in colnames(Dmort)){
-          set_Dmort_ij <- par_sim[i,j]
-          init_i[[j]] <- paste(set_Dmort_ij)
-        }
-      }
-
-      # steepness
-      init_i$set_steep[c(1,5)] <- paste(par_sim$steep[i])
-
-      # rec_sigma
-      init_i$set_rec_sigma[c(1,5)] <- paste(par_sim$rec_sigma[i])
-
-      # obs_prop_f
-      init_i$obs_prop_f <- Pf_sim[i,]
-
-      # # obs_maturity_f
-      # init_i$obs_maturity_f <- Pfm_sim[i,]
-      # obs_maturity_f
-      if(is.matrix(init_i$obs_maturity_f)){
-        a <- init_i$obs_maturity_f
-        init_i$obs_maturity_f <- matrix(Pfm_sim[i,],byrow=TRUE,nrow=nrow(a),ncol=ncol(a),dimnames=dimnames(a))
-      }else{
-        init_i$obs_maturity_f <- Pfm_sim[i,]
-      }
-
-      if(fecpar_a_is){init_i$fecpar_a <- fecpar_a_sim[i]}
-      if(fecpar_b_is){init_i$fecpar_b <- fecpar_b_sim[i]}
-      if(fecpar_c_is){init_i$fecpar_c <- fecpar_c_sim[i]}
-      if(fecpar_batches_is){
-        init_i$fecpar_batches <- if(is.matrix(fecpar_batches_sim)){
-          fecpar_batches_sim[i,]
-        }else{
-          fecpar_batches_sim[i]
-        }
-      }
-
-      # Add values from custom parameters
-      for(j in seq_along(par_sim_custom)){
-        nm_j <- names(par_sim_custom)[j]
-        x_j <- init_i[[nm_j]]
-        par_ji <- par_sim_custom[[nm_j]][[i]] # New par value
-        if(length(x_j)==1){
-          init_i[[nm_j]] <- par_ji
-        }else if(length(x_j)==7){
-          init_i[[nm_j]][c(1,5)] <- par_ji
-        }
-      }
-
-      ##### Bootstrap #####
-      spf <- paste0("%01.",ndigits,"f")
-      # Add indices (cpue)
-      for(nm_j in obs_cpue_nm){
-        cpue_root_j <- gsub("obs_cpue_","",nm_j)
-        init_i[[nm_j]] <- sprintf(spf,sim_cpue[[cpue_root_j]][,i])
-      }
-
-      # Add landings (L)
-      for(nm_j in obs_L_nm){
-        L_root_j <- gsub("obs_L_","",nm_j)
-        init_i[[nm_j]] <- sprintf(spf,sim_L[[L_root_j]][,i])
-      }
-
-      # Add discards (D)
-      if(length(obs_released_nm)>0){
-        for(nm_j in obs_released_nm){
-          released_root_j <- gsub("obs_released_","",nm_j)
-          init_i[[nm_j]] <- sprintf(spf,sim_D[[released_root_j]][,i])
-        }
-      }
-
-      # Add age comps
-      if(length(agec_nm)>0){
-        for(agec_root_j in agec_root){
-          # acomp_ob_nm_j <- paste0("acomp.",agec_root_j,".ob") # rdat naming convention
-          agec_nm_j <- gsub("\\.","\\_",paste0("obs_agec_",agec_root_j))    # tpl naming convention
-          agec_ij <- sim_acomp[[agec_root_j]][,,i,drop=FALSE]
-          dim_agec_ij <- dim(agec_ij)
-          agec_ij <- matrix(apply(agec_ij,2,function(x){sprintf(spf,x)}),nrow=dim_agec_ij[1])
-          dimnames(agec_ij) <- NULL
-          init_i[[agec_nm_j]] <- agec_ij
-        }
-      }
-
-      if(length(lenc_nm)>0){
-        for(lenc_root_j in lenc_root){
-          # lcomp_ob_nm_j <- paste0("lcomp.",lenc_root_j,".ob") # rdat naming convention
-          lenc_nm_j <- gsub("\\.","\\_",paste0("obs_lenc_",lenc_root_j))    # tpl naming convention
-          lenc_ij <- sim_lcomp[[lenc_root_j]][,,i,drop=FALSE]
-          dim_lenc_ij <- dim(lenc_ij)
-          lenc_ij <- matrix(apply(lenc_ij,2,function(x){sprintf(spf,x)}),nrow=dim_lenc_ij[1])
-          dimnames(lenc_ij) <- NULL
-          init_i[[lenc_nm_j]] <- lenc_ij
-        }
-      }
+      init_i <- sim_out[[i]] # Copy init from base for each bootstrap run, to initialize
 
       #%% Incorporate changes to init_i back into BAM dat %%#
       bam_i <- bam2r(
@@ -1158,7 +1245,7 @@ run_MCBE <- function(CommonName = NULL,
       writeLines(text=bam_i$dat, con=fileName_dat_i)
 
       #######Run bam for sim_i
-      shell(paste(fileName_exe_i, admb_switch_sim, fileName_dat_i, sep=" "))
+      shell(paste(fileName_exe_i, admb_options_sim, fileName_dat_i, sep=" "))
 
       par_i <- readLines(fileName_par_i)
       lk_total_i <- gsub("^.*Objective function value = (.*)  Maximum.*$","\\1",par_i[1])
@@ -1178,8 +1265,6 @@ run_MCBE <- function(CommonName = NULL,
                     parm.cons.result_i,
                     like_i,
                     sdnr_i)
-
-
 
         # Subset rdat to decrease size on disk
         for(nm_k in names(subset_rdat)){
@@ -1223,13 +1308,13 @@ run_MCBE <- function(CommonName = NULL,
     } #end MCBE foreach loop
 
 
-    message(paste("Finished running MCBE for", nsim,"sims in parallel on",coresUse,"cores at",Sys.time()))
+    message(paste("Finished running MCBE for", nsim,"sims in parallel on",ncores,"cores at",Sys.time()))
 
-    sim_out <- apply(do.call(rbind,sim_out),2,as.numeric)
-    sim_out <- cbind("sim"=nm_sim,as.data.frame(sim_out)
+    est_out <- apply(do.call(rbind,est_out),2,as.numeric)
+    est_out <- cbind("sim"=nm_sim,as.data.frame(est_out)
                       )
 
-    write.csv(x=sim_out,file=file.path(dir_bam_sim,"MCBE_results.csv"),row.names = FALSE)
+    write.csv(x=est_out,file=file.path(dir_bam_sim,"MCBE_results.csv"),row.names = FALSE)
 
     if(unlink_dir_bam_sim){
       # delete a directory -- must add recursive = TRUE
@@ -1237,10 +1322,13 @@ run_MCBE <- function(CommonName = NULL,
     }
 
     ### Return stuff
-    invisible(sim_out)
+    out <- est_out
 
-  } # end if(run_sim)
-
+  }else{
+    out <- sim_out
+  } # end if(run_est)
   ## parallel shut down
-  stopCluster(cl)
+  parallel::stopCluster(cl)
+
+  invisible(out)
 }

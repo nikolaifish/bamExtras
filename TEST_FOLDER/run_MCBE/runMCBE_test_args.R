@@ -43,11 +43,13 @@ fix_par = c()
 coresUse=NULL
 ndigits=4
 unlink_dir_bam_base=FALSE
+unlink_dir_bam_sim=FALSE
 run_bam_base=TRUE
 overwrite_bam_base=TRUE
-admb_switch_base = '-nox'
-run_sim=TRUE
-admb_switch_sim = '-est -nox -ind'
+admb_options_base = '-nox'
+run_est=FALSE
+sim_type_return = "dat"
+admb_options_sim = '-est -nox -ind'
 prompt_me=FALSE
 subset_rdat=list("eq.series"=101,"pr.series"=101)
 random_seed=12345

@@ -1,6 +1,6 @@
 #' Change non-standard names of rdat objects to standard naming conventions. Compute standard objects.
 #'
-#' @param rdat rdat (list) object read in with dget()
+#' @param rdat rdat (list) object read in with dget(). Specifically, the BAM output file produced by the cxx file.
 #' @param separator_key named vector indicating what separator(s) should be used in the rdat. By default, any "_" will be replaced with "." in names of rdat elements
 #' @param separator_key_x names of elements in the rdat list to apply the fleet_key to.
 #' @param fleet_replace Should fleet_key be applied to fleet_key_x to replace fleet_abbreviations in the rdat?

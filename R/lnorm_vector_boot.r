@@ -13,12 +13,14 @@
 #' @examples
 #' \dontrun{
 #' rdat <- rdat_VermilionSnapper
-#' U <- rdat$t.series$U.cH.ob
-#' cv_U <- rdat$t.series$cv.U.cH
-#' lnorm_vector_boot(U,cv_U,10)
-#' U_boot <- lnorm_vector_boot(U,cv_U,100)
+#' year <- rdat$t.series$year
+#' U <- setNames(rdat$t.series$U.cHL.ob,year)
+#' cv_U <- setNames(rdat$t.series$cv.U.cHL,year)
+#' nsim <- 100
+#' U_boot <- lnorm_vector_boot(U,cv_U,nsim)
+#' dimnames(U_boot) <- list("year"=year,"sim"=sprintf(paste("%0",nchar(nsim),".0f",sep=""),1:nsim))
 #' plot_boot_vec(t(U_boot))
-#' points(U,type="o",col="blue")
+#' points(as.numeric(year),U,type="o",col="blue")
 #' }
 
 lnorm_vector_boot <- function(x,

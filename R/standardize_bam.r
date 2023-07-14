@@ -3,6 +3,7 @@
 #' This script reads in BAM dat, tpl, and cxx files, and converts them to R objects (character vectors of each line of the code). It then runs a set of gsub() functions to
 #' replace object names with preferred naming conventions and returns dat, tpl, and cxx character vectors to use to rewrite the corresponding files with writeLines)
 #' @param CommonName Common name of species modeled in BAM files. Only used when accessing dat, tpl, and cxx character vectors named as e.g. dat_CommonName
+#' @param bam Output of \code{bam2r}.
 #' @param dat_file dat file path
 #' @param tpl_file tpl file path
 #' @param cxx_file cxx file path
@@ -39,6 +40,7 @@
 #' }
 
 standardize_bam <- function(CommonName=NULL,
+                            bam = NULL,
                             dat_file=NULL,tpl_file=NULL,cxx_file=NULL,
                             dat_obj=NULL, tpl_obj=NULL,cxx_obj=NULL,
                             nm_pattern=NULL, nm_replace=NULL,match_whole_words=TRUE,
@@ -75,6 +77,12 @@ standardize_bam <- function(CommonName=NULL,
     dat <- get(paste0("dat_",CommonName))
     tpl <- get(paste0("tpl_",CommonName))
     cxx <- get(paste0("cxx_",CommonName))
+  }
+
+  if(!is.null(bam)){
+    dat <- bam$dat
+    tpl <- bam$tpl
+    cxx <- bam$cxx
   }
 
   if(!is.null(dat_obj)&!is.null(tpl_obj)&!is.null(cxx_obj)){
@@ -442,7 +450,7 @@ standardize_bam <- function(CommonName=NULL,
     nm2 <- c(nm2,nm_replace)
   }
 
-  # Identify which elements in nm1 were found in inm and remove those elements from nm1 and nm2
+  # Identify which elements in nm1 were not found in inm and remove those elements from nm1 and nm2
   ef <- unlist(lapply(nm1,function(x){length(x)!=0}))
   nm1 <- unlist(nm1[ef])
   nm2 <- unlist(nm2[ef])

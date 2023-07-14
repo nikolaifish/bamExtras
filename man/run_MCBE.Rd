@@ -26,7 +26,7 @@ run_MCBE(
   fn_par = list(M_constant = "runif(nsim,M_min,M_max)", K = "runif(nsim,K_min,K_max)",
     Linf = "runif(nsim,Linf_min,Linf_max)", t0 = "runif(nsim,t0_min,t0_max)", steep =
     "runif(nsim,steep_min,steep_max)", rec_sigma =
-    "rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)", Dmort =
+    "msm::rtnorm(n=nsim,mean=0.6,sd=0.15,lower=0.3,upper=1.0)", Dmort =
     "apply(Dmort_lim,2,function(x){runif(nsim,min(x),max(x))})", Pfa =
     "runif(nsim,Pfa_min,Pfa_max)", Pfb = "runif(nsim,Pfb_min,Pfb_max)", Pfma =
     "runif(nsim,Pfma_min,Pfma_max)", Pfmb = "runif(nsim,Pfmb_min,Pfmb_max)", fecpar_a =
@@ -35,17 +35,18 @@ run_MCBE(
     "runif(nsim,fecpar_b_min,fecpar_b_max)", fecpar_c =
     "runif(nsim,fecpar_c_min,fecpar_c_max)", fecpar_batches_sc =
     "runif(nsim,sclim_gen[1],sclim_gen[1])"),
-  repro_sim = list(P_repro = 0.1, nagecfishage = 10),
+  repro_sim = list(P_repro = 0.1, nagecfishage = 10, plot_fits = FALSE),
   fix_par = c(),
-  coresUse = NULL,
+  ncores = NULL,
   ndigits = 4,
   unlink_dir_bam_base = FALSE,
   unlink_dir_bam_sim = FALSE,
   run_bam_base = TRUE,
   overwrite_bam_base = TRUE,
-  admb_switch_base = "-nox",
-  run_sim = TRUE,
-  admb_switch_sim = "-est -nox -ind",
+  admb_options_base = "-nox",
+  run_est = TRUE,
+  sim_type_return = "dat",
+  admb_options_sim = "-est -nox -ind",
   prompt_me = FALSE,
   subset_rdat = list(eq.series = 101, pr.series = 101),
   random_seed = 12345
@@ -94,7 +95,7 @@ run_MCBE(
 
 \item{fix_par}{Optional character vector of parameter names to fix in the simulations using tpl init object names with a phase setting (e.g. "set_M_constant", "set_steep"). This is mostly used for running sensitivities and parameter profiles. Note that this has no effect on the base model.}
 
-\item{coresUse}{number of cores to use for parallel processing}
+\item{ncores}{number of cores to use for parallel processing}
 
 \item{ndigits}{number of digits to round simulated values to}
 
@@ -106,16 +107,20 @@ run_MCBE(
 
 \item{overwrite_bam_base}{If FALSE, the files in dir_bam_base will not be overwritten if run_bam_base=TRUE}
 
-\item{admb_switch_base}{Character string pasted to fileName to build \code{run_command} for the base model when running BAM with \code{shell(run_command)}
-(i.e. \code{run_command <- paste(fileName, admb_switch)})}
+\item{admb_options_base}{Character string pasted to fileName to build \code{run_command} for the base model when running BAM with \code{shell(run_command)}
+(i.e. \code{run_command <- paste(fileName, admb_options)})}
 
-\item{run_sim}{If FALSE, the simulated data will be generated but won't be used in new BAM runs}
+\item{run_est}{Do you want to run the estimation model (BAM)? If FALSE, the simulated data will be generated but won't be used in new BAM runs}
 
-\item{admb_switch_sim}{ADMB code snippet used in shell script when running bam}
+\item{sim_type_return}{Type of simulated data to return: "init" or "dat". Has no effect in run_est=TRUE.}
+
+\item{admb_options_sim}{ADMB code snippet used in shell script when running bam}
 
 \item{prompt_me}{Turn on/off prompts that ask for user input before deleting files.}
 
-\item{subset_rdat}{list of rdat objects to subset to decrease rdat file size}
+\item{subset_rdat}{list of rdat objects to subset and number of values to retain.
+This option can substantially decrease rdat file size, without affecting precision of
+reference point calculations.}
 
 \item{random_seed}{random seed value. If NULL, random seed is not set within the function.}
 }

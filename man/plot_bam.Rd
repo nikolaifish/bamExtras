@@ -16,7 +16,8 @@ plot_bam(
   Bound.vec.plots.args = list(),
   BSR.time.plots.args = list(BSR.references = list("Bmsy", "SSBmsy", "Rmsy")),
   CLD.total.plots.args = list(CLD.w.references = list("msy.klb", "msy.klb", "Dmsy.klb"),
-    CLD.n.references = list("msy.num", "msy.num", "Dmsy.num")),
+    CLD.n.references = list("msy.num", "msy.num", "Dmsy.num"), units.CLD.w =
+    x$info$units.landings),
   Cohort.plots.args = list(),
   Comp.plots.args = list(),
   Comp.yearly.plots.args = list(print.neff = TRUE, print.n = TRUE),

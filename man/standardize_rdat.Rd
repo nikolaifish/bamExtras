@@ -25,7 +25,7 @@ standardize_rdat(
 )
 }
 \arguments{
-\item{rdat}{rdat (list) object read in with dget()}
+\item{rdat}{rdat (list) object read in with dget(). Specifically, the BAM output file produced by the cxx file.}
 
 \item{separator_key}{named vector indicating what separator(s) should be used in the rdat. By default, any "_" will be replaced with "." in names of rdat elements}
 

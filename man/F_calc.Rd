@@ -6,8 +6,8 @@
 \usage{
 F_calc(
   ac,
-  h,
-  R0,
+  h = NULL,
+  R0 = NULL,
   sigma = 0,
   M,
   Fmax = 1,
@@ -54,8 +54,20 @@ Calculations of stock dependent quantities over a range of fishing mortalities (
 written by Kyle Shertzer in a very similar function.
 }
 \examples{
-\dontrun{
-}
+rdat <- rdat_VermilionSnapper
+pr <- rdat$parms
+as <- rdat$a.series
+F_calc(ac=as$age, h=pr$BH.steep, R0=pr$R0, M=as$M, sel=rdat$sel.age$sel.v.wgted.tot,
+       PS=as$mat.female, W=as$weight, ep=as$wgt.klb,
+       plots=TRUE)
+
+# When there is no SRR, the function will still compute SPR without computing MSY-based equibrium values
+rdat <- rdat_RedSnapper
+pr <- rdat$parms
+as <- rdat$a.series
+F_calc(ac=as$age, M=as$M, sel=rdat$sel.age$sel.v.wgted.tot,
+       PS=as$mat.female, W=as$weight, ep=as$wgt.klb,
+       plots=TRUE)
 }
 \author{
 Kyle Shertzer and Nikolai Klibansky

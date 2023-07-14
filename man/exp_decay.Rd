@@ -4,14 +4,14 @@
 \alias{exp_decay}
 \title{Exponential decay}
 \usage{
-exp_decay(age, Z, N0 = 1, plus_group = FALSE)
+exp_decay(age, Z, N1 = 1, plus_group = FALSE)
 }
 \arguments{
-\item{age}{ages}
+\item{age}{ages at which to compute numbers alive. Can be fractional ages (e.g. daily, monthly) but}
 
 \item{Z}{instantaneous mortality rate}
 
-\item{N0}{number of individuals at age zero at the beginning of the year}
+\item{N1}{number of individuals at first age (i.e. \code{age[1]}) at the beginning of the year}
 
 \item{plus_group}{Should the function include a plus group? logical}
 }
@@ -20,9 +20,9 @@ Compute numbers of individuals alive at time in a population experiencing expone
 }
 \examples{
 \dontrun{
-exp_decay(age=1:10,Z=0.2,N0=100)
-exp_decay(age=1:10,Z=0.2,N0=100,plus_group = TRUE)
-exp_decay(age=c(2,5,10),Z=0.2,N0=100,plus_group = TRUE)
+exp_decay(age=1:10,Z=0.2,N1=100)
+exp_decay(age=1:10,Z=0.2,N1=100,plus_group = TRUE)
+exp_decay(age=c(2,5,10),Z=0.2,N1=100,plus_group = TRUE)
 }
 }
 \author{

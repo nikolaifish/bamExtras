@@ -13,16 +13,16 @@
 #' @param cxx_obj cxx file read in as a character vector with readLines(con=cxx_file)
 #' @param standardize Should \code{\link[bamExtras]{standardize_bam}} be run by the function before running the BAM
 #' @param nyr_remove number of years to remove in the retrospective analysis
-#' @param coresUse number of cores to use for parallel processing
+#' @param ncores number of cores to use for parallel processing
 #' @param ndigits number of digits to round simulated values to
 #' @param unlink_dir_bam_base Should dir_bam_base be deleted after this function is run?
 #' @param run_bam_base If FALSE, the function will look for an executable named fileName.exe in dir_bam_base and use it as the base model.
 # If TRUE and overwrite_bam_base=TRUE, the function will call run_bam.
 #' @param overwrite_bam_base If FALSE, the files in dir_bam_base will not be overwritten if run_bam_base=TRUE
-#' @param admb_switch_base Character string pasted to fileName to build \code{run_command} for the base model when running BAM with \code{shell(run_command)}
-#' (i.e. \code{run_command <- paste(fileName, admb_switch)})
+#' @param admb_options_base Character string pasted to fileName to build \code{run_command} for the base model when running BAM with \code{shell(run_command)}
+#' (i.e. \code{run_command <- paste(fileName, admb_options)})
 #' @param run_sim If FALSE, the simulated data will be generated but won't be used in new BAM runs
-#' @param admb_switch_sim ADMB code snippet used in shell script when running bam
+#' @param admb_options_sim ADMB code snippet used in shell script when running bam
 #' @param prompt_me Turn on/off prompts that ask for user input before deleting files.
 #' @param subset_rdat list of rdat objects to subset to decrease rdat file size
 #' @param random_seed random seed value. If NULL, random seed is not set within the function.
@@ -63,15 +63,15 @@ run_retro <- function(CommonName = NULL,
                      standardize=FALSE,
                      nyr_remove=1:5,
                      # parallel=TRUE, # Right now it has to be in parallel
-                     coresUse=NULL,
+                     ncores=NULL,
                      ndigits=4, # number of digits to round simulated values to
                      unlink_dir_bam_base=FALSE,
                      run_bam_base=TRUE, # If FALSE, the function will look for an executable named fileName.exe in dir_bam_base and use it as the base model.
                      # If TRUE and overwrite_bam_base=TRUE, the function will call run_bam.
                      overwrite_bam_base=TRUE, # If FALSE, the files in dir_bam_base will not be overwritten if run_bam_base=TRUE
-                     admb_switch_base = '-nox',
+                     admb_options_base = '-nox',
                      run_sim=TRUE, # If FALSE, the simulated data will be generated but won't be used in new BAM runs
-                     admb_switch_sim = '-est -nox -ind', # -ind changes the name of the data input file each bootstrap iteration
+                     admb_options_sim = '-est -nox -ind', # -ind changes the name of the data input file each bootstrap iteration
                      prompt_me=FALSE, # Turn on/off prompts that ask for user input before deleting files.
                      subset_rdat=list("eq.series"=101,"pr.series"=101),
                      random_seed=12345,
@@ -81,9 +81,9 @@ run_retro <- function(CommonName = NULL,
                                "variance","*.dep","*.hes","*.tmp"))
 ){
 ######################
-  library(doParallel)
-  library(foreach)
-  library(msm)
+  # library(doParallel)
+  # library(foreach)
+  # library(msm)
 
   dir_bam_sim_fail <- paste0(dir_bam_sim,"_fail")
 
@@ -91,14 +91,14 @@ run_retro <- function(CommonName = NULL,
     set.seed(random_seed)
   }
 
-# parallel setup
-if(is.null(coresUse)){
-coresAvail <- detectCores()
-coresUse <- coresAvail-1
-}
-coresUse  <- min(c(coresUse,coresAvail))
-cl <- makeCluster(coresUse)
-registerDoParallel(cl)
+  # parallel setup
+  if(is.null(ncores)){
+    coresAvail <- parallel::detectCores()
+    ncores <- coresAvail-1
+  }
+  ncores  <- min(c(ncores,coresAvail))
+  cl <- parallel::makeCluster(ncores)
+  doParallel::registerDoParallel(cl)
 
 ## Get base model stuff
 
@@ -161,15 +161,15 @@ registerDoParallel(cl)
     if(dir.exists(dir_bam_base)){
       message(paste("The folder",paste0("'",dir_bam_base,"'"),"already exists."))
       if(overwrite_bam_base){
-        message(paste("Since overwrite_bam_base = TRUE, files in ",dir_bam_base,"will be overwritten when run_bam is called"))
-        spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)
+        message(paste("Since overwrite_bam_base = TRUE, files in '",dir_bam_base,"' will be overwritten when run_bam is called"))
+        spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_options=admb_options_base)
       }else{
         message(paste("Since overwrite_bam_base = FALSE, run_bam will not be called to rerun the base run"))
         spp <- dget(file.path(dir_bam_base,paste0(fileName,".rdat")))
       }
     }else{
       dir.create(dir_bam_base)
-      spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_switch=admb_switch_base)
+      spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_options=admb_options_base)
 
     }
   }else{
@@ -341,7 +341,7 @@ registerDoParallel(cl)
       message(paste("Created the folder",paste0("'",dir_bam_sim,"'.")))
     }
 
-    message(paste("Running retrospective analysis for", nsim,"sims in parallel on",coresUse,"cores at",Sys.time()))
+    message(paste("Running retrospective analysis for", nsim,"sims in parallel on",ncores,"cores at",Sys.time()))
 
 
   sim_out <- foreach(i=1:nsim,
@@ -378,7 +378,7 @@ registerDoParallel(cl)
     writeLines(text=bam_i$dat, con=fileName_dat_i)
 
   #   #######Run bam for sim_i
-  #   shell(paste(fileName_exe_i, admb_switch_sim, fileName_dat_i, sep=" "))
+  #   shell(paste(fileName_exe_i, admb_options_sim, fileName_dat_i, sep=" "))
   #
   #   par_i <- readLines(fileName_par_i)
   #   lk_total_i <- gsub("^.*Objective function value = (.*)  Maximum.*$","\\1",par_i[1])
@@ -416,7 +416,7 @@ registerDoParallel(cl)
   #
   # return(setNames(c(lk_total_i,grad_max_i),c("lk_total","grad_max")))
     #######Run bam for sim_i
-    shell(paste(fileName_exe_i, admb_switch_sim, fileName_dat_i, sep=" "))
+    shell(paste(fileName_exe_i, admb_options_sim, fileName_dat_i, sep=" "))
 
     par_i <- readLines(fileName_par_i)
     lk_total_i <- gsub("^.*Objective function value = (.*)  Maximum.*$","\\1",par_i[1])
@@ -479,7 +479,7 @@ registerDoParallel(cl)
   } #end retrospective analysis foreach loop
 
 
-  message(paste("Finished running retrospective analysis for", nsim,"sims in parallel on",coresUse,"cores at",Sys.time()))
+  message(paste("Finished running retrospective analysis for", nsim,"sims in parallel on",ncores,"cores at",Sys.time()))
 
   sim_out <- apply(do.call(rbind,sim_out),2,as.numeric)
   sim_out <- cbind("sim"=nm_sim,as.data.frame(sim_out)
@@ -495,5 +495,5 @@ invisible(sim_out)
   } # end if(run_sim)
 
   ## parallel shut down
-  stopCluster(cl)
+  parallel::stopCluster(cl)
 }

@@ -8,6 +8,7 @@
 #' will try to read all .rdat files.
 #' @param obj_collect Names of objects in MCBE rdat files to collect and summarize
 #' @param obj_labels list of names for each value of each parameter in parm.cons
+#' @param ncores number of cores to use for parallel processing
 #' @returns list of summarized outputs, most of which are named similar to typical BAM output (rdat) files.
 #' This list can be passed to \code{plot_MCBE} to make a variety of useful plots
 #' @keywords bam MCBE stock assessment fisheries
@@ -32,7 +33,7 @@ summarize_MCBE <- function(dir_bam_sim="sim",
                                                            "prior_mean","prior_var", "prior_pdf",
                                                            "out")
                            ),
-                           coresUse = NULL
+                           ncores = NULL
                      ){
 
 # Test args
@@ -42,17 +43,17 @@ summarize_MCBE <- function(dir_bam_sim="sim",
 # obj_collect = c("info","parms","like","spr.brps","a.series","t.series","sel.age","N.age","Z.age","mse")
 
 #######################
-library(doParallel)
-library(foreach)
+# library(doParallel)
+# library(foreach)
 
 #### parallel setup
-if(is.null(coresUse)){
-coresAvail <- detectCores()
-coresUse <- coresAvail-1
+if(is.null(ncores)){
+coresAvail <- parallel::detectCores()
+ncores <- coresAvail-1
 }
-coresUse  <- min(c(coresUse,coresAvail))
-cl <- makeCluster(coresUse)
-registerDoParallel(cl)
+ncores  <- min(c(ncores,coresAvail))
+cl <- parallel::makeCluster(ncores)
+doParallel::registerDoParallel(cl)
 
 ### Do stuff with base run
 # spp <- dget(file.path(dir_bam,paste(filename,'rdat', sep=".")))
@@ -88,8 +89,8 @@ parm.cons.names <- names(spp1$parm.cons)
 ages <- spp1$a.series$age
 years <- spp1$t.series$year
 
-# Retrieve values from simstrap rdat files
-simSummary <- foreach(iter.j=seq_along(simFilesRdat),
+# Retrieve values from sim rdat files
+simSummary <- foreach::foreach(iter.j=seq_along(simFilesRdat),
                       .packages="bamExtras",
                        .multicombine=TRUE
 ) %dopar% {
@@ -138,7 +139,7 @@ simSummary <- foreach(iter.j=seq_along(simFilesRdat),
   return(out)
 }##### END FOREACH LOOP ######
 
-# Redefine objects for collecting values from each simstrap run
+# Redefine objects for collecting values from each sim run
 names(simSummary) <- unlist(lapply(simSummary,FUN=function(x){x[["modRunName"]]}))
 
 ## Vectors
@@ -232,7 +233,7 @@ out.mse <- D.sim.mse
 ## Matrices
 if("a.series"%in%obj_collect){
 # a.series
-L.sim.a.series <- foreach(i=seq_along(a.series.names),
+L.sim.a.series <- foreach::foreach(i=seq_along(a.series.names),
                       .multicombine=TRUE
 ) %dopar% {
   a <- lapply(simSummary,FUN=function(x){x[["a.series"]][[a.series.names[i]]]})
@@ -246,7 +247,7 @@ out.a.series <- L.sim.a.series
 
 if("t.series"%in%obj_collect){
 # t.series
-L.sim.t.series <- foreach(i=seq_along(t.series.names),
+L.sim.t.series <- foreach::foreach(i=seq_along(t.series.names),
                           .multicombine=TRUE
 ) %dopar% {
   a <- lapply(simSummary,FUN=function(x){x[["t.series"]][[t.series.names[i]]]})
@@ -262,7 +263,7 @@ if("N.age"%in%obj_collect){
 # N.age
 N.age.dn1 <- dimnames(spp1$N.age)[[1]]
 N.age.dn2 <- dimnames(spp1$N.age)[[2]]
-L.sim.N.age <- foreach(i=seq_along(N.age.dn2),
+L.sim.N.age <- foreach::foreach(i=seq_along(N.age.dn2),
                           .multicombine=TRUE
 ) %dopar% {
   a <- lapply(simSummary,FUN=function(x){x[["N.age"]][,N.age.dn2[i]]})
@@ -278,7 +279,7 @@ if("Z.age"%in%obj_collect){
   # Z.age
   Z.age.dn1 <- dimnames(spp1$Z.age)[[1]]
   Z.age.dn2 <- dimnames(spp1$Z.age)[[2]]
-  L.sim.Z.age <- foreach(i=seq_along(Z.age.dn2),
+  L.sim.Z.age <- foreach::foreach(i=seq_along(Z.age.dn2),
                          .multicombine=TRUE
   ) %dopar% {
     a <- lapply(simSummary,FUN=function(x){x[["Z.age"]][,Z.age.dn2[i]]})
@@ -292,7 +293,7 @@ if("Z.age"%in%obj_collect){
 
 if("parm.cons"%in%obj_collect){
   # parm.cons
-  L.sim.parm.cons <- foreach(i=seq_along(parm.cons.names),
+  L.sim.parm.cons <- foreach::foreach(i=seq_along(parm.cons.names),
                             .multicombine=TRUE
   ) %dopar% {
     a <- lapply(simSummary,FUN=function(x){x[["parm.cons"]][[parm.cons.names[i]]]})
@@ -319,7 +320,7 @@ if("sel.age"%in%obj_collect){
       # matrices
       sel.age.dn1 <- dimnames(spp1$sel.age[[i]])[[1]]
       sel.age.dn2 <- dimnames(spp1$sel.age[[i]])[[2]]
-      b <- foreach(j=seq_along(sel.age.dn2),
+      b <- foreach::foreach(j=seq_along(sel.age.dn2),
                              .multicombine=TRUE
       ) %dopar% {
         a <- lapply(simSummary,FUN=function(x){x[["sel.age"]][[i]][,sel.age.dn2[j]]})
@@ -342,7 +343,7 @@ names(out) <- gsub("^out.","",names(out))
 
 
 # parallel shut down
-  stopCluster(cl)
+  parallel::stopCluster(cl)
 
 invisible(out)
 }

@@ -16,8 +16,9 @@ run_bam(
   tpl_obj = NULL,
   cxx_obj = NULL,
   standardize = TRUE,
+  subset_rdat = list(eq.series = 101, pr.series = 101),
   unlink_dir_bam = TRUE,
-  admb_switch = "-nox",
+  admb_options = "-nox",
   admb2r_obj = admb2r.cpp,
   cleanup = list(del = c("*.r0*", "*.p0*", "*.b0*", "*.log", "*.rpt", "*.obj", "*.htp",
     "*.eva", "*.bar", "*.tds", "*.o", "tmp_admb", "variance", "*.dep", "*.hes", "*.tmp")),
@@ -47,16 +48,23 @@ run_bam(
 
 \item{standardize}{Should \code{\link[bamExtras]{standardize_bam}} be run by the function before running the BAM}
 
+\item{subset_rdat}{list of rdat objects to subset and number of values to retain.
+This option can substantially decrease rdat file size, without affecting precision of
+reference point calculations.}
+
 \item{unlink_dir_bam}{Should \code{dir_bam} be deleted after this function is run?}
 
-\item{admb_switch}{Character string pasted to fileName to build \code{run_command} when running BAM with \code{shell(run_command)}
-(i.e. \code{run_command <- paste(fileName, admb_switch)})}
+\item{admb_options}{Character string pasted to fileName to build \code{run_command} when running BAM with \code{shell(run_command)}. See \href{https://www.admb-project.org/docs/refcards/admb-additional-reference-card.pdf}{ADMB reference card} for more options.
+(i.e. \code{run_command <- paste(fileName, admb_options)})}
 
 \item{admb2r_obj}{Character string containing admb2r C++ code, which is written with \code{base::writeLines} to \code{dir_bam}}
 
 \item{cleanup}{List object written to \code{cleanup.bat} file in \code{dir_bam}.}
 
 \item{return_obj}{objects to return from the function. May include one or more of the following "dat", "tpl", "cxx", "rdat". character vector.}
+}
+\value{
+See \code{return_obj}
 }
 \description{
 Creates a folder in a directory \code{dir_bam} to write BAM files including model-specific files
@@ -69,20 +77,20 @@ The function invisibly returns the bam file objects (indicated by return_obj) in
 \examples{
 \dontrun{
 Run a bam model and assign rdat output to object
-rdat_AtMe <- run_bam("AtlanticMenhaden")
-rdat_BlSB <- run_bam("BlackSeaBass")
-rdat_BlTi <- run_bam("BluelineTilefish")
-rdat_Cobi <- run_bam("Cobia")
-rdat_GagG <- run_bam("GagGrouper")
-rdat_GrTr <- run_bam("GrayTriggerfish")
-rdat_GrAm <- run_bam("GreaterAmberjack")
-rdat_ReGr <- run_bam("RedGrouper")
-rdat_RePo <- run_bam("RedPorgy")
-rdat_ReSn <- run_bam("RedSnapper")
-rdat_ScGr <- run_bam("ScampGrouper")
-rdat_SnGr <- run_bam("SnowyGrouper")
-rdat_Tile <- run_bam("Tilefish")
-rdat_VeSn <- run_bam("VermilionSnapper")
+rdat_AtMe <- run_bam("AtlanticMenhaden")$rdat
+rdat_BlSB <- run_bam("BlackSeaBass")$rdat
+rdat_BlTi <- run_bam("BluelineTilefish")$rdat
+rdat_Cobi <- run_bam("Cobia")$rdat
+rdat_GagG <- run_bam("GagGrouper")$rdat
+rdat_GrTr <- run_bam("GrayTriggerfish")$rdat
+rdat_GrAm <- run_bam("GreaterAmberjack")$rdat
+rdat_ReGr <- run_bam("RedGrouper")$rdat
+rdat_RePo <- run_bam("RedPorgy")$rdat
+rdat_ReSn <- run_bam("RedSnapper")$rdat
+rdat_ScGr <- run_bam("ScampGrouper")$rdat
+rdat_SnGr <- run_bam("SnowyGrouper")$rdat
+rdat_Tile <- run_bam("Tilefish")$rdat
+rdat_VeSn <- run_bam("VermilionSnapper")$rdat
 
 }
 }

@@ -17,31 +17,35 @@
 #' @param tpl_obj tpl file read in as a character vector with readLines(con=tpl_file)
 #' @param cxx_obj cxx file read in as a character vector with readLines(con=cxx_file)
 #' @param standardize Should \code{\link[bamExtras]{standardize_bam}} be run by the function before running the BAM
+#' @param subset_rdat list of rdat objects to subset and number of values to retain.
+#' This option can substantially decrease rdat file size, without affecting precision of
+#' reference point calculations.
 #' @param unlink_dir_bam Should \code{dir_bam} be deleted after this function is run?
-#' @param admb_switch Character string pasted to fileName to build \code{run_command} when running BAM with \code{shell(run_command)}
-#' (i.e. \code{run_command <- paste(fileName, admb_switch)})
+#' @param admb_options Character string pasted to fileName to build \code{run_command} when running BAM with \code{shell(run_command)}. See \href{https://www.admb-project.org/docs/refcards/admb-additional-reference-card.pdf}{ADMB reference card} for more options.
+#' (i.e. \code{run_command <- paste(fileName, admb_options)})
 #' @param admb2r_obj Character string containing admb2r C++ code, which is written with \code{base::writeLines} to \code{dir_bam}
 #' @param cleanup List object written to \code{cleanup.bat} file in \code{dir_bam}.
 #' @param return_obj objects to return from the function. May include one or more of the following "dat", "tpl", "cxx", "rdat". character vector.
 #' @keywords bam stock assessment fisheries
+#' @returns See \code{return_obj}
 #' @export
 #' @examples
 #' \dontrun{
 #' Run a bam model and assign rdat output to object
-#' rdat_AtMe <- run_bam("AtlanticMenhaden")
-#' rdat_BlSB <- run_bam("BlackSeaBass")
-#' rdat_BlTi <- run_bam("BluelineTilefish")
-#' rdat_Cobi <- run_bam("Cobia")
-#' rdat_GagG <- run_bam("GagGrouper")
-#' rdat_GrTr <- run_bam("GrayTriggerfish")
-#' rdat_GrAm <- run_bam("GreaterAmberjack")
-#' rdat_ReGr <- run_bam("RedGrouper")
-#' rdat_RePo <- run_bam("RedPorgy")
-#' rdat_ReSn <- run_bam("RedSnapper")
-#' rdat_ScGr <- run_bam("ScampGrouper")
-#' rdat_SnGr <- run_bam("SnowyGrouper")
-#' rdat_Tile <- run_bam("Tilefish")
-#' rdat_VeSn <- run_bam("VermilionSnapper")
+#' rdat_AtMe <- run_bam("AtlanticMenhaden")$rdat
+#' rdat_BlSB <- run_bam("BlackSeaBass")$rdat
+#' rdat_BlTi <- run_bam("BluelineTilefish")$rdat
+#' rdat_Cobi <- run_bam("Cobia")$rdat
+#' rdat_GagG <- run_bam("GagGrouper")$rdat
+#' rdat_GrTr <- run_bam("GrayTriggerfish")$rdat
+#' rdat_GrAm <- run_bam("GreaterAmberjack")$rdat
+#' rdat_ReGr <- run_bam("RedGrouper")$rdat
+#' rdat_RePo <- run_bam("RedPorgy")$rdat
+#' rdat_ReSn <- run_bam("RedSnapper")$rdat
+#' rdat_ScGr <- run_bam("ScampGrouper")$rdat
+#' rdat_SnGr <- run_bam("SnowyGrouper")$rdat
+#' rdat_Tile <- run_bam("Tilefish")$rdat
+#' rdat_VeSn <- run_bam("VermilionSnapper")$rdat
 #'
 #' }
 
@@ -50,8 +54,9 @@ run_bam <- function(CommonName = NULL, fileName = "bam", dir_bam = NULL,
                     dat_file=NULL,tpl_file=NULL,cxx_file=NULL,
                     dat_obj=NULL, tpl_obj=NULL,cxx_obj=NULL,
                     standardize=TRUE,
+                    subset_rdat=list("eq.series"=101,"pr.series"=101),
                     unlink_dir_bam=TRUE,
-                    admb_switch = '-nox',
+                    admb_options = '-nox',
                     admb2r_obj = admb2r.cpp,
                     cleanup = list(del=c("*.r0*","*.p0*","*.b0*","*.log","*.rpt","*.obj",
                               "*.htp","*.eva","*.bar","*.tds","*.o","tmp_admb",
@@ -133,13 +138,23 @@ run_bam <- function(CommonName = NULL, fileName = "bam", dir_bam = NULL,
   shell(compile_command)
 
   #######Run admb
-  run_command <- paste(fileName, admb_switch)
+  run_command <- paste(fileName, admb_options)
   message(paste("Running",fileName,"model"))
   shell(run_command)
 
   shell("cleanup.bat")
 
   rdat <- dget(fileName_rdat)
+
+  # Subset rdat to decrease size on disk
+  for(nm_k in names(subset_rdat)){
+    k <- rdat[[nm_k]]
+    if(is.null(subset_rdat[[nm_k]])){
+      rdat[[nm_k]] <- NULL
+    }else{
+      rdat[[nm_k]] <- k[seq(1,nrow(k),length=subset_rdat[[nm_k]]),,drop=FALSE]
+    }
+  }
 
   setwd(wdt)
   message(paste("Working directory changed back to:",wdt))

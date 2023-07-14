@@ -7,8 +7,15 @@
 plot_MCBE(
   sim_summary,
   dir_figs = "figs",
-  filter_info = list(gradient.max = c(0, 0.01), Fmsy = c(0, 5), Fend.Fmsy.mean = c(0, 5),
-    R.sigma.par = c(0.2, 1), R0_prob = c(0.005, 0.995))
+  fileName = "bam",
+  dir_bam_base = NULL,
+  filter_info = list(gradient.max = c(0, 0.01), Fref = c(0, 5), F.Fref = c(0, 5),
+    R.sigma.par = c(0.2, 1), R0_prob = c(0.005, 0.995)),
+  base_tseries_args = list(type = "o", lty = 1, lwd = 2, pch = 16, col = "black"),
+  base_aseries_args = list(type = "o", lty = 1, lwd = 2, pch = 16, col = "black"),
+  nm_rp = list(parms = c(Fref = "Fmsy", F.Fref = "Fend.Fmsy.mean", Sref = "msst", S.Sref
+    = "SSBend.MSST"), t.series = c(F = "F.full", F.Fref = "F.Fmsy", Sref = "SSB", S.Sref
+    = "SSB.msst"))
 )
 }
 \arguments{
@@ -16,7 +23,17 @@ plot_MCBE(
 
 \item{dir_figs}{name of directory that will be created to store figures}
 
+\item{fileName}{Name given to BAM base files, not including file extensions.}
+
+\item{dir_bam_base}{Name of directory to write bam base model files to, relative to the working directory.}
+
 \item{filter_info}{list of ranges used to filter out MCBE results. set to NULL to retain all results.}
+
+\item{base_tseries_args}{arguments to add to plotting functions (e.g. \code{points()}) that add base results to time series plots}
+
+\item{base_aseries_args}{arguments to add to plotting functions (e.g. \code{points()}) that add base results to age series plots}
+
+\item{nm_rp}{names of reference points to include in plots}
 }
 \description{
 Plot results from MCBE uncertainty analysis

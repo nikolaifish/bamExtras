@@ -18,14 +18,14 @@ run_retro(
   cxx_obj = NULL,
   standardize = FALSE,
   nyr_remove = 1:5,
-  coresUse = NULL,
+  ncores = NULL,
   ndigits = 4,
   unlink_dir_bam_base = FALSE,
   run_bam_base = TRUE,
   overwrite_bam_base = TRUE,
-  admb_switch_base = "-nox",
+  admb_options_base = "-nox",
   run_sim = TRUE,
-  admb_switch_sim = "-est -nox -ind",
+  admb_options_sim = "-est -nox -ind",
   prompt_me = FALSE,
   subset_rdat = list(eq.series = 101, pr.series = 101),
   random_seed = 12345,
@@ -61,7 +61,7 @@ run_retro(
 
 \item{nyr_remove}{number of years to remove in the retrospective analysis}
 
-\item{coresUse}{number of cores to use for parallel processing}
+\item{ncores}{number of cores to use for parallel processing}
 
 \item{ndigits}{number of digits to round simulated values to}
 
@@ -71,12 +71,12 @@ run_retro(
 
 \item{overwrite_bam_base}{If FALSE, the files in dir_bam_base will not be overwritten if run_bam_base=TRUE}
 
-\item{admb_switch_base}{Character string pasted to fileName to build \code{run_command} for the base model when running BAM with \code{shell(run_command)}
-(i.e. \code{run_command <- paste(fileName, admb_switch)})}
+\item{admb_options_base}{Character string pasted to fileName to build \code{run_command} for the base model when running BAM with \code{shell(run_command)}
+(i.e. \code{run_command <- paste(fileName, admb_options)})}
 
 \item{run_sim}{If FALSE, the simulated data will be generated but won't be used in new BAM runs}
 
-\item{admb_switch_sim}{ADMB code snippet used in shell script when running bam}
+\item{admb_options_sim}{ADMB code snippet used in shell script when running bam}
 
 \item{prompt_me}{Turn on/off prompts that ask for user input before deleting files.}
 

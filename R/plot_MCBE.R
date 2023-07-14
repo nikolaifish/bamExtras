@@ -2,7 +2,14 @@
 #'
 #' @param sim_summary Output object from summarize_MCBE
 #' @param dir_figs name of directory that will be created to store figures
+#' @param fileName Name given to BAM base files, not including file extensions.
+#' @param dir_bam_base Name of directory to write bam base model files to, relative to the working directory.
 #' @param filter_info list of ranges used to filter out MCBE results. set to NULL to retain all results.
+#' @param tseries_plot_args List of arguments to pass to \code{bamExtras::plot_boot_vec} when plotting time series.
+#' @param aseries_plot_args List of arguments to pass to \code{bamExtras::plot_boot_vec} when plotting age series.
+#' @param base_tseries_args List of arguments to add to plotting functions (e.g. \code{points()}) that add base results to time series plots
+#' @param base_aseries_args List of arguments to add to plotting functions (e.g. \code{points()}) that add base results to age series plots
+#' @param nm_rp names of reference points to include in plots
 #' @keywords bam MCBE stock assessment fisheries
 #' @export
 #' @examples
@@ -18,20 +25,50 @@
 
 plot_MCBE <- function(sim_summary,
                       dir_figs = "figs",
-                      filter_info = list(gradient.max  = c(0,0.01),
-                                        Fmsy           = c(0,5),
-                                        Fend.Fmsy.mean = c(0,5),
-                                        R.sigma.par    = c(0.2,1.0),
-                                        R0_prob        = c(0.005,0.995) # Not limits but probabilities used to compute limits
+                      fileName     = "bam",
+                      dir_bam_base = NULL,
+                      filter_info = list("gradient.max"  = c(0,0.01),
+                                         "Fref"          = c(0,5),
+                                         "F.Fref"        = c(0,5),
+                                        "R.sigma.par"    = c(0.2,1.0),
+                                        "R0_prob"        = c(0.005,0.995) # Not limits but probabilities used to compute limits
+                      ),
+                      tseries_plot_args = list(),
+                      aseries_plot_args = list(),
+                      base_tseries_args = list("type"="o","lty"=1,"lwd"=2,"pch"=16, "col"="black"),
+                      base_aseries_args = list("type"="o","lty"=1,"lwd"=2,"pch"=16, "col"="black"),
+                      nm_rp = list("parms"=c("Fref"="Fmsy","F.Fref"="Fend.Fmsy.mean","Sref"="msst","S.Sref"="SSBend.MSST"),
+                                    "t.series"=c("F"="F.full","F.Fref"="F.Fmsy","S"="SSB","S.Sref"="SSB.msst")
                       )
                       ){
 ss <- sim_summary
+
 parms <- ss$parms
+parm.cons <- ss$parm.cons
 a.series <- ss$a.series
-# test args
+
+styr <- unique(parms$styr)
+if(length(styr)>1){warning("styr not the same among all sims")}
+endyr <- unique(parms$endyr)
+if(length(endyr)>1){warning("endyr not the same among all sims")}
+yrs <- paste(styr:endyr)
+t.series <- lapply(ss$t.series,function(x){x[,yrs]})
+
+is_base <- !is.null(dir_bam_base)
 
 ### Do stuff with base run
-# spp <- dget(file.path(dir_bam,paste(filename,'rdat', sep=".")))
+if(is_base){
+rb <- rdat_base <- dget(file.path(dir_bam_base,paste(fileName,'rdat', sep="."))) # spp
+
+styr_b <- rb$parms$styr
+endyr_b <- rb$parms$endyr
+yrs_b <- paste(styr_b:endyr_b)
+t.series.b <- rb$t.series[yrs_b,]
+
+a.series.b <- rb$a.series
+
+parms.b <- rb$parms
+}
 
 
 # nm_sim <- sprintf(paste("%0",nchar(nsim),".0f",sep=""),1:nsim)
@@ -93,11 +130,11 @@ a.series <- ss$a.series
     # trim some runs that didn't converge or params hit upper bounds
     nearbound <- parms$nearbound
     Nnearbound <- length(which(nearbound))
-    R0 <- parms$BH.R0
+    R0 <- exp(parm.cons$log.R0$out)
     R.sigma.par <- parms$R.sigma.par
     gradient.max <- ss$like$gradient.max
-    Fend.Fmsy.mean <- parms$Fend.Fmsy.mean
-    Fmsy <- parms$Fmsy
+    Fref <- parms[[nm_rp$parms[["Fref"]]]]
+    F.Fref <- parms[[nm_rp$parms[["F.Fref"]]]]
 
     if(!is.null(filter_info)){
     R0_lim <- quantile(R0, probs=c(filter_info$R0_prob[1],filter_info$R0_prob[2]))
@@ -105,9 +142,10 @@ a.series <- ss$a.series
     # simID2 <- simID[which(gradient.max<0.01 & R0>=R0.trim[1] & R0<=R0.trim[2] & !nearbound)] # Include runs that meet certain criteria
     # Most of these criteria for trimming MCB runs are from the SEDAR 25 2016 update, except for the !nearbound which I added in SEDAR 66 (NK 2021-04-02)
     # Several commented out were used in the SEDAR 25 2017 update
-    filter_tests <- data.frame(gradient.max = gradient.max>filter_info$gradient.max[1] & gradient.max<filter_info$gradient.max[2],
-                               Fend.Fmsy.mean = Fend.Fmsy.mean > filter_info$Fend.Fmsy.mean[1] & Fend.Fmsy.mean < filter_info$Fend.Fmsy.mean[2],
-                               Fmsy = Fmsy > filter_info$Fmsy[1] & Fmsy < filter_info$Fmsy[2],
+
+    filter_tests <- data.frame("gradient.max" = (gradient.max>filter_info$gradient.max[1] & gradient.max<filter_info$gradient.max[2]),
+                               F.Fref = F.Fref > filter_info$F.Fref[1] & F.Fref < filter_info$F.Fref[2],
+                               Fref = Fref > filter_info$Fref[1] & Fref < filter_info$Fref[2],
                                R.sigma.par = R.sigma.par > filter_info$R.sigma.par[1] & R.sigma.par < filter_info$R.sigma.par[2],
                                R0 = R0 > R0_lim[1] & R.sigma.par < R0_lim[2],
                                notNearBound = !nearbound
@@ -125,6 +163,12 @@ a.series <- ss$a.series
     }
     # dev.off()
 
+    # Filter some objects
+    parms.2 <- parms[simID2,]
+    parm.cons.2 <-lapply(parm.cons,function(xi){xi[simID2,]})
+    a.series.2 <- lapply(a.series,function(xi){xi[simID2,]})
+    t.series.2 <- lapply(t.series,function(xi){xi[simID2,]})
+
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ####     plotMCBData      ####
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -134,24 +178,30 @@ a.series <- ss$a.series
     # Landings
     # pdf(file.path(dir_figs,"Fig-MCB-landings.ob.pdf"))
 
-    names_L_ob <- names(ss$t.series)[grepl("^L.*ob$",names(ss$t.series))]
+    names_L_ob <- names(t.series)[grepl("^L.*ob$",names(t.series))]
 
     par(mfrow=c(length(names_L_ob),1),mar=c(2,5,0.5,0.5),mgp=c(1.5,.3,0),cex.axis=1.5,cex.lab=1.5,tck=0.02)
     for(i in names_L_ob){
-      obj.i <- ss$t.series[[i]][simID2,]
-      plot_boot_vec(obj.i,xlab="",ylab=i)
+      obj.i <- t.series.2[[i]]
+      do.call(plot_boot_vec,c(list(data=obj.i,xlab="",ylab=i),tseries_plot_args))
+      if(is_base){
+        do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,i]),base_tseries_args))
+      }
     }
     # dev.off()
 
     # Discards
     # pdf(file.path(dir_figs,"Fig-MCB-discards.ob.pdf"))
 
-    names_D_ob <- names(ss$t.series)[grepl("^D.*ob$",names(ss$t.series))]
+    names_D_ob <- names(t.series)[grepl("^D.*ob$",names(t.series))]
     if(length(names_D_ob)>0){
     par(mfrow=c(length(names_D_ob),1),mar=c(2,5,0.5,0.5),mgp=c(1.5,.3,0),cex.axis=1.5,cex.lab=1.5,tck=0.02)
     for(i in names_D_ob){
-      obj.i <- ss$t.series[[i]][simID2,]
-      plot_boot_vec(obj.i,xlab="",ylab=i)
+      obj.i <- t.series.2[[i]]
+      do.call(plot_boot_vec,c(list(data=obj.i,xlab="",ylab=i),tseries_plot_args))
+      if(is_base){
+        do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,i]),base_tseries_args))
+      }
     }
     }else{
       warning("Discard time series not found. No plot produced.")
@@ -161,30 +211,46 @@ a.series <- ss$a.series
     # Indices of abundance
     # pdf(file.path(dir_figs,"Fig-MCB-indices.ob.pdf"))
 
-    names_U_ob <- names(ss$t.series)[grepl("^U.*ob$",names(ss$t.series))]
+    names_U_ob <- names(t.series)[grepl("^U.*ob$",names(t.series))]
 
     par(mfrow=c(length(names_U_ob),1),mar=c(2,5,0.5,0.5),mgp=c(1.5,.3,0),cex.axis=1.5,cex.lab=1.5,tck=0.02)
     for(i in names_U_ob){
-      obj.i <- ss$t.series[[i]][simID2,]
-      plot_boot_vec(obj.i,xlab="",ylab=i)
+      obj.i <- t.series.2[[i]]
+      if(any(which(obj.i<0))){
+        message(paste("Negative values found in",i,"will not be plotted."))
+      }
+      obj.i[obj.i<0] <- NA
+      do.call(plot_boot_vec,c(list(data=obj.i,xlab="",ylab=i),tseries_plot_args))
+      if(is_base){
+        xi <- t.series.b$year
+        yi <- t.series.b[,i]
+        yi[yi<0] <- NA
+        do.call("points",c(list("x"=xi,"y"=yi),base_tseries_args))
+      }
     }
     # dev.off()
 
   #   # Natural mortality
   #   pdf(file.path(dir_figs,"Fig-MCB-naturalMortality.ob.pdf"))
     par(mfrow=c(2,1),mar=c(3,5,0.5,0.5),mgp=c(1.5,.3,0),cex.axis=1.5,cex.lab=1.5,tck=0.02)
-    if("M.constant"%in%names(parms)){
-    plot_boot_density(data=parms[simID2,],x_name="M.constant")
-    #abline(v=spp$parms$M.constant,lty=1,lwd=2)
-    # abline(v=median(D.boot.parms[simID2,"M.constant"]),lty=2,lwd=2)
+    if("M.constant"%in%names(parms.2)){
+    plot_boot_density(data=parms.2,x_name="M.constant")
+     abline(v=median(parms.2[,"M.constant"]),lty=2,lwd=2)
+     if(is_base){
+       abline(v=parms.b$M.constant,lty=1,lwd=2)
+     }
     }else{
       warning("M.constant not found in parms. No plot produced.")
     }
 
-    if("M"%in%names(a.series)){
-    plot_boot_vec(data=a.series$M[simID2,],
-                   #ref_x=spp$a.series$age,ref_y=spp$a.series$M,
-                   xlab="age",ylab="natural mortality")
+    if("M"%in%names(a.series.2)){
+      do.call(plot_boot_vec,c(list(data=a.series.2$M,xlab="age",ylab="natural mortality"),aseries_plot_args))
+    # plot_boot_vec(data=a.series.2$M,
+    #                #ref_x=spp$a.series$age,ref_y=spp$a.series$M,
+    #                xlab="age",ylab="natural mortality")
+      if(is_base){
+        do.call("points",c(list("x"=a.series.b$age,"y"=a.series.b[,"M"]),base_aseries_args))
+      }
     }else{
       warning("M not found in a.series. No plot produced.")
     }
@@ -192,16 +258,18 @@ a.series <- ss$a.series
   #
   #   # Discard mortality
   #   # pdf(file.path(dir_figs,"Fig-MCB-discardMortality.ob.pdf"))
-  #   # par(mfrow=c(2,1),mar=c(3,5,0.5,0.5),mgp=c(1.5,.3,0),cex.axis=1.5,cex.lab=1.5,tck=0.02)
-  #   #
-  #   # plot_boot_density(data=D.boot.parms[simID2,],par.name="D.mort.cHl",xlab="commercial handline")
-  #   # abline(v=spp$parms$D.mort.cHl,lty=1,lwd=2)
-  #   # abline(v=median(D.boot.parms[simID2,"D.mort.cHl"]),lty=2,lwd=2)
-  #   #
-  #   # plot_boot_density(data=D.boot.parms[simID2,],par.name="D.mort.rHb",xlab="recreational")
-  #   # abline(v=spp$parms$D.mort.rHb,lty=1,lwd=2)
-  #   # abline(v=median(D.boot.parms[simID2,"D.mort.rHb"]),lty=2,lwd=2)
-  #   #
+    names_Dmort <- names(parms.2)[grepl("^D.mort",names(parms.2))]
+    if(length(names_Dmort)>0){
+      par(mfrow=c(length(names_Dmort),1),mar=c(3,5,0.5,0.5),mgp=c(1.5,.3,0),cex.axis=1.5,cex.lab=1.5,tck=0.02)
+      for(i in names_Dmort){
+
+        plot_boot_density(data=parms.2,x_name=i)
+        abline(v=median(parms.2[,i]),lty=2,lwd=2)
+        if(is_base){
+          abline(v=parms.b[[i]],lty=1,lwd=2)
+        }
+      }
+    }
   #   # dev.off()
   #
   # }
@@ -210,12 +278,15 @@ a.series <- ss$a.series
   # ####     plotTSeries      ####
   # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   # if(diagnostics.i=="MCB"){
-  #   par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
+    par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
   #
   #   pdf(file.path(dir_figs,"Fig-MCB-apicalF.pdf"))
-  #   plot_boot_vec(dataBoot=D.boot.F.full[,paste(yr.plot)],runsToKeep = simID2,
-  #                  ref_x=base.t.series$year,ref_y=base.t.series$F.full,
-  #                  xlab="",ylab="Apical F")
+    nm_par <- nm_rp$t.series[["F"]]
+    # plot_boot_vec(t.series.2[[nm_F]],xlab="",ylab=nm_F)
+    do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
+    if(is_base){
+      do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
+    }
   #   dev.off()
   #
   #   pdf(file.path(dir_figs,"Fig-MCB-FdFmsy.pdf"))
@@ -223,64 +294,108 @@ a.series <- ss$a.series
   #                  ref_x=base.t.series$year,ref_y=base.t.series$F.Fmsy,
   #                  xlab="",ylab="F/Fmsy")
   #   abline(h=1,lwd=2)
+    #par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
+    nm_par <- nm_rp$t.series[["F.Fref"]]
+    do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
+    abline(h=1,lwd=2)
+    if(is_base){
+      do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
+    }
+
   #   dev.off()
   #
   #   pdf(file.path(dir_figs,"Fig-MCB-N.pdf"))
   #   plot_boot_vec(dataBoot=D.boot.N[,paste(yr.plot)], runsToKeep = simID2,
   #                  ref_x=base.t.series$year,ref_y=base.t.series$N,
   #                  xlab="",ylab="Abundance (N)")
+    nm_par <- "N"
+    do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
+    if(is_base){
+      do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
+    }
+
+
   #   dev.off()
   #
   #   pdf(file.path(dir_figs,"Fig-MCB-SSB.pdf"))
   #   plot_boot_vec(dataBoot=D.boot.SSB[,paste(yr.plot)],runsToKeep = simID2,
   #                  ref_x=base.t.series$year,ref_y=base.t.series$SSB,
   #                  xlab="",ylab="SSB")
+    nm_par <- nm_rp$t.series[["S"]]
+    do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
+    abline(h=1,lwd=2)
+    if(is_base){
+      do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
+    }
+
   #   dev.off()
   #
   #   pdf(file.path(dir_figs,"Fig-MCB-SSBdMSST.pdf"))
   #   plot_boot_vec(dataBoot=D.boot.SSB.msst[,paste(yr.plot)],runsToKeep = simID2,
   #                  ref_x=base.t.series$year,ref_y=base.t.series$SSB.msst,
   #                  xlab="",ylab="SSB/MSST")
-  #   abline(h=1,lwd=2)
+    nm_par <- nm_rp$t.series[["S.Sref"]]
+    do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
+    abline(h=1,lwd=2)
+    if(is_base){
+      do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
+    }
+
+     abline(h=1,lwd=2)
   #   dev.off()
   #
   #   pdf(file.path(dir_figs,"Fig-MCB-SSBdSSBmsy.pdf"))
-  #   plot_boot_vec(dataBoot=D.boot.SSB.SSBmsy[,paste(yr.plot)],runsToKeep = simID2,
-  #                  ref_x=base.t.series$year,ref_y=base.t.series$SSB.SSBmsy,
-  #                  xlab="",ylab="SSB/SSBmsy")
-  #   abline(h=1,lwd=2)
+     nm_par <- "SSB.SSBmsy"
+     if(nm_par%in%names(t.series.2)){
+       do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
+       abline(h=1,lwd=2)
+       if(is_base){
+         do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
+       }
+       abline(h=1,lwd=2)
+     }
   #   dev.off()
   #
   #   pdf(file.path(dir_figs,"Fig-MCB-recruits.pdf"))
-  #   plot_boot_vec(dataBoot=D.boot.recruits[,paste(yr.plot)],runsToKeep = simID2,
-  #                  ref_x=base.t.series$year,ref_y=base.t.series$recruits,
-  #                  xlab="",ylab="Recruits (numbers)")
+     nm_par <- "recruits"
+     do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
+     if(is_base){
+       do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
+     }
   #   dev.off()
   #
-  #   # Benchmarks time series, three panel plot (SSBdMSST, SSBdSSBmsy, and FdFmsy)
-  #   pdf(file.path(dir_figs,"Fig-MCB-status-ts.pdf"), width=8,height=10)
-  #   par(mfrow=c(2,1),mar=c(1.1,2,1,1),mgp=c(1,.2,0),cex.lab=1,cex.axis=1,cex=1,tck=-0.02)
-  #   plot_boot_vec(dataBoot=D.boot.SSB.msst[,paste(yr.plot)],runsToKeep = simID2,
-  #                  ref_x=base.t.series$year,ref_y=base.t.series$SSB.msst,
-  #                  xlab="",ylab="SSB/MSST")
-  #   abline(h=1,lwd=2)
-  #   # plot_boot_vec(dataBoot=D.boot.SSB.SSBmsy[,paste(yr.plot)],runsToKeep = simID2,
-  #   #                ref_x=base.t.series$year,ref_y=base.t.series$SSB.SSBmsy,
-  #   #                xlab="",ylab="SSB/SSBmsy")
-  #   # abline(h=1,lwd=2)
-  #   plot_boot_vec(dataBoot=D.boot.F.Fmsy[,paste(yr.plot)],runsToKeep = simID2,
-  #                  ref_x=base.t.series$year,ref_y=base.t.series$F.Fmsy,
-  #                  xlab="",ylab="F/Fmsy")
-  #   abline(h=1,lwd=2)
+    # Benchmarks time series, two panel plot
+    #pdf(file.path(dir_figs,"Fig-MCB-status-ts.pdf"), width=8,height=10)
+    par(mfrow=c(2,1),mar=c(1.1,2,1,1),mgp=c(1,.2,0),cex.lab=1,cex.axis=1,cex=1,tck=-0.02)
+    nm_par <- nm_rp$t.series[["S.Sref"]]
+    do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
+    abline(h=1,lwd=2)
+    if(is_base){
+      do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
+    }
+    abline(h=1,lwd=2)
+
+    nm_par <- nm_rp$t.series[["F.Fref"]]
+    do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
+    abline(h=1,lwd=2)
+    if(is_base){
+      do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
+    }
+    abline(h=1,lwd=2)
   #   dev.off()
   #
   #   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   #   ####     plotASeries      ####
   #   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  #   pdf(file.path(dir_figs,"Fig-MCB-Mage.pdf"))
-  #   plot_boot_vec(dataBoot=D.boot.M,runsToKeep = simID2,
-  #                  ref_x=spp$a.series$age,ref_y=spp$a.series$M,
-  #                  xlab="age",ylab="M")
+    nm_par <- "length"
+    if(nm_par%in%names(a.series.2)){
+      do.call(plot_boot_vec,c(list(data=a.series.2[[nm_par]],xlab="age",ylab=nm_par),aseries_plot_args))
+      if(is_base){
+        do.call("points",c(list("x"=a.series.b$age,"y"=a.series.b[,nm_par]),base_aseries_args))
+      }
+    }else{
+      warning(paste(nm_par,"not found in a.series. No plot produced."))
+    }
   #   dev.off()
   #
   #   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

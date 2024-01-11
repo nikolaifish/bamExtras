@@ -180,7 +180,7 @@ Then we can compare the two models
 rdat <- rdat_BlackSeaBass
 comp <- rdat$comp.mats # List of composition matrices
 acomp <- comp[grepl("^acomp.*.ob$",names(comp))] # list of observed age composition matrices
-comp_i <- acomp$acomp.Mcvt.ob
+comp_i <- acomp[[1]]  
 cc_i <- catch_curve(comp_i)
 # Plot comps and add catch curves (note the log-tranformation of the composition data)
 comp_plot(log(comp_i),cc=cc_i,fillComp = FALSE,ylab= "log(proportion)",xlab="age",title="black sea bass commercial handline catch curves")

@@ -135,14 +135,14 @@ run_bam <- function(CommonName = NULL, fileName = "bam", dir_bam = NULL,
 
   compile_command <- paste("admb", fileName)
   message(paste("Compiling",fileName,"model"))
-  shell(compile_command)
+  system(compile_command)
 
   #######Run admb
   run_command <- paste(fileName, admb_options)
   message(paste("Running",fileName,"model"))
-  shell(run_command)
+  system(run_command)
 
-  shell("cleanup.bat")
+  system("cleanup.bat")
 
   rdat <- dget(fileName_rdat)
 

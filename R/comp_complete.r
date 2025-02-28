@@ -65,8 +65,8 @@ comp_complete <- function(comp_list,
 
   for (compName_i in names(comp_list)){
     M_i <- comp_list[[compName_i]]
-    Mn_i <- M_i[,grepl("^n",names(M_i))]
-    M_i <- M_i[,grepl("[0-9.]+",colnames(M_i))] # remove non-numeric columns (e.g. nfish)
+    Mn_i <- M_i[,grepl("^n",names(M_i)),drop=FALSE]
+    M_i <- M_i[,grepl("[0-9.]+",colnames(M_i)),drop=FALSE] # remove non-numeric columns (e.g. nfish)
 
     colnames_obs_i <- colnames(M_i)
 
@@ -159,7 +159,7 @@ comp_complete <- function(comp_list,
       comp_i <- comp_i
     }
     if(output_type=="nfish"){
-      comp_i <- round(comp_i[,!names(comp_i)%in%n_colname_new]*comp_i$nfish)
+      comp_i <- as.matrix(round(comp_i[,!names(comp_i)%in%n_colname_new]*comp_i$nfish))
     }
 
     comp_i[comp_i==valsToNA] <- NA # Change specified values to NA (e.g. -99999)

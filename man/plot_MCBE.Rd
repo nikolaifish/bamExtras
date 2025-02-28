@@ -5,17 +5,22 @@
 \title{Plot results from MCBE uncertainty analysis}
 \usage{
 plot_MCBE(
-  sim_summary,
+  sim_summary = NULL,
   dir_figs = "figs",
   fileName = "bam",
   dir_bam_base = NULL,
-  filter_info = list(gradient.max = c(0, 0.01), Fref = c(0, 5), F.Fref = c(0, 5),
-    R.sigma.par = c(0.2, 1), R0_prob = c(0.005, 0.995)),
+  filter_MCBE_args = list(filter_info = list(gradient.max = c(0, 0.01), Fref = c(0, 5),
+    F.Fref = c(0, 5), R.sigma.par = c(0.2, 1), R0_prob = c(0.005, 0.995), avoid_bounds =
+    TRUE), nm_rp = list(parms = c(Fref = "Fmsy", F.Fref = "Fend.Fmsy.mean"))),
+  tseries_plot_args = list(),
+  aseries_plot_args = list(),
   base_tseries_args = list(type = "o", lty = 1, lwd = 2, pch = 16, col = "black"),
   base_aseries_args = list(type = "o", lty = 1, lwd = 2, pch = 16, col = "black"),
   nm_rp = list(parms = c(Fref = "Fmsy", F.Fref = "Fend.Fmsy.mean", Sref = "msst", S.Sref
-    = "SSBend.MSST"), t.series = c(F = "F.full", F.Fref = "F.Fmsy", Sref = "SSB", S.Sref
-    = "SSB.msst"))
+    = "SSBend.MSST", Lref = "msy.klb", Bref = "Bmsy"), t.series = c(F = "F.full", F.Fref
+    = "F.Fmsy", S = "SSB", S.Sref = "SSB.msst")),
+  plot2pdf = TRUE,
+  sc_pdf = list(w = 1, h = 1)
 )
 }
 \arguments{
@@ -23,17 +28,26 @@ plot_MCBE(
 
 \item{dir_figs}{name of directory that will be created to store figures}
 
-\item{fileName}{Name given to BAM base files, not including file extensions.}
+\item{fileName}{Name of BAM base files in dir_bam_base, not including file extensions.}
 
-\item{dir_bam_base}{Name of directory to write bam base model files to, relative to the working directory.}
+\item{dir_bam_base}{Name of directory where the bam base model is located relative to the working directory, for adding base model results to plots (optional).}
+
+\item{tseries_plot_args}{List of arguments to pass to \code{bamExtras::plot_boot_vec} when plotting time series.}
+
+\item{aseries_plot_args}{List of arguments to pass to \code{bamExtras::plot_boot_vec} when plotting age series.}
+
+\item{base_tseries_args}{List of arguments to add to plotting functions (e.g. \code{points()}) that add base results to time series plots}
+
+\item{base_aseries_args}{List of arguments to add to plotting functions (e.g. \code{points()}) that add base results to age series plots}
+
+\item{nm_rp}{list specifying names of reference points to include in plots.}
+
+\item{plot2pdf}{If \code{plot2pdf} = TRUE, each plot will be written to a pdf
+in \code{dir_figs}. If false, figures will be plotted to the active graphic device.}
+
+\item{sc_pdf}{Optional scalars for pdf width and height. Multiplied by defaults pdf width and height. Defaults to 1 which has no effect.}
 
 \item{filter_info}{list of ranges used to filter out MCBE results. set to NULL to retain all results.}
-
-\item{base_tseries_args}{arguments to add to plotting functions (e.g. \code{points()}) that add base results to time series plots}
-
-\item{base_aseries_args}{arguments to add to plotting functions (e.g. \code{points()}) that add base results to age series plots}
-
-\item{nm_rp}{names of reference points to include in plots}
 }
 \description{
 Plot results from MCBE uncertainty analysis

@@ -31,7 +31,7 @@ agelenprob <- function(age,
                        label_min=0.01){
 
   sd_lenc <- len*cv_lenc
-  binmid_lenc <- as.numeric(colnames(lenc))  # bin mid point
+  #binmid_lenc <- as.numeric(colnames(lenc))  # bin mid point
   binwid <- local({
     a <- diff(binmid_lenc)
     if(length(unique(a))>1){

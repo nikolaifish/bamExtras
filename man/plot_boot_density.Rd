@@ -7,10 +7,10 @@
 plot_boot_density(
   data,
   x_name,
-  density_args = list(from = NULL, to = NULL),
+  density_args = list(from = NULL, to = NULL, na.rm = TRUE),
   plot_args = list(xlab = NULL, ylab = "density", main = "", type = "l"),
   quantile_draw = FALSE,
-  quantile_args = list(probs = c(0.05, 0.5, 0.95)),
+  quantile_args = list(probs = c(0.05, 0.5, 0.95), na.rm = TRUE),
   quantile_abline_args = list(lty = c(3, 2, 3), lwd = c(2, 2, 2), lend = "butt"),
   col_shade = "gray50",
   add_text_nsim = FALSE

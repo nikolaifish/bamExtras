@@ -1,14 +1,19 @@
 #' Summarize results from MCBE uncertainty analysis
 #'
 #' @param dir_bam_sim Name of directory where run_MCBE results files are stored, relative to the working directory.
-#' @param dir_bam_base Name of directory where base model results are stored, relative to the working directory.
+#' @param dir_bam_base Name of directory where base (i.e. reference) model results are stored, relative to the working directory.
+#' @param fileName Name given to BAM base run files, not including file extensions
 #' @param nm_model character string indicating the model name as part of the MCBE file names.
 #' For example, "bam" is the \code{nm_model} in "1-bam.rdat". This optional argument should be specified if there
 #' are .rdat files in \code{dir_bam_sim} other than the MCBE output files. Otherwise, this function
 #' will try to read all .rdat files.
 #' @param obj_collect Names of objects in MCBE rdat files to collect and summarize
 #' @param obj_labels list of names for each value of each parameter in parm.cons
+#' @param nm_Fref Name of F alternative F reference point to use for calculating Fref.65, Fref.75, and Fref.85. There is surely a better way to do those calculations, but this is the current method.
 #' @param ncores number of cores to use for parallel processing
+#' @details This function also runs the \code{bamExtras::check_bounds} function
+#' on the rdat for each simulation and adds the logical value \code{nearbound} to
+#' the \code{rdat$parms} indicating if any parameters were near the bounds.
 #' @returns list of summarized outputs, most of which are named similar to typical BAM output (rdat) files.
 #' This list can be passed to \code{plot_MCBE} to make a variety of useful plots
 #' @keywords bam MCBE stock assessment fisheries
@@ -25,26 +30,18 @@
 
 summarize_MCBE <- function(dir_bam_sim="sim",
                            dir_bam_base="base",
+                           fileName="bam",
                            nm_model="",
                            obj_collect = c("info","parms","like","spr.brps","mse",
                                            "a.series","t.series","parm.cons",
                                            "N.age","Z.age","sel.age"),
                            obj_labels = list(parm.cons = c("init", "lower", "upper", "phase",
                                                            "prior_mean","prior_var", "prior_pdf",
-                                                           "out")
+                                                           "result")
                            ),
+                           nm_Fref = c("F40","Fref"),
                            ncores = NULL
                      ){
-
-# Test args
-# fileName <-  "bam"
-# dir_bam <- "base"
-# dir_bam_sim="sim_GrTr"
-# obj_collect = c("info","parms","like","spr.brps","a.series","t.series","sel.age","N.age","Z.age","mse")
-
-#######################
-# library(doParallel)
-# library(foreach)
 
 #### parallel setup
 if(is.null(ncores)){
@@ -56,7 +53,7 @@ cl <- parallel::makeCluster(ncores)
 doParallel::registerDoParallel(cl)
 
 ### Do stuff with base run
-# spp <- dget(file.path(dir_bam,paste(filename,'rdat', sep=".")))
+rdat <- dget(file.path(dir_bam_base,paste(fileName,'rdat', sep=".")))
 
 
 # nm_sim <- sprintf(paste("%0",nchar(nsim),".0f",sep=""),1:nsim)
@@ -81,13 +78,13 @@ modRunName <- local({
   }
   return(c)})
 
-spp1 <- dget(paste(dir_bam_sim,simFilesRdat[1],sep="/"))
-
-a.series.names <- names(spp1$a.series)
-t.series.names <- names(spp1$t.series)
-parm.cons.names <- names(spp1$parm.cons)
-ages <- spp1$a.series$age
-years <- spp1$t.series$year
+a.series <- rdat$a.series
+t.series <- rdat$t.series
+a.series.names <- names(a.series)
+t.series.names <- names(t.series)
+parm.cons.names <- names(rdat$parm.cons)
+ages <- a.series$age
+years <- t.series$year
 
 # Retrieve values from sim rdat files
 simSummary <- foreach::foreach(iter.j=seq_along(simFilesRdat),
@@ -102,11 +99,59 @@ simSummary <- foreach::foreach(iter.j=seq_along(simFilesRdat),
 
   ## Calculate some values needed in the benchmarks table
   eq <- rdat.j$eq.series
-  Fmsy <- rdat.j$parms$Fmsy
+  Fmsy <- ifelse("Fmsy"%in%names(rdat.j$parms),rdat.j$parms$Fmsy,NA)
+  Fref <- if(any(nm_Fref%in%names(rdat.j$parms))){
+    a <- nm_Fref[nm_Fref%in%names(rdat.j$parms)]
+    if(length(a)>1){
+      nm_Fref <- a[1]
+      message(paste0(paste(a,collapse=", ")," found in parms. The first match (",out,") will be used."))
+      a[1]
+    }else{
+      nm_Fref <- a
+    }
+    rdat.j$parms[[nm_Fref]]
+  }else{
+   NA
+  }
+
   F.eq <- eq$F.eq
-  #L.eq <- eq$L.eq.wholeklb
-  L.eq <- eq$L.eq.gutklb
-  # D.eq <- eq$D.eq.knum
+  # Revisit at a later time 2023-12-19 NPK
+  # Revisiting 2024-08-20 NPK
+  nm_Leq <- local({
+    nm_eq <- names(eq)
+    a <- nm_eq[grepl("^L\\.eq\\.[A-Za-z]*klb",nm_eq)]
+    if(length(a)>1){
+    out <- a[1]
+      message(paste0("More than one variable in eq.series has a name that starts with L.eq and ends with klb. The first match (",out,") will be used."))
+    a[1]
+    }else{
+    out <- a
+    }
+    out
+  })
+  nm_Deq <- local({
+    nm_eq <- names(eq)
+    a <- nm_eq[grepl("^D\\.eq\\.[A-Za-z]*knum",nm_eq)]
+    if(length(a)>1){
+      out <- a[1]
+      message(paste0("More than one variable in eq.series has a name that starts with D.eq and ends with knum. The first match (",out,") will be used."))
+    }else if(length(a)==0){
+      out <- NA
+      message(paste0("No variables in eq.series have a name that starts with D.eq. Are there discards in this model?"))
+      }else{
+      out <- a
+    }
+    out
+  })
+
+  L.eq <- eq[,nm_Leq]
+  D.eq <- if(is.na(nm_Deq)){
+    NA}else{
+    eq[,nm_Deq]
+  }
+
+
+  if(!is.na(Fmsy)){
   Fmsy.65 <- 0.65*Fmsy
   Fmsy.75 <- 0.75*Fmsy
   Fmsy.85 <- 0.85*Fmsy
@@ -114,16 +159,46 @@ simSummary <- foreach::foreach(iter.j=seq_along(simFilesRdat),
   Lmsy.65.klb  <- L.eq[which.min(abs(F.eq-Fmsy.65))]
   Lmsy.75.klb  <- L.eq[which.min(abs(F.eq-Fmsy.75))]
   Lmsy.85.klb  <- L.eq[which.min(abs(F.eq-Fmsy.85))]
-  # Dmsy.65.knum <- D.eq[which.min(abs(F.eq-Fmsy.65))]
-  # Dmsy.75.knum <- D.eq[which.min(abs(F.eq-Fmsy.75))]
-  # Dmsy.85.knum <- D.eq[which.min(abs(F.eq-Fmsy.85))]
+
+  Dmsy.65.knum <- D.eq[which.min(abs(F.eq-Fmsy.65))]
+  Dmsy.75.knum <- D.eq[which.min(abs(F.eq-Fmsy.75))]
+  Dmsy.85.knum <- D.eq[which.min(abs(F.eq-Fmsy.85))]
+  }else{
+    Fmsy.65 <- Fmsy.75 <- Fmsy.85 <- NA
+    Lmsy.65.klb <- Lmsy.75.klb <- Lmsy.85.klb <- NA
+    Dmsy.65.knum <- Dmsy.75.knum <- Dmsy.85.knum <- NA
+  }
+
+  if(!is.na(Fref)){
+    Fref.65 <- 0.65*Fref
+    Fref.75 <- 0.75*Fref
+    Fref.85 <- 0.85*Fref
+
+    Lref.65.klb  <- L.eq[which.min(abs(F.eq-Fref.65))]
+    Lref.75.klb  <- L.eq[which.min(abs(F.eq-Fref.75))]
+    Lref.85.klb  <- L.eq[which.min(abs(F.eq-Fref.85))]
+    Dref.65.knum <- D.eq[which.min(abs(F.eq-Fref.65))]
+    Dref.75.knum <- D.eq[which.min(abs(F.eq-Fref.75))]
+    Dref.85.knum <- D.eq[which.min(abs(F.eq-Fref.85))]
+  }else{
+    Fref.65 <- Fref.75 <- Fref.85 <- NA
+    Lref.65.klb <- Lref.75.klb <- Lref.85.klb <- NA
+    Dref.65.knum <- Dref.75.knum <- Dref.85.knum <- NA
+  }
 
   rdat.j$parms$Lmsy.65.klb <- Lmsy.65.klb
   rdat.j$parms$Lmsy.75.klb <- Lmsy.75.klb
   rdat.j$parms$Lmsy.85.klb <- Lmsy.85.klb
-  # rdat.j$parms$Dmsy.65.knum <- Dmsy.65.knum
-  # rdat.j$parms$Dmsy.75.knum <- Dmsy.75.knum
-  # rdat.j$parms$Dmsy.85.knum <- Dmsy.85.knum
+  rdat.j$parms$Dmsy.65.knum <- Dmsy.65.knum
+  rdat.j$parms$Dmsy.75.knum <- Dmsy.75.knum
+  rdat.j$parms$Dmsy.85.knum <- Dmsy.85.knum
+
+  rdat.j$parms$Lref.65.klb <- Lref.65.klb
+  rdat.j$parms$Lref.75.klb <- Lref.75.klb
+  rdat.j$parms$Lref.85.klb <- Lref.85.klb
+  rdat.j$parms$Dref.65.knum <- Dref.65.knum
+  rdat.j$parms$Dref.75.knum <- Dref.75.knum
+  rdat.j$parms$Dref.85.knum <- Dref.85.knum
 
   # Compute mean squared errors associated with data fitted
   rdat.j$mse <- mse_calc(rdat.j)
@@ -233,12 +308,18 @@ out.mse <- D.sim.mse
 ## Matrices
 if("a.series"%in%obj_collect){
 # a.series
+aser.vec <- setNames(rep(NA,length(ages)),ages)
 L.sim.a.series <- foreach::foreach(i=seq_along(a.series.names),
                       .multicombine=TRUE
 ) %dopar% {
-  a <- lapply(simSummary,FUN=function(x){x[["a.series"]][[a.series.names[i]]]})
+  a <- lapply(simSummary,FUN=function(x){
+    age_sim <- paste(x[["a.series"]][["age"]])
+    out <- aser.vec
+    out[age_sim] <- x[["a.series"]][[a.series.names[i]]]
+    out
+    })
   b <- do.call(rbind.data.frame,a)
-  names(b) <- ages # Rename columns
+  dimnames(b) <- list(names(simSummary),ages) # Rename columns
   return(b)
 }
 names(L.sim.a.series) <- a.series.names
@@ -247,12 +328,21 @@ out.a.series <- L.sim.a.series
 
 if("t.series"%in%obj_collect){
 # t.series
+tser.vec <- setNames(rep(NA,length(years)),years)
 L.sim.t.series <- foreach::foreach(i=seq_along(t.series.names),
                           .multicombine=TRUE
 ) %dopar% {
-  a <- lapply(simSummary,FUN=function(x){x[["t.series"]][[t.series.names[i]]]})
+  # Define
+  #year_sim <- lapply(simSummary,FUN=function(x){x[["t.series"]][["year"]]}) # years in each sim run
+
+  a <- lapply(simSummary,FUN=function(x){
+    year_sim <- paste(x[["t.series"]][["year"]])
+    out <- tser.vec
+    out[year_sim] <- x[["t.series"]][[t.series.names[i]]]
+    out
+    })
   b <- do.call(rbind.data.frame,a)
-  names(b) <- years # Rename columns
+  dimnames(b) <- list(names(simSummary),years) # Rename columns
   return(b)
 }
 names(L.sim.t.series) <- t.series.names
@@ -261,14 +351,20 @@ out.t.series <- L.sim.t.series
 
 if("N.age"%in%obj_collect){
 # N.age
-N.age.dn1 <- dimnames(spp1$N.age)[[1]]
-N.age.dn2 <- dimnames(spp1$N.age)[[2]]
+N.age.dn1 <- dimnames(rdat$N.age)[[1]]
+N.age.dn2 <- dimnames(rdat$N.age)[[2]]
+N.age.vec <- setNames(rep(NA,length(N.age.dn1)),N.age.dn1)
 L.sim.N.age <- foreach::foreach(i=seq_along(N.age.dn2),
                           .multicombine=TRUE
 ) %dopar% {
-  a <- lapply(simSummary,FUN=function(x){x[["N.age"]][,N.age.dn2[i]]})
+  a <- lapply(simSummary,FUN=function(x){
+    year_sim <- dimnames(x[["N.age"]])[[1]]
+    out <- N.age.vec
+    out[year_sim] <- x[["N.age"]][,N.age.dn2[i]]
+    out
+    })
   b <- do.call(rbind.data.frame,a)
-  names(b) <- N.age.dn1 # Rename columns
+  dimnames(b) <- list(names(simSummary),N.age.dn1)
   return(b)
 }
 names(L.sim.N.age) <- N.age.dn2
@@ -277,14 +373,20 @@ out.N.age <- L.sim.N.age
 
 if("Z.age"%in%obj_collect){
   # Z.age
-  Z.age.dn1 <- dimnames(spp1$Z.age)[[1]]
-  Z.age.dn2 <- dimnames(spp1$Z.age)[[2]]
+  Z.age.dn1 <- dimnames(rdat$Z.age)[[1]]
+  Z.age.dn2 <- dimnames(rdat$Z.age)[[2]]
+  Z.age.vec <- setNames(rep(NA,length(Z.age.dn1)),Z.age.dn1)
   L.sim.Z.age <- foreach::foreach(i=seq_along(Z.age.dn2),
-                         .multicombine=TRUE
+                                  .multicombine=TRUE
   ) %dopar% {
-    a <- lapply(simSummary,FUN=function(x){x[["Z.age"]][,Z.age.dn2[i]]})
+    a <- lapply(simSummary,FUN=function(x){
+      year_sim <- dimnames(x[["Z.age"]])[[1]]
+      out <- Z.age.vec
+      out[year_sim] <- x[["Z.age"]][,Z.age.dn2[i]]
+      out
+    })
     b <- do.call(rbind.data.frame,a)
-    names(b) <- Z.age.dn1 # Rename columns
+    dimnames(b) <- list(names(simSummary),Z.age.dn1)
     return(b)
   }
   names(L.sim.Z.age) <- Z.age.dn2
@@ -308,22 +410,33 @@ if("parm.cons"%in%obj_collect){
 ## Lists
 if("sel.age"%in%obj_collect){
   # sel.age
-  sel.age.names <- names(spp1$sel.age)
+  sel.age.names <- names(rdat$sel.age)
   L.sim.sel.age <- list()
 
   for(i in seq_along(sel.age.names)){
-    if(is.null(dim(spp1$sel.age[[i]]))){
+    if(is.null(dim(rdat$sel.age[[i]]))){
       # vectors
-      a <- lapply(simSummary,FUN=function(x){x[["sel.age"]][[sel.age.names[i]]]})
+      a <- lapply(simSummary,FUN=function(x){
+        age_sim <- paste(x[["a.series"]][["age"]])
+        out <- aser.vec
+        out[age_sim] <- x[["sel.age"]][[sel.age.names[i]]]
+        out
+        })
       b <- do.call(rbind,a)
     }else{
       # matrices
-      sel.age.dn1 <- dimnames(spp1$sel.age[[i]])[[1]]
-      sel.age.dn2 <- dimnames(spp1$sel.age[[i]])[[2]]
+      sel.age.dn1 <- dimnames(rdat$sel.age[[i]])[[1]]
+      sel.age.dn2 <- dimnames(rdat$sel.age[[i]])[[2]]
+      sel.age.vec <- setNames(rep(NA,length(sel.age.dn1)),sel.age.dn1)
       b <- foreach::foreach(j=seq_along(sel.age.dn2),
                              .multicombine=TRUE
       ) %dopar% {
-        a <- lapply(simSummary,FUN=function(x){x[["sel.age"]][[i]][,sel.age.dn2[j]]})
+        a <- lapply(simSummary,FUN=function(x){
+          year_sim <- dimnames(x[["sel.age"]][[i]])[[1]]
+          out <- sel.age.vec
+          out[year_sim] <- x[["sel.age"]][[i]][,sel.age.dn2[j]]
+          out
+          })
         b <- do.call(rbind,a)
         return(b)
       }

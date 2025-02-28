@@ -11,8 +11,18 @@ plot_boot_vec(
   ref_x = NULL,
   ref_y = NULL,
   col_lines = rgb(0, 0, 0, 1),
-  col_shade = NULL,
   add = FALSE,
+  plot_shade = TRUE,
+  plot_medCI = TRUE,
+  plot_runs_which = "none",
+  plot_runs_args = list(type = "l", lty = 1),
+  plot_runs_col_fn = rainbow,
+  plot_runs_labels = NULL,
+  plot_runs_labels_args = list(pos = 4, cex = 1),
+  plot_runs_endpt_args = list(),
+  polygon_args = list(),
+  plot_legend = FALSE,
+  legend_args = list(),
   ...
 )
 }
@@ -27,9 +37,27 @@ plot_boot_vec(
 
 \item{col_lines}{color for lines depicting central tendency and confidence limits. Expects hex color}
 
-\item{col_shade}{color for shading confidence bands}
+\item{add}{logical. Should a new plot be drawn (FALSE) or should it be added to an existing plot (TRUE)?}
 
-\item{add}{logical. Should a new plot be drawn or should it be added to an existing plot?}
+\item{plot_runs_which}{Specify individual runs to add to the plot: "none" add none of the individual runs, "all" adds all of the runs. Or specify a numeric vector of the runs you want to plot, corresponding to columns of \code{data}}
+
+\item{plot_runs_args}{list of arguments to pass to \code{matpoints} when adding runs to the plot}
+
+\item{plot_runs_col_fn}{name of the color function to use when adding runs to plot. It should be a function like \code{rainbow} or \code{heat.colors} where the first argument is \code{n}}
+
+\item{plot_runs_labels}{character vector of labels for runs to plot. Length should be equal to the number of individual runs being plotted}
+
+\item{plot_runs_labels_args}{arguments to pass to \code{text} when labeling runs.}
+
+\item{plot_runs_endpt_args}{arguments to pass to \code{points} for plotting the last non-NA value of a vector as a point (used in retrospective plots).
+When pch=NA (default), points will be plotted invisibly.}
+
+\item{polygon_args}{Optional arguments to pass to \code{polygon} for plotting shaded confidence bands.}
+
+\item{plot_legend}{logical. Should a legend be added to the plot? If TRUE, legend_args can be specified to format the legend.}
+
+\item{legend_args}{Optional arguments to pass to \code{legend}. By default,
+the legend just shows a message about the error bands.}
 
 \item{...}{other arguments to pass to \code{matplot}}
 }
@@ -38,8 +66,14 @@ Plot median values and confidence intervals (shaded region) for stochastic (e.g.
 }
 \examples{
 \dontrun{
-bootData <- t(replicate(n=100,random_walk(mu=0.5)))
+bootData <- t(replicate(n=200,random_walk(x=1:200,mu=0.1)))
 plot_boot_vec(bootData)
+plot_boot_vec(bootData,plot_runs_which = sample(1:nrow(bootData),10))
+plot_boot_vec(bootData,plot_runs_which = sample(1:nrow(bootData),10),plot_shade=FALSE)
+plot_boot_vec(bootData,plot_runs_which = sample(1:nrow(bootData),10),plot_shade=FALSE,plot_medCI = FALSE)
+ids <- sample(1:nrow(bootData),10)
+plot_boot_vec(bootData,plot_runs_which = ids,plot_shade=FALSE,plot_medCI = FALSE,
+plot_runs_labels=ids,plot_runs_labels_args = list(pos=4,cex=0.75))
 }
 }
 \author{

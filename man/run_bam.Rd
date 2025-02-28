@@ -12,17 +12,21 @@ run_bam(
   dat_file = NULL,
   tpl_file = NULL,
   cxx_file = NULL,
+  exe_file = NULL,
   dat_obj = NULL,
   tpl_obj = NULL,
   cxx_obj = NULL,
   standardize = TRUE,
-  subset_rdat = list(eq.series = 101, pr.series = 101),
+  subset_rdat = list(eq.series = 101, pr.series = 101, t.series = "styr:endyr"),
   unlink_dir_bam = TRUE,
   admb_options = "-nox",
   admb2r_obj = admb2r.cpp,
   cleanup = list(del = c("*.r0*", "*.p0*", "*.b0*", "*.log", "*.rpt", "*.obj", "*.htp",
     "*.eva", "*.bar", "*.tds", "*.o", "tmp_admb", "variance", "*.dep", "*.hes", "*.tmp")),
-  return_obj = "rdat"
+  run_cleanup = TRUE,
+  shell_args_compile = list(intern = FALSE),
+  shell_args_run = list(intern = FALSE),
+  return_obj = "all"
 )
 }
 \arguments{
@@ -40,6 +44,11 @@ run_bam(
 
 \item{cxx_file}{cxx file path}
 
+\item{exe_file}{exe file path. If you specify only exe_file and dat_file or dat_obj,
+the function will copy the executable and will not try to compile bam. It will just
+run teh executable with the dat file you give it. This option is used with
+run_MCBE.}
+
 \item{dat_obj}{dat file read in as a character vector with readLines(con=dat_file)}
 
 \item{tpl_obj}{tpl file read in as a character vector with readLines(con=tpl_file)}
@@ -48,9 +57,13 @@ run_bam(
 
 \item{standardize}{Should \code{\link[bamExtras]{standardize_bam}} be run by the function before running the BAM}
 
-\item{subset_rdat}{list of rdat objects to subset and number of values to retain.
-This option can substantially decrease rdat file size, without affecting precision of
-reference point calculations.}
+\item{subset_rdat}{list of rdat objects to subset in different ways. For eq.series and pr.series
+specify number of evenly spaced values to retain. For t.series specify a series
+of years to retain, either as a numeric vector, or as a character string that will be
+evaluated as code internally with \code{eval(parse(text=my_string))}.
+When subsetting eq.series or pr.series, this option can
+substantially decrease rdat file size, without affecting precision of reference
+point calculations. This is particularly helpful for the MCBE runs.}
 
 \item{unlink_dir_bam}{Should \code{dir_bam} be deleted after this function is run?}
 
@@ -61,7 +74,17 @@ reference point calculations.}
 
 \item{cleanup}{List object written to \code{cleanup.bat} file in \code{dir_bam}.}
 
-\item{return_obj}{objects to return from the function. May include one or more of the following "dat", "tpl", "cxx", "rdat". character vector.}
+\item{run_cleanup}{Should the \code{cleanup.bat} be run?}
+
+\item{return_obj}{names of objects to return from the function. May include one or more
+of the following values which refer to ADMB file extensions:
+\code{dat}, \code{tpl}, \code{cxx}, \code{rdat} or \code{par}. These files will be
+read with \code{readLines} and passed to the result as character vectors. May
+also include \code{admb} which returns a list of basic run results including
+\code{lk_total} (total likelihood), \code{grad_max} (maximum gradient), and
+\code{file_names} (list of file names in \code{dir_bam} after running
+\code{\link[base]{shell}}).
+Character vector. If NULL, all objects are returned.}
 }
 \value{
 See \code{return_obj}
@@ -76,7 +99,7 @@ The function invisibly returns the bam file objects (indicated by return_obj) in
 }
 \examples{
 \dontrun{
-Run a bam model and assign rdat output to object
+# Run a bam model and assign rdat output to object
 rdat_AtMe <- run_bam("AtlanticMenhaden")$rdat
 rdat_BlSB <- run_bam("BlackSeaBass")$rdat
 rdat_BlTi <- run_bam("BluelineTilefish")$rdat
@@ -92,6 +115,53 @@ rdat_SnGr <- run_bam("SnowyGrouper")$rdat
 rdat_Tile <- run_bam("Tilefish")$rdat
 rdat_VeSn <- run_bam("VermilionSnapper")$rdat
 
+### Change a value in the init object, and run bam
+bam_RePo <- bam_RePo_raw <- bam2r("RedPorgy")
+bam_RePo$init$obs_cpue_sCT[1] <- paste(2*as.numeric(bam_RePo$init$obs_cpue_sCT[1]))
+bam_RePo <- bam2r(init=bam_RePo$init,dat_obj = bam_RePo$dat,tpl_obj = bam_RePo$tpl,cxx_obj = bam_RePo$cxx)
+bamout_RePo <- run_bam(bam=bam_RePo,return_obj = NULL,
+                       shell_args_compile = list("intern"=TRUE),
+                       shell_args_run = list("intern"=TRUE)
+)
+
+##### Create and run examples where errors occur #####
+### silly value in dat file. Data file NOT READ CORRECTLY.
+# Note that although this run fails, it is not a shell error (i.e. shell error code = 0)
+bam_RePo_err1 <- bam_RePo_raw
+bam_RePo_err1$init$endyr <- "pickles"
+bam_RePo_err1 <- bam2r(init=bam_RePo_err1$init,dat_obj = bam_RePo_err1$dat,tpl_obj = bam_RePo_err1$tpl,cxx_obj = bam_RePo_err1$cxx)
+bamout_RePo_err1 <- run_bam(bam=bam_RePo_err1,return_obj = NULL,
+                            shell_args_compile = list("intern"=TRUE),
+                            shell_args_run = list("intern"=TRUE)
+)
+# look at results to see the Data File reading error
+bamout_RePo_err1$admb$run_out[grepl("Data File",bamout_RePo_err1$admb$run_out)]
+
+### Negative value in cpue. Data file read correctly, but shell(run_command) fails with error code 1
+bam_RePo_err2 <- bam_RePo_raw
+bam_RePo_err2$init$obs_cpue_sCT[1] <- paste(-10)
+bam_RePo_err2 <- bam2r(init=bam_RePo_err2$init,dat_obj = bam_RePo_err2$dat,tpl_obj = bam_RePo_err2$tpl,cxx_obj = bam_RePo_err2$cxx)
+bamout_RePo_err2 <- run_bam(bam=bam_RePo_err2,return_obj = NULL,
+                            shell_args_compile = list("intern"=TRUE),
+                            shell_args_run = list("intern"=TRUE)
+)
+# look at results to see that the Data File was read correctly
+bamout_RePo_err2$admb$run_out[grepl("Data File",bamout_RePo_err2$admb$run_out)]
+# get run error code
+bamout_RePo_err2$admb$error_code_run
+# also note that lk_total is NaN
+bamout_RePo_err2$admb$lk_total
+
+### Crazy values of M. Data file read correctly, no shell error, but Hessian doesn't converge
+bam_RePo_err3 <- bam_RePo_raw
+bam_RePo_err3$init$set_M <- setNames(paste(as.numeric(bam_RePo_err3$init$set_M)*10),names(bam_RePo_err3$init$set_M))
+bam_RePo_err3 <- bam2r(init=bam_RePo_err3$init,dat_obj = bam_RePo_err3$dat,tpl_obj = bam_RePo_err3$tpl,cxx_obj = bam_RePo_err3$cxx)
+bamout_RePo_err3 <- run_bam(bam=bam_RePo_err3,return_obj = NULL,
+                            shell_args_compile = list("intern"=TRUE),
+                            shell_args_run = list("intern"=TRUE)
+)
+# look at results to see the indefinite Hessian error
+bamout_RePo_err3$admb$run_out[grepl("Hessian",bamout_RePo_err3$admb$run_out)]
 }
 }
 \keyword{assessment}

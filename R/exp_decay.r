@@ -1,7 +1,7 @@
 #' Exponential decay
 #'
 #' Compute numbers of individuals alive at time in a population experiencing exponential decay, allowing age-varying Z. Can be used to compute numbers at age at the beginning of the year.
-#' @param age ages at which to compute numbers alive. Can be fractional ages (e.g. daily, monthly) but
+#' @param age ages at which to compute numbers alive. Can be fractional ages (e.g. daily, monthly).
 #' @param Z instantaneous mortality rate
 #' @param N1 number of individuals at first age (i.e. \code{age[1]}) at the beginning of the year
 #' @param plus_group Should the function include a plus group? logical
@@ -32,7 +32,7 @@ exp_decay <- function(age,Z,N1=1,plus_group=FALSE){
       if(a==1)   {return(N1)}
       if(a>1)    {
         if(plus_group&a==ac_n){return(N_a[ac_n-1]*exp(-Z[ac_n-1]/a_steps)/   # Plus group
-                                        (1-exp(-Z[ac_n-1]/a_steps)))
+                                        (1-exp(-Z[ac_n]/a_steps)))
         }else{return(N_a[a-1]* exp(-Z[a-1]/a_steps))}
       }
     })

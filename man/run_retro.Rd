@@ -18,6 +18,8 @@ run_retro(
   cxx_obj = NULL,
   standardize = FALSE,
   nyr_remove = 1:5,
+  endyr_reduce_always = c("endyr", "endyr_dev_rec", "endyr_rec_dev", "endyr_rec_phase2",
+    "endyr_rec_spr"),
   ncores = NULL,
   ndigits = 4,
   unlink_dir_bam_base = FALSE,
@@ -25,9 +27,9 @@ run_retro(
   overwrite_bam_base = TRUE,
   admb_options_base = "-nox",
   run_sim = TRUE,
-  admb_options_sim = "-est -nox -ind",
+  admb_options_sim = "-est -nox",
   prompt_me = FALSE,
-  subset_rdat = list(eq.series = 101, pr.series = 101),
+  subset_rdat = list(eq.series = 101, pr.series = 101, t.series = styr:endyr),
   random_seed = 12345,
   admb2r_obj = admb2r.cpp,
   cleanup = list(del = c("*.r0*", "*.p0*", "*.b0*", "*.log", "*.rpt", "*.obj", "*.htp",
@@ -61,6 +63,10 @@ run_retro(
 
 \item{nyr_remove}{number of years to remove in the retrospective analysis}
 
+\item{endyr_reduce_always}{Names of endyr variables that should always be reduced as years are removed from each retrospective run.
+These names will be searched in among all init variable names starting with endyr and must match exactly. Other
+endyr variables will only be reduced if they are greater than the terminal year of a particular retrospective run.}
+
 \item{ncores}{number of cores to use for parallel processing}
 
 \item{ndigits}{number of digits to round simulated values to}
@@ -80,7 +86,11 @@ run_retro(
 
 \item{prompt_me}{Turn on/off prompts that ask for user input before deleting files.}
 
-\item{subset_rdat}{list of rdat objects to subset to decrease rdat file size}
+\item{subset_rdat}{list of rdat objects to subset in different ways. For eq.series and pr.series
+specify number of evenly spaced values to retain. For t.series specify a series
+of years to retain. When subsetting eq.series or pr.series, this option can
+substantially decrease rdat file size, without affecting precision of reference
+point calculations.}
 
 \item{random_seed}{random seed value. If NULL, random seed is not set within the function.}
 

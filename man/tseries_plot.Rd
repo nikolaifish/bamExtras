@@ -13,12 +13,10 @@ tseries_plot(
   nErrUnits = 2,
   errLim = c(0, Inf),
   plotLabel = NULL,
-  matplot_args = list(col = rainbow(ncol(x)), type = "o", lty = 1, lwd = 2, pch = 16,
-    ylim = NULL),
-  polygon_args = list(border = NA, lwd = matplot_args$lwd),
+  matplot_args = list(),
+  polygon_args = list(),
   col_band_alpha = 0.3,
-  pt_buffer = 0.1,
-  ...
+  pt_buffer = 0.1
 )
 }
 \arguments{
@@ -38,15 +36,11 @@ tseries_plot(
 
 \item{plotLabel}{character string for labeling plot}
 
-\item{matplot_args}{list of additional arguments passed to \code{matplot}, which plots x.}
+\item{matplot_args}{optional list of additional arguments passed to \code{matplot}, which plots x.}
 
-\item{polygon_args}{list of additional arguments passed to \code{polygon}, which plots error bands when errStyle="bands".}
+\item{polygon_args}{optional list of additional arguments passed to \code{polygon}, which plots error bands when errStyle="bands".}
 
 \item{col_band_alpha}{alpha (transparency) value between 0 and 1 to adjust opacity of color bands}
-
-\item{...}{pass additional arguments to matplot}
-
-\item{ylim}{range of y on plot}
 }
 \description{
 This is a simple plotting fucntion that is useful when plotting time series typically found in stock assessments (e.g. catch, indices)

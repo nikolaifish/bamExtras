@@ -4,7 +4,7 @@
 \alias{color_trans}
 \title{Make opaque color transparent}
 \usage{
-color_trans(hexcolor, alpha = 0.25)
+color_trans(x, alpha = 0.25)
 }
 \arguments{
 \item{x}{numeric vector}

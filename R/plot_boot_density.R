@@ -26,17 +26,17 @@
 
 plot_boot_density <- function(data,
                               x_name,
-                              density_args = list(from=NULL,to=NULL),
+                              density_args = list(from=NULL,to=NULL,na.rm=TRUE),
                               plot_args = list(xlab=NULL,ylab="density",main="",type="l"),
                               quantile_draw=FALSE,
-                              quantile_args = list(probs=c(0.05,0.50,0.95)),
+                              quantile_args = list(probs=c(0.05,0.50,0.95),na.rm=TRUE),
                               quantile_abline_args = list(lty=c(3,2,3),lwd=c(2,2,2),lend="butt"),
                               col_shade="gray50",
                               add_text_nsim=FALSE){
   par_i <- data[,x_name]
 
-  if(is.null(density_args$from)){density_args$from <- min(par_i)}
-  if(is.null(density_args$to)){density_args$to <- max(par_i)}
+  if(is.null(density_args$from)){density_args$from <- min(par_i,na.rm=TRUE)}
+  if(is.null(density_args$to)){density_args$to <- max(par_i,na.rm=TRUE)}
   if(is.null(plot_args$xlab)){plot_args$xlab=x_name}
 
   quantile <- do.call(quantile,c(list(x=par_i),quantile_args))

@@ -46,9 +46,9 @@ run_MCBE(
   admb_options_base = "-nox",
   run_est = TRUE,
   sim_type_return = "dat",
-  admb_options_sim = "-est -nox -ind",
+  admb_options_sim = "-est -nox",
   prompt_me = FALSE,
-  subset_rdat = list(eq.series = 101, pr.series = 101),
+  subset_rdat = list(eq.series = 101, pr.series = 101, t.series = "styr:endyr"),
   random_seed = 12345
 )
 }
@@ -91,7 +91,7 @@ run_MCBE(
 
 \item{fn_par}{List of character strings used to simulate values of fixed parameters (see \code{Details}). Strings are internally passed to \code{eval(parse(text=mystring))}. Functions should produce vectors of length nsim, or in some cases matrices with nrow nsim.}
 
-\item{repro_sim}{List of settings to be used to simulate reproductive data sets. \code{P_repro} defines the proportion of age comps for which reproductive data are available.  \code{nagecfishage} is the assumed number of age samples per age, used only if age comp data is not found in BAM.}
+\item{repro_sim}{List of settings to be used to simulate reproductive data sets. Set to NULL to shut it off. \code{P_repro} defines the proportion of age comps for which reproductive data are available.  \code{nagecfishage} is the assumed number of age samples per age, used only if age comp data is not found in BAM.}
 
 \item{fix_par}{Optional character vector of parameter names to fix in the simulations using tpl init object names with a phase setting (e.g. "set_M_constant", "set_steep"). This is mostly used for running sensitivities and parameter profiles. Note that this has no effect on the base model.}
 
@@ -116,11 +116,11 @@ run_MCBE(
 
 \item{admb_options_sim}{ADMB code snippet used in shell script when running bam}
 
-\item{prompt_me}{Turn on/off prompts that ask for user input before deleting files.}
-
-\item{subset_rdat}{list of rdat objects to subset and number of values to retain.
-This option can substantially decrease rdat file size, without affecting precision of
-reference point calculations.}
+\item{subset_rdat}{list of rdat objects to subset in different ways. For eq.series and pr.series
+specify number of evenly spaced values to retain. For t.series specify a series
+of years to retain. When subsetting eq.series or pr.series, this option can
+substantially decrease rdat file size, without affecting precision of reference
+point calculations. This is particularly helpful for the MCBE runs.}
 
 \item{random_seed}{random seed value. If NULL, random seed is not set within the function.}
 }
@@ -133,10 +133,10 @@ This function reruns the base model, from user supplied input files or objects, 
 most notably the executable (\code{exe}) file used in the MCBE process, stored in \code{dir_bam_base}.
 Simulated input data sets are generated for specified fixed parameters and data sets. New BAM data input (\code{dat}) files
 are created and the BAM base executable is rerun with each \code{dat} file, using parallel processing. After each simulation
-is run, \code{run_BAM} checks if the objective function value (i.e. total likelihood) for a numeric value; if the value is non numeric
+is run, \code{run_bam} checks if the objective function value (i.e. total likelihood) for a numeric value; if the value is non numeric
 (e.g. nan), then the run is considered to have failed. The \code{dat} and results (\code{rdat}) files are for successful
 runs are moved to \code{dir_bam_sim}. If any runs fail (which is not common) a folder is created (named \code{dir_bam_sim}
-with suffix '_fail') and failed runs are moved there. \code{run_BAM}
+with suffix '_fail') and failed runs are moved there. \code{run_bam}
 and results file (\code{rdat}) are copied to \code{dir_bam_sim}.
 }
 \details{

@@ -15,7 +15,8 @@ bam2r(
   tpl_obj = NULL,
   cxx_obj = NULL,
   object_labels = list(bounded_point = c("init", "lower", "upper", "phase", "prior_mean",
-    "prior_var", "prior_pdf"), bounded_vector = c("lower", "upper", "phase"))
+    "prior_var", "prior_pdf"), bounded_vector = c("lower", "upper", "phase")),
+  is_bam = TRUE
 )
 
 bam_to_r(
@@ -28,7 +29,8 @@ bam_to_r(
   tpl_obj = NULL,
   cxx_obj = NULL,
   object_labels = list(bounded_point = c("init", "lower", "upper", "phase", "prior_mean",
-    "prior_var", "prior_pdf"), bounded_vector = c("lower", "upper", "phase"))
+    "prior_var", "prior_pdf"), bounded_vector = c("lower", "upper", "phase")),
+  is_bam = TRUE
 )
 }
 \arguments{
@@ -49,6 +51,11 @@ bam_to_r(
 \item{cxx_obj}{cxx file read in as a character vector with readLines(con=cxx_file)}
 
 \item{object_labels}{list of labels for bounded points and vectors}
+
+\item{is_bam}{Are you using this function on an actual bam model? If FALSE,
+code that is very specific to bam will not be run. The function was designed
+to read bam model files into R, but in many cases it should work to read other
+dat and tpl files.}
 }
 \description{
 This script reads in BAM dat, tpl, and cxx files, and converts them to R objects (character vectors of each line of the code). It also builds an R list on the tpl init objects, from the tpl and dat files.

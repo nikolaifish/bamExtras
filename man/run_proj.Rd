@@ -8,11 +8,14 @@ run_proj(
   rdat = NULL,
   run_bam_args = NULL,
   bam2r_args = NULL,
+  stochastic = FALSE,
   pstar = NULL,
   styr_proj = NULL,
   nyb_rcn = list(L = 3, U = 3, R = 5, comp = 3),
   nyp_cur = 3,
   nyp = 5,
+  nm_yr_p = c("endyr", "endyr_rec_dev", "endyr_rec_phase2", "endyr_rec_spr", "styr_regs",
+    "endyr_proj"),
   F_cur = NULL,
   F_proj = NULL,
   L_cur = NULL,
@@ -37,7 +40,10 @@ run_proj(
   project_bam = FALSE,
   ia_args = list(U_nm = NULL),
   obs_error = list(cv_U_sc = 0),
-  plot = FALSE
+  plot = FALSE,
+  nm_comp_sfx = c(""),
+  t_series_na_vals = c(-9999, -99999, -999999),
+  key_lenprob = c(all = "^len.cv")
 )
 }
 \arguments{
@@ -47,15 +53,24 @@ run_proj(
 
 \item{bam2r_args}{list of arguments passed internally to bam2r if any are provided}
 
+\item{stochastic}{logical. Is this a stochastic projection? Mostly runs the same code
+either way, but stochastic projections add normal errors to recruitment. Stochastic
+setting is intended to be run with rdat input from MCBE.}
+
 \item{pstar}{Value to use for applying pstar scaling of Fmsy. If set to NULL, it is not used and pstar code will not be run.}
 
 \item{styr_proj}{start year (i.e. first calendar year) of projection}
 
-\item{nyb_rcn}{number of years in calculations that include recent landings (L) or discards and their cvs, index cvs (U), recruitment (R), or numbers of samples in age or length compositions (comp). Fleets without L or D within the last nyb_rcn years of the base model will not be projected forward. named list}
+\item{nyb_rcn}{number of years in calculations that include recent landings
+(L) or discards and their cvs, index cvs (U), recruitment (R), or numbers of
+samples in age or length compositions (comp). Fleets without L or D within the
+last nyb_rcn years of the base model will not be projected forward. named list}
 
 \item{nyp_cur}{number of years to maintain current conditions before implementing management}
 
 \item{nyp}{number of years of projection. Must be >nyp_cur}
+
+\item{nm_yr_p}{names of \code{init} objects to project forward by \code{nyp}}
 
 \item{F_cur}{current fully selected fishing mortality rate}
 
@@ -93,9 +108,16 @@ run_proj(
 
 \item{spawn_time}{time of year for peak spawning}
 
-\item{SR_par}{list of parameters associated with the stock-recruit (SR) relationship. Currently only works with a Beverton-Holt SR relationship for which the parameters are: h = steepness of spawner-recruit function, R0 = virgin recruitment of spawner-recruit function, Phi0 = virgin spawners per recruit, biascorr = bias correction}
+\item{SR_par}{list of parameters associated with the stock-recruit (SR) relationship.
+Currently only works with a Beverton-Holt SR relationship for which the parameters are:
+h = steepness of spawner-recruit function, R0 = virgin recruitment of spawner-recruit
+function, Phi0 = virgin spawners per recruit, biascorr = bias correction}
 
-\item{SR_method}{Spawner-recruit function BH = Beverton-Holt, GM = constant geometric mean of nyb_rcn$R recent years of t.series$recruits. By default, run_proj will try to use BH, but if it can't find all the parameters, it will resort to GM (and will return a message letting you know that)}
+\item{SR_method}{Spawner-recruit function BH = Beverton-Holt, R0 = model estimated
+mean recruitment (R0), GM = constant geometric mean of nyb_rcn$R recent years of
+t.series$recruits. By default, run_proj will try to use BH, or R0, but if it can't
+find all the parameters, it will resort to GM. Note GM method has not been reviewed
+and should be used with caution.}
 
 \item{age_error}{age error matrix to use for the projection years. By default, the function uses the same age_error matrix from the base model}
 
@@ -106,14 +128,24 @@ run_proj(
 \item{obs_error}{list of optional arguments for incorporating observation error into projections. See Details section below.}
 
 \item{plot}{logical. Produce plots of extended base model including projected data}
+
+\item{nm_comp_sfx}{Character vector. Possible suffix added to fleet abbreviation in comps
+(e.g. c("a","b") in SEDAR 82 gray triggerfish). Used to match comps with catch when projecting
+comp data when \code{project_bam=TRUE}}
+
+\item{t_series_na_vals}{Numeric vector of values to consider as NA in t.series object.}
+
+\item{key_lenprob}{Optional list for specifying cv values for length-at-age,
+for each set of length compositions. (e.g. key_lenprob = c("D.rHD"="len.cv.L", "L.rGN"="len.cv.L")). Use keyword 'all', as in default to set all
+values to a particular value in parm.cons.}
 }
 \description{
-Deterministic projections
+Project BAM forward in time to conduct deterministic or stochastic projections.
 }
 \details{
 \code{ia_args}:
 \itemize{
-\item{U_nm}{The fleet abbreviation for an index of abundance that you want to use to adjust F (e.g. sTV, sCT).}
+\item{U_nm}{The fleet abbreviation for an index of abundance that you want to use to adjust F (e.g. sTV, sCT). If set to \code{NULL}, no interim adjustment will be used.}
 \item{type}{Method used for computing F adjustment. "Uprop" computes the mean U from recent years, divided by U from
 reference year. The reference year is the terminal year of the last full stock assessment. The set of recent years is computed
 as the current projection year plus yr_U_lag. By default, type = "Uprop"}
@@ -132,13 +164,30 @@ By default, include_yrlim_p = FALSE}
 }
 \examples{
 \dontrun{
-proj_VeSn <- run_proj(rdat_VermilionSnapper)
-proj_VeSn <- run_proj(rdat_VermilionSnapper, project_bam=TRUE,
-run_bam_args = list(
+# Run deterministic projection with defaults
+proj_VeSn <- run_proj(rdat_VermilionSnapper,plot=TRUE)
+
+# Run deterministic projection with defaults
+# and project bam inputs, by adding the bam files with bam2r_args
+proj_VeSn <- run_proj(rdat_VermilionSnapper,
+project_bam=TRUE,
+bam2r_args = list(
 dat_obj=dat_VermilionSnapper,
 tpl_obj=tpl_VermilionSnapper,
 cxx_obj=cxx_VermilionSnapper
 ))
+# The projections work for most of the assessments
+proj_BlSb <- run_proj(rdat_BlackSeaBass,plot=TRUE)
+proj_GaGr <- run_proj(rdat_GagGrouper,plot=TRUE)
+proj_RdGr <- run_proj(rdat_RedGrouper,plot=TRUE)
+proj_RdSn <- run_proj(rdat_RedSnapper,plot=TRUE)
+proj_VeSn <- run_proj(rdat_VermilionSnapper,plot=TRUE)
+# Some need additional arguments to run correctly
+proj_GrTr <- run_proj(rdat_GrayTriggerfish,
+nm_comp_sfx = c("a","b"),
+plot=TRUE,
+key_lenprob = c("D.rHDs"="len.cv.L", "L.rGNs"="len.cv.L")
+)
 }
 }
 \author{

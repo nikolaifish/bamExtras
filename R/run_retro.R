@@ -13,6 +13,9 @@
 #' @param cxx_obj cxx file read in as a character vector with readLines(con=cxx_file)
 #' @param standardize Should \code{\link[bamExtras]{standardize_bam}} be run by the function before running the BAM
 #' @param nyr_remove number of years to remove in the retrospective analysis
+#' @param endyr_reduce_always Names of endyr variables that should always be reduced as years are removed from each retrospective run.
+#' These names will be searched in among all init variable names starting with endyr and must match exactly. Other
+#' endyr variables will only be reduced if they are greater than the terminal year of a particular retrospective run.
 #' @param ncores number of cores to use for parallel processing
 #' @param ndigits number of digits to round simulated values to
 #' @param unlink_dir_bam_base Should dir_bam_base be deleted after this function is run?
@@ -24,7 +27,11 @@
 #' @param run_sim If FALSE, the simulated data will be generated but won't be used in new BAM runs
 #' @param admb_options_sim ADMB code snippet used in shell script when running bam
 #' @param prompt_me Turn on/off prompts that ask for user input before deleting files.
-#' @param subset_rdat list of rdat objects to subset to decrease rdat file size
+#' @param subset_rdat list of rdat objects to subset in different ways. For eq.series and pr.series
+#' specify number of evenly spaced values to retain. For t.series specify a series
+#' of years to retain. When subsetting eq.series or pr.series, this option can
+#' substantially decrease rdat file size, without affecting precision of reference
+#' point calculations.
 #' @param random_seed random seed value. If NULL, random seed is not set within the function.
 #' @param admb2r_obj Character string containing admb2r C++ code, which is written with \code{base::writeLines} to \code{dir_bam}
 #' @param cleanup List object written to \code{cleanup.bat} file in \code{dir_bam}.
@@ -62,6 +69,7 @@ run_retro <- function(CommonName = NULL,
                      dat_obj=NULL, tpl_obj=NULL,cxx_obj=NULL,
                      standardize=FALSE,
                      nyr_remove=1:5,
+                     endyr_reduce_always=c("endyr","endyr_dev_rec","endyr_rec_dev","endyr_rec_phase2","endyr_rec_spr"),
                      # parallel=TRUE, # Right now it has to be in parallel
                      ncores=NULL,
                      ndigits=4, # number of digits to round simulated values to
@@ -71,9 +79,9 @@ run_retro <- function(CommonName = NULL,
                      overwrite_bam_base=TRUE, # If FALSE, the files in dir_bam_base will not be overwritten if run_bam_base=TRUE
                      admb_options_base = '-nox',
                      run_sim=TRUE, # If FALSE, the simulated data will be generated but won't be used in new BAM runs
-                     admb_options_sim = '-est -nox -ind', # -ind changes the name of the data input file each bootstrap iteration
+                     admb_options_sim = '-est -nox',
                      prompt_me=FALSE, # Turn on/off prompts that ask for user input before deleting files.
-                     subset_rdat=list("eq.series"=101,"pr.series"=101),
+                     subset_rdat=list("eq.series"=101,"pr.series"=101,"t.series"=styr:endyr),
                      random_seed=12345,
                      admb2r_obj = admb2r.cpp,
                      cleanup = list(del=c("*.r0*","*.p0*","*.b0*","*.log","*.rpt","*.obj",
@@ -144,6 +152,7 @@ run_retro <- function(CommonName = NULL,
   }
   init <- bam$init
 
+  styr <- as.numeric(init$styr)
   endyr <- as.numeric(init$endyr)
 
   endyr_sim <- local({
@@ -162,14 +171,16 @@ run_retro <- function(CommonName = NULL,
       message(paste("The folder",paste0("'",dir_bam_base,"'"),"already exists."))
       if(overwrite_bam_base){
         message(paste("Since overwrite_bam_base = TRUE, files in '",dir_bam_base,"' will be overwritten when run_bam is called"))
-        spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_options=admb_options_base)
+        spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_options=admb_options_base,
+                       subset_rdat = subset_rdat)
       }else{
         message(paste("Since overwrite_bam_base = FALSE, run_bam will not be called to rerun the base run"))
         spp <- dget(file.path(dir_bam_base,paste0(fileName,".rdat")))
       }
     }else{
       dir.create(dir_bam_base)
-      spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_options=admb_options_base)
+      spp <- run_bam(bam=bam, dir_bam = dir_bam_base, unlink_dir_bam=unlink_dir_bam_base,admb_options=admb_options_base,
+                     subset_rdat = subset_rdat)
 
     }
   }else{
@@ -225,9 +236,10 @@ run_retro <- function(CommonName = NULL,
     init_endyr_i <- setNames(lapply(seq_along(init_endyr),function(j){
       x <- init_endyr[j]
       xd <- as.numeric(x)-as.numeric(endyr_i)
-      # For endyr, endyr_rec_, or endyr_proj values, always reduce the values by nyr_remove_i
-      if(grepl("^endyr$|^endyr_rec_(?!.*(phase1))|endyr_proj",names(init_endyr[j]),perl=TRUE)){
-        paste(as.numeric(x)-nyr_remove_i) # Reduce it by nyr_remove_i
+      # Always reduce variables in endyr_reduce_always by nyr_remove_i
+      #if(grepl("^endyr$|^endyr_rec_(?!.*(phase1))|endyr_proj",names(init_endyr[j]),perl=TRUE)){
+       if(names(init_endyr[j])%in%endyr_reduce_always){
+       paste(as.numeric(x)-nyr_remove_i) # Reduce it by nyr_remove_i
         # or if the current _endyr value is greater than the new endyr_i..
         }else if(as.numeric(x)>endyr_i){
           as.character(as.numeric(endyr_i)) # Set it equal to endyr_i
@@ -249,8 +261,25 @@ run_retro <- function(CommonName = NULL,
     # nyr values
     init_nyr_i <- init_nyr # initialize
     for(j in seq_along(init_nyr)){
-        nyr_nm_j <- names(init_nyr)[j]
-        init_nyr_i[[j]] <- paste(length(init_yrs_i[[gsub("^nyr","yrs",names(init_nyr)[j])]]))
+      nyr_nm_j <- names(init_nyr)[j]
+      yrs_nm_j <- gsub("^nyr","yrs",nyr_nm_j)
+      if(yrs_nm_j%in%names(init_yrs_i)){
+        init_nyr_i[[j]] <- paste(length(init_yrs_i[[yrs_nm_j]]))
+      }else{
+        styr_nm_j <- gsub("^nyr","styr",nyr_nm_j)
+        endyr_nm_j <- gsub("^nyr","endyr",nyr_nm_j)
+        if(styr_nm_j%in%names(init_styr_i)&endyr_nm_j%in%names(init_endyr_i)){
+          styr_ij <- init_styr_i[[styr_nm_j]]
+          endyr_ij <- init_endyr_i[[endyr_nm_j]]
+          yrs_ij <- styr_ij:endyr_ij
+          nyr_ij <- length(yrs_ij)
+          init_nyr_i[[j]] <- nyr_ij
+        }else{
+          if(i==1){
+          message(paste0(nyr_nm_j," not decremented in retrospective runs. Could not find associated yrs or styr and endyr values."))
+          }
+        }
+      }
     }
 
     # obs values
@@ -279,7 +308,8 @@ run_retro <- function(CommonName = NULL,
       x <- init_set_log_dev_vals[[j]]
       y <- as.numeric(names(x))
       if(name_j=="set_log_dev_vals_rec"){
-        x[which(y<=init_endyr_i$endyr_rec_dev)]
+        nm_tmp <- names(init_endyr_i)[grepl("^(?=.*endyr)(?=.*rec)(?=.*dev).*$",names(init_endyr_i),perl=TRUE)]
+        x[which(y<=as.numeric(init_endyr_i[[nm_tmp]]))]
       }else{
       x[which(y<=endyr_i)]
       }
@@ -363,69 +393,48 @@ run_retro <- function(CommonName = NULL,
     dir.create(sim_dir_i)
     setwd(sim_dir_i)
 
-    fileName_exe_base <- paste0(fileName,".exe")
+    # fileName_exe_base <- paste0(fileName,".exe")
+    #
+    fileName_i <- paste0(nm_sim_i,'-',fileName)
+    fileName_dat_i <- paste0(fileName_i,".dat") # Name of dat file for i
+    fileName_rdat_i <- paste0(fileName_i,".rdat") # Name of rdat file for i
+    # fileName_exe_i <- paste(nm_sim_i,'-',fileName,'.exe',sep="") # Name of exe file for i
+    fileName_par_i <- paste0(fileName_i,".par") # Name of par file for i
+    #
+    # # Copy executable to directory for sim i
+    # file.copy(file.path("..",dir_bam_base,fileName_exe_base), fileName_exe_i, overwrite=TRUE)
+    #
+    # # Rewrite dat file incorporating modified data
+    # writeLines(text=bam_i$tpl, con=gsub("dat$","tpl",fileName_dat_i))
+    # writeLines(text=bam_i$dat, con=fileName_dat_i)
+    #
+    # #######Run bam for sim_i
+    # shell(paste(fileName_exe_i, admb_options_sim, fileName_dat_i, sep=" "))
+    subset_rdat_i <- local({
+      a <- subset_rdat
+      styr_i <- as.numeric(bam_i$init$styr)
+      endyr_i <- as.numeric(bam_i$init$endyr)
+      a$t.series <- styr_i:endyr_i
+      a
+    })
 
-    fileName_dat_i <- paste(nm_sim_i,'-',fileName,'.dat',sep="") # Name of dat file for i
-    fileName_rdat_i <- paste(nm_sim_i,'-',fileName,'.rdat',sep="") # Name of rdat file for i
-    fileName_exe_i <- paste(nm_sim_i,'-',fileName,'.exe',sep="") # Name of exe file for i
-    fileName_par_i <- paste(nm_sim_i,'-',fileName,'.par',sep="") # Name of par file for i
+    bamout_i <- run_bam(bam=bam_i, fileName=fileName_i,admb_options=admb_options_sim,
+                        standardize = FALSE, unlink_dir_bam=FALSE,
+                        subset_rdat=subset_rdat_i)
 
-    # Copy executable to directory for sim i
-    file.copy(file.path("..",dir_bam_base,fileName_exe_base), fileName_exe_i, overwrite=TRUE)
-
-    # Rewrite dat file incorporating modified data
-    writeLines(text=bam_i$tpl, con=gsub("dat$","tpl",fileName_dat_i))
-    writeLines(text=bam_i$dat, con=fileName_dat_i)
-
-  #   #######Run bam for sim_i
-  #   shell(paste(fileName_exe_i, admb_options_sim, fileName_dat_i, sep=" "))
-  #
-  #   par_i <- readLines(fileName_par_i)
-  #   lk_total_i <- gsub("^.*Objective function value = (.*)  Maximum.*$","\\1",par_i[1])
-  #   grad_max_i <- gsub("^.*component = ","\\1",par_i[1])
-  #
-  #   if(!is.na(as.numeric(lk_total_i))){ # If the total likelihood of the model was a numeric result
-  #   # Subset rdat to decrease size on disk
-  #   rdat_i <- dget(file=fileName_rdat_i)
-  #   for(nm_k in names(subset_rdat)){
-  #     k <- rdat_i[[nm_k]]
-  #     if(is.null(subset_rdat[[nm_k]])){
-  #       rdat_i[[nm_k]] <- NULL
-  #     }else{
-  #       rdat_i[[nm_k]] <- k[seq(1,nrow(k),length=subset_rdat[[nm_k]]),,drop=FALSE]
-  #     }
-  #   }
-  #   # Save file over previous
-  #   dput(x=rdat_i,file=fileName_rdat_i)
-  #   file_to <- file.path("..",dir_bam_sim)
-  #   }else{
-  #     file_to <- file.path("..",dir_bam_sim_fail)
-  #     if(!dir.exists(file_to)){
-  #       dir.create(file_to)
-  #     }
-  #   }
-  #
-  #   ########## Copy data files to folder
-  #   file.copy(from=c(fileName_dat_i,fileName_rdat_i),
-  #             to=file_to,
-  #             overwrite = TRUE)
-  #
-  #   #######Remove individual processing folders
-  #   setwd(wd)
-  #   unlink(sim_dir_i, recursive=T)
-  #
-  # return(setNames(c(lk_total_i,grad_max_i),c("lk_total","grad_max")))
-    #######Run bam for sim_i
-    shell(paste(fileName_exe_i, admb_options_sim, fileName_dat_i, sep=" "))
-
-    par_i <- readLines(fileName_par_i)
+    par_i <- readLines(file.path(fileName_i,paste0(fileName_i,".par")))
     lk_total_i <- gsub("^.*Objective function value = (.*)  Maximum.*$","\\1",par_i[1])
     grad_max_i <- gsub("^.*component = ","\\1",par_i[1])
 
-    if(!is.na(as.numeric(lk_total_i))){ # If the total likelihood of the model was a numeric result
-      rdat_i <- dget(file=fileName_rdat_i)
+    if(is.finite(as.numeric(lk_total_i))){ # If the total likelihood of the model was a numeric result
+      rdat_i <- bamout_i$rdat
+
       # Collect the most important values from rdat
       parms_i <- unlist(rdat_i$parms)
+      # styr_base <- styr
+      # endyr_base <- endyr
+      # styr <- parms_i[["styr"]] # Temporarily set for filtering t.series
+      # endyr <- parms_i[["endyr"]]
 
       parm.cons.result_i <- unlist(lapply(rdat_i$parm.cons,function(x){x[8]}))
       like_i <- rdat_i$like
@@ -437,21 +446,29 @@ run_retro <- function(CommonName = NULL,
 
 
 
-      # Subset rdat to decrease size on disk
-      for(nm_k in names(subset_rdat)){
-        k <- rdat_i[[nm_k]]
-        if(is.null(subset_rdat[[nm_k]])){
-          rdat_i[[nm_k]] <- NULL
-        }else{
-          rdat_i[[nm_k]] <- k[seq(1,nrow(k),length=subset_rdat[[nm_k]]),,drop=FALSE]
-        }
-      }
-      # Save file over previous
-      dput(x=rdat_i,file=fileName_rdat_i)
+      # # Subset rdat_i to decrease size on disk
+      # for(nm_k in names(subset_rdat)){
+      #   if(!is.null(subset_rdat[[nm_k]])){ # won't subset anything if the value of nm_k is NULL
+      #     k <- rdat_i[[nm_k]]
+      #     if(nm_k%in%c("eq.series","pr.series")){
+      #       rdat_i[[nm_k]] <- k[seq(1,nrow(k),length=subset_rdat[[nm_k]]),,drop=FALSE]
+      #     }else if(nm_k=="t.series"){
+      #       rdat_i[[nm_k]] <- k[paste(subset_rdat[[nm_k]]),]
+      #     }else{
+      #       message(paste("no subsetting method is currently specified for",nm_k,"so no change was made"))
+      #     }
+      #   }
+      # }
+      # # Set back to base values
+      # styr <- styr_base
+      # endyr <- endyr_base
+      #
+      # # Save file over previous
+      # dput(x=rdat_i,file=fileName_rdat_i)
       file_to <- file.path("..",dir_bam_sim)
     }else{
       rdat_i <- rdat_base
-      # Collect the most important values from rdat
+      # Collect the most important values from rdat_i
       parms_i <- unlist(rdat_i$parms)
       parm.cons.result_i <- unlist(lapply(rdat_i$parm.cons,function(x){x[8]}))
       like_i <- rdat_i$like
@@ -467,7 +484,7 @@ run_retro <- function(CommonName = NULL,
     }
 
     ########## Copy data files to folder
-    file.copy(from=c(fileName_dat_i,fileName_rdat_i),
+    file.copy(from=file.path(fileName_i,c(fileName_dat_i,fileName_rdat_i)),
               to=file_to,
               overwrite = TRUE)
 
@@ -488,12 +505,11 @@ run_retro <- function(CommonName = NULL,
                    )
 
   write.csv(x=sim_out,file=file.path(dir_bam_sim,"retro_results.csv"),row.names = FALSE)
-
-### Return stuff
-invisible(sim_out)
-
   } # end if(run_sim)
 
   ## parallel shut down
   parallel::stopCluster(cl)
+
+  ### Return stuff
+  invisible(sim_out)
 }

@@ -8,15 +8,17 @@ F_calc(
   ac,
   h = NULL,
   R0 = NULL,
-  sigma = 0,
+  rec_sigma = 0,
   M,
   Fmax = 1,
   F_n = 101,
-  sel,
+  sel_L,
+  sel_D,
   PS,
-  W,
+  w,
   ep,
   Px = 0.4,
+  P_st = 0.5,
   plots = FALSE,
   plus_group = TRUE,
   plot_digits = 3
@@ -29,7 +31,7 @@ F_calc(
 
 \item{R0}{Beverton-Holt R0 parameter. Numbers of fish at age-a (often age-0 or age-1).}
 
-\item{sigma}{lognormal bias correction -- exp(sigma^2/2)}
+\item{rec_sigma}{recruitment standard deviation in log space. used to compute lognormal bias correction -- exp(sigma^2/2)}
 
 \item{M}{Natural mortality rate}
 
@@ -37,40 +39,51 @@ F_calc(
 
 \item{F_n}{Number of fishing mortality rates to try}
 
-\item{sel}{Selectivity at age}
+\item{sel_L}{Selectivity at age for landings}
+
+\item{sel_D}{Selectivity at age for discards}
 
 \item{PS}{Proportion of fish to include in stock calculation, at age (e.g. mature females at age)}
 
-\item{W}{weight at age}
+\item{w}{weight at age in any units, used to convert numbers-at-age to weight-at-age. Results in weight will be in these units.}
 
 \item{ep}{egg production proxy at age (e.g. weight, fecundity)}
 
 \item{Px}{reference proportion of unfished spawning potential ratio (e.g. Px=.40)}
 
+\item{P_st}{Time of year when spawning occurs, as a proportion.}
+
+\item{plots}{logical. Draw plots?}
+
 \item{plot_digits}{number of significant digits to show in plot}
 }
 \description{
-Calculations of stock dependent quantities over a range of fishing mortalities (F). This code calculates spawning potential ratio (SPR), and then maximum sustainable yield (MSY) using equilibrium methods incorporating a stock-recruit relationship. Many of the calculations, particularly the MSY calculations, are based on code
-written by Kyle Shertzer in a very similar function.
+Calculations of stock dependent quantities over a range of fishing mortalities (F).
+This code calculates spawning potential ratio (SPR), and then maximum sustainable
+yield (MSY) using equilibrium methods incorporating a Beverton-Holt stock-recruit relationship.
+Many of the calculations, particularly the MSY calculations, are based on code
+in the Beaufort Assessment Model. This function is essentially the same as the
+\code{get_msy} function, but is not as specific to BAM.
 }
 \examples{
 rdat <- rdat_VermilionSnapper
 pr <- rdat$parms
 as <- rdat$a.series
-F_calc(ac=as$age, h=pr$BH.steep, R0=pr$R0, M=as$M, sel=rdat$sel.age$sel.v.wgted.tot,
-       PS=as$mat.female, W=as$weight, ep=as$wgt.klb,
-       plots=TRUE)
+F_calc(ac=as$age, h=pr$BH.steep, R0=pr$R0,rec_sigma=rdat$parms$R.sigma.par, M=as$M,
+       sel_L=rdat$sel.age$sel.v.wgted.L, sel_D=rdat$sel.age$sel.v.wgted.D,
+       PS=rep(1,length(as$age)), w=as$wholewgt.wgted.L.klb, ep=as$reprod,
+       plots=TRUE,P_st=rdat$parms$spawn.time,plot_digits=4)
 
-# When there is no SRR, the function will still compute SPR without computing MSY-based equibrium values
+# When there is no SRR, the function will still compute SPR without computing MSY-based equilibrium values
 rdat <- rdat_RedSnapper
 pr <- rdat$parms
 as <- rdat$a.series
-F_calc(ac=as$age, M=as$M, sel=rdat$sel.age$sel.v.wgted.tot,
-       PS=as$mat.female, W=as$weight, ep=as$wgt.klb,
-       plots=TRUE)
+F_calc(ac=as$age, M=as$M, sel_L=rdat$sel.age$sel.v.wgted.L, sel_D=rdat$sel.age$sel.v.wgted.D,
+       PS=rep(1,length(as$age)), w=as$wholewgt.wgted.L.klb, ep=as$reprod,
+       plots=TRUE,P_st=rdat$parms$spawn.time,plot_digits=4)
 }
 \author{
-Kyle Shertzer and Nikolai Klibansky
+Erik Williams, Kyle Shertzer, and Nikolai Klibansky
 }
 \keyword{assessment}
 \keyword{bam}

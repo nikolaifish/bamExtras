@@ -20,12 +20,15 @@
 #' }
 #'
 
-color_trans <- function(hexcolor,alpha=0.25){
+color_trans <- function(x,alpha=0.25){
+  ya <- which(!is.na(x)) # yes available. Allows the function to ignore NA values
+  xya <- x[ya]
   alpha <- max(min(alpha,1),0) # Constrain alpha between 0 and 1
   hex_alpha <- toupper(as.hexmode(round(alpha*255)))
   if(nchar(hex_alpha)==1){hex_alpha <- paste0("0",hex_alpha)}
-  hexcolor[nchar(hexcolor)==7] <- paste0(hexcolor[nchar(hexcolor)==7],hex_alpha)
-  hexcolor[nchar(hexcolor)==9] <- gsub(".{2}$",hex_alpha,hexcolor[nchar(hexcolor)==9])
+  xya[nchar(xya)==7] <- paste0(xya[nchar(xya)==7],hex_alpha)
+  xya[nchar(xya)==9] <- gsub(".{2}$",hex_alpha,xya[nchar(xya)==9])
+  x[ya] <- xya
 
-  return(hexcolor)
+  return(x)
 }

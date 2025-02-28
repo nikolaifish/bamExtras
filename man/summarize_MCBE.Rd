@@ -7,18 +7,22 @@
 summarize_MCBE(
   dir_bam_sim = "sim",
   dir_bam_base = "base",
+  fileName = "bam",
   nm_model = "",
   obj_collect = c("info", "parms", "like", "spr.brps", "mse", "a.series", "t.series",
     "parm.cons", "N.age", "Z.age", "sel.age"),
   obj_labels = list(parm.cons = c("init", "lower", "upper", "phase", "prior_mean",
-    "prior_var", "prior_pdf", "out")),
+    "prior_var", "prior_pdf", "result")),
+  nm_Fref = c("F40", "Fref"),
   ncores = NULL
 )
 }
 \arguments{
 \item{dir_bam_sim}{Name of directory where run_MCBE results files are stored, relative to the working directory.}
 
-\item{dir_bam_base}{Name of directory where base model results are stored, relative to the working directory.}
+\item{dir_bam_base}{Name of directory where base (i.e. reference) model results are stored, relative to the working directory.}
+
+\item{fileName}{Name given to BAM base run files, not including file extensions}
 
 \item{nm_model}{character string indicating the model name as part of the MCBE file names.
 For example, "bam" is the \code{nm_model} in "1-bam.rdat". This optional argument should be specified if there
@@ -29,6 +33,8 @@ will try to read all .rdat files.}
 
 \item{obj_labels}{list of names for each value of each parameter in parm.cons}
 
+\item{nm_Fref}{Name of F alternative F reference point to use for calculating Fref.65, Fref.75, and Fref.85. There is surely a better way to do those calculations, but this is the current method.}
+
 \item{ncores}{number of cores to use for parallel processing}
 }
 \value{
@@ -37,6 +43,11 @@ This list can be passed to \code{plot_MCBE} to make a variety of useful plots
 }
 \description{
 Summarize results from MCBE uncertainty analysis
+}
+\details{
+This function also runs the \code{bamExtras::check_bounds} function
+on the rdat for each simulation and adds the logical value \code{nearbound} to
+the \code{rdat$parms} indicating if any parameters were near the bounds.
 }
 \examples{
 \dontrun{

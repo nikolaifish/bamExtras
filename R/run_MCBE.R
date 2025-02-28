@@ -4,10 +4,10 @@
 #' most notably the executable (\code{exe}) file used in the MCBE process, stored in \code{dir_bam_base}.
 #' Simulated input data sets are generated for specified fixed parameters and data sets. New BAM data input (\code{dat}) files
 #' are created and the BAM base executable is rerun with each \code{dat} file, using parallel processing. After each simulation
-#' is run, \code{run_BAM} checks if the objective function value (i.e. total likelihood) for a numeric value; if the value is non numeric
+#' is run, \code{run_bam} checks if the objective function value (i.e. total likelihood) for a numeric value; if the value is non numeric
 #' (e.g. nan), then the run is considered to have failed. The \code{dat} and results (\code{rdat}) files are for successful
 #' runs are moved to \code{dir_bam_sim}. If any runs fail (which is not common) a folder is created (named \code{dir_bam_sim}
-#' with suffix '_fail') and failed runs are moved there. \code{run_BAM}
+#' with suffix '_fail') and failed runs are moved there. \code{run_bam}
 #' and results file (\code{rdat}) are copied to \code{dir_bam_sim}.
 #' @param CommonName Common name of species associated with dat, tpl, and cxx files
 #' @param fileName Name given to BAM files, not including file extensions.
@@ -43,10 +43,11 @@
 #' @param run_est Do you want to run the estimation model (BAM)? If FALSE, the simulated data will be generated but won't be used in new BAM runs
 #' @param sim_type_return Type of simulated data to return: "init" or "dat". Has no effect in run_est=TRUE.
 #' @param admb_options_sim ADMB code snippet used in shell script when running bam
-#' @param prompt_me Turn on/off prompts that ask for user input before deleting files.
-#' @param subset_rdat list of rdat objects to subset and number of values to retain.
-#' This option can substantially decrease rdat file size, without affecting precision of
-#' reference point calculations.
+#' @param subset_rdat list of rdat objects to subset in different ways. For eq.series and pr.series
+#' specify number of evenly spaced values to retain. For t.series specify a series
+#' of years to retain. When subsetting eq.series or pr.series, this option can
+#' substantially decrease rdat file size, without affecting precision of reference
+#' point calculations. This is particularly helpful for the MCBE runs.
 #' @param random_seed random seed value. If NULL, random seed is not set within the function.
 #' @details
 #' \strong{Estimating reproductive (sex and maturity) functions}
@@ -163,9 +164,9 @@ run_MCBE <- function(CommonName = NULL,
                      admb_options_base = '-nox',
                      run_est=TRUE,
                      sim_type_return = "dat",
-                     admb_options_sim = '-est -nox -ind',
+                     admb_options_sim = '-est -nox',
                      prompt_me=FALSE,
-                     subset_rdat=list("eq.series"=101,"pr.series"=101),
+                     subset_rdat=list("eq.series"=101,"pr.series"=101,"t.series"="styr:endyr"),
                      random_seed=12345
 
 
@@ -272,6 +273,8 @@ run_MCBE <- function(CommonName = NULL,
   ## Identify objects from bam base output
   comp.mats <- rdat_base$comp.mats
   t.series <- rdat_base$t.series
+  styr <- rdat_base$parms$styr
+  endyr <- rdat_base$parms$endyr
 
   if(!is.null(repro_sim)){
     P_repro <- repro_sim$P_repro
@@ -314,6 +317,7 @@ run_MCBE <- function(CommonName = NULL,
     t0 = "rep(t0,nsim)",
     steep = "rep(steep,nsim)",
     rec_sigma = "rep(rec_sigma,nsim)",
+    SR_switch = "rep(SR_switch,nsim)",
     Dmort = "apply(Dmort,2,function(x){rep(x,nsim)})",
     Pfa=     "rep(Pfa,nsim)",
     Pfb=     "rep(Pfb,nsim)",
@@ -367,6 +371,7 @@ run_MCBE <- function(CommonName = NULL,
   }
   steep <- as.numeric(init$set_steep[1])
   rec_sigma <- as.numeric(init$set_rec_sigma[1])
+  SR_switch <- init$SR_switch
 
 
   if(Dmort_is){
@@ -449,7 +454,7 @@ run_MCBE <- function(CommonName = NULL,
       # oldest age of agec among that age and the older ages
       if(any(as.numeric(names(Pf))>agec_agemax)){
         ages2add <- names(Pf)[which(as.numeric(names(Pf))>=agec_agemax)]
-        Nage_est <- setNames(bamExtras::exp_decay(age=as.numeric(names(Pf)),Z=as.numeric(init[["set_M"]]),N0=1),names(Pf))
+        Nage_est <- setNames(bamExtras::exp_decay(age=as.numeric(names(Pf)),Z=as.numeric(init[["set_M"]]),N1=1),names(Pf))
         nagec_plus <- tail(a,1)
         Page_plus <- Nage_est[ages2add]*nagec_plus
         nrepro2add <- round(nagec_plus*(Page_plus/sum(Page_plus)))
@@ -464,11 +469,11 @@ run_MCBE <- function(CommonName = NULL,
     if(Pf_constant){ # If all values are the same
       Pfa <- unique(Pf)
       Pfb <- NA
-      warning(paste("all values of Pf are equal to",Pfa,". Will not attempt to estimate logistic function."))
+      message(paste("all values of Pf are equal to",Pfa,". Will not attempt to estimate logistic function."))
     }else if(Pf_binary){ # If all values are either 0 or 1
       Pfa <- NA
       Pfb <- mean(c(max(age_Pf[which(Pf==0)]),min(age_Pf[which(Pf==1)])))
-      warning(paste("all values of Pf are either 0 or 1. Will not attempt to estimate logistic function. a50 is approximately",Pfb))
+      message(paste("all values of Pf are either 0 or 1. Will not attempt to estimate logistic function. a50 is approximately",Pfb))
     }
 
     # Estimate logistic relationship if possible
@@ -537,7 +542,7 @@ run_MCBE <- function(CommonName = NULL,
       }
     }
   }else{ # end of repro_sim stuff
-
+  message("Reproductive traits are not being simulated since repro_sim = NULL.")
   }
 
   # compute limits of parameter values
@@ -583,8 +588,8 @@ run_MCBE <- function(CommonName = NULL,
   fecpar_c_max  <- max(fecpar_c_lim)
   fecpar_batches_sc_max  <- max(fecpar_batches_sc_lim)
 
+  # NOTE column names of Dmort_lim must match parameter names in init object
   if(Dmort_is){Dmort_lim <- Dmort[c(1,1),,drop=FALSE] * sclim$Dmort}
-
   ## Conduct Monte Carlo draws
 
   # Vectors (sim)
@@ -600,6 +605,7 @@ run_MCBE <- function(CommonName = NULL,
   }
   rec_sigma_sim <- eval(parse(text=fn_par$rec_sigma))
   steep_sim <- eval(parse(text=fn_par$steep))
+  SR_switch_sim <- eval(parse(text=fn_par$SR_switch))
 
   if(Dmort_is){
     Dmort_sim <- eval(parse(text=fn_par$Dmort))
@@ -713,6 +719,7 @@ run_MCBE <- function(CommonName = NULL,
                     Masc=Masc_sim,
                     steep=steep_sim,
                     rec_sigma=rec_sigma_sim,
+                    SR_switch=SR_switch_sim,
                     Pfa=Pfa_sim,
                     Pfb=Pfb_sim,
                     Pfma=Pfma_sim,
@@ -726,7 +733,7 @@ run_MCBE <- function(CommonName = NULL,
     }else{
       b <- a
     }
-    c <- apply(b,2,function(x){round(x,ndigits)})
+    c <- apply(b,2, function(x){if(is.numeric(x)){round(x,ndigits)}else{x}})
     rownames(c) <- nm_sim
     return(as.data.frame(c))
   })
@@ -734,7 +741,6 @@ run_MCBE <- function(CommonName = NULL,
   Ma_sim <- round(t(matrix(rep(Ma,nsim),ncol=nsim,dimnames=list(age=agebins,sim=nm_sim)))*Masc_sim,ndigits)
 
   # Bootstrap data
-
 
   #%%%% bootstrap setup %%%%#
   #%% Indices %%#
@@ -762,40 +768,47 @@ run_MCBE <- function(CommonName = NULL,
       yrs_cpue_i <- paste(styr_cpue_i:endyr_cpue_i)
     }
 
-    cpue_i <- as.numeric(init[[nm_i]])
+    cpue_i <- setNames(as.numeric(init[[nm_i]]),yrs_cpue_i)
 
     # Set default cvs
-    cv_cpue_i <- if(cv_cpue_nm_i%in%names(init)){
-      as.numeric(init[[cv_cpue_nm_i]])}else{
+    cv_cpue_i <- local({
+      a <- if(cv_cpue_nm_i%in%names(init)){
+      as.numeric(init[[cv_cpue_nm_i]])
+      }else{
         message(paste0(cv_cpue_nm_i," not found in names(init). Using cvs of par_default$cv_U = ",par_default$cv_U, " to simulate ",nm_i))
         rep(par_default$cv_U,length(cpue_i))
       }
+      setNames(a,yrs_cpue_i)
+    })
 
     # Override and replace cvs if values are provided in data_sim
     if(any(!is.na(data_sim$cv_U[,cpue_root_i]))){
-      message(paste("using values from data_sim for",nm_i))
+      message(paste("Using values from data_sim for",nm_i))
       ci <- local({
         ai <- data_sim$cv_U[,cpue_root_i,drop=FALSE]
         ai[complete.cases(ai),,drop=FALSE]
       })
-      cv_cpue_i <- ci[,cpue_root_i]
-      if(any(yrs_cpue_i != rownames(ci))){warning(paste("years of",paste0("data_sim$cv_U$",cpue_root_i),"do not match years of",nm_i,"in the base model"))}
+      if(!all(rownames(ci)%in%yrs_cpue_i)){
+        message(paste("Some rownames (years) in data_sim$cv_U for",cpue_root_i,"do not match values in",nm_i,". These values will not be used."))
+      }
+      cv_cpue_i <- setNames(ci[yrs_cpue_i,cpue_root_i],yrs_cpue_i)
+      if(any(yrs_cpue_i != names(cv_cpue_i))){warning(paste("years of",paste0("data_sim$cv_U$",cpue_root_i),"do not match years of",nm_i,"in the base model"))}
     }
-
-
-
-    cv_cpue_i <- as.numeric(init[[cv_cpue_nm_i]])
-
-    # Override cvs if values are provided in data_sim
-    if(any(!is.na(data_sim$cv_U[,cpue_root_i]))){
-      message(paste("using values from data_sim for",nm_i))
-      ci <- local({
-        ai <- data_sim$cv_U[,cpue_root_i,drop=FALSE]
-        ai[complete.cases(ai),,drop=FALSE]
-      })
-      cv_cpue_i <- ci[,cpue_root_i]
-      yrs_cpue_i <- rownames(ci)
-    }
+#
+#
+#
+#     cv_cpue_i <- as.numeric(init[[cv_cpue_nm_i]])
+#
+#     # Override cvs if values are provided in data_sim
+#     if(any(!is.na(data_sim$cv_U[,cpue_root_i]))){
+#       message(paste("using values from data_sim for",nm_i))
+#       ci <- local({
+#         ai <- data_sim$cv_U[,cpue_root_i,drop=FALSE]
+#         ai[complete.cases(ai),,drop=FALSE]
+#       })
+#       cv_cpue_i <- ci[,cpue_root_i]
+#       yrs_cpue_i <- rownames(ci)
+#     }
 
     if(any(c("U","cpue")%in%data_type_resamp)){
 
@@ -864,8 +877,11 @@ run_MCBE <- function(CommonName = NULL,
         ai <- data_sim$cv_L[,L_root_i,drop=FALSE]
         ai[complete.cases(ai),,drop=FALSE]
       })
-      cv_L_i <- ci[,L_root_i]
-      if(any(yrs_L_i != rownames(ci))){warning(paste("years of",paste0("data_sim$cv_L$",L_root_i),"do not match years of",nm_i,"in the base model"))}
+      if(!all(rownames(ci)%in%yrs_L_i)){
+        message(paste("Some rownames (years) in data_sim$cv_L for",L_root_i,"do not match values in",nm_i,". These values will not be used."))
+      }
+      cv_L_i <- setNames(ci[yrs_L_i,L_root_i],yrs_L_i)
+      if(any(yrs_L_i != names(cv_L_i))){warning(paste("years of",paste0("data_sim$cv_L$",L_root_i),"do not match years of",nm_i,"in the base model"))}
     }
 
     if("L"%in%data_type_resamp){
@@ -917,8 +933,11 @@ run_MCBE <- function(CommonName = NULL,
           ai <- data_sim$cv_D[,D_root_i,drop=FALSE]
           ai[complete.cases(ai),,drop=FALSE]
         })
-        cv_D_i <- ci[,D_root_i]
-        if(any(yrs_D_i != rownames(ci))){warning(paste("years of",paste0("data_sim$cv_D$",D_root_i),"do not match years of",nm_i,"in the base model"))}
+        if(!all(rownames(ci)%in%yrs_D_i)){
+          message(paste("Some rownames (years) in data_sim$cv_D for",D_root_i,"do not match values in",nm_i,". These values will not be used."))
+        }
+        cv_D_i <- setNames(ci[yrs_D_i,D_root_i],yrs_D_i)
+        if(any(yrs_D_i != names(cv_D_i))){warning(paste("years of",paste0("data_sim$cv_D$",D_root_i),"do not match years of",nm_i,"in the base model"))}
       }
 
       if("D"%in%data_type_resamp){
@@ -1038,6 +1057,11 @@ run_MCBE <- function(CommonName = NULL,
     message("No length compositions found in the base model (i.e. no names(init) beginning with obs_lenc).")
   }
 
+  # Check SR_switch settings
+  SR_switch_check <- sum(!paste(par_sim$SR_switch)%in%c("1","2")) # Number of SR_switch settings not 1 or 2 (Beverton Holt or Ricker)
+  if(SR_switch_check>0){message(paste(SR_switch_check,"simulated values of SR_switch were not 1 or 2 (Beverton-Holt or Ricker). Steepness is probably not being used in model runs."))}
+
+
   ###########################
   ## Build list of init objects for all sim
 
@@ -1078,6 +1102,9 @@ run_MCBE <- function(CommonName = NULL,
 
     # rec_sigma
     init_i$set_rec_sigma[c(1,5)] <- paste(par_sim$rec_sigma[i])
+
+    # SR_switch
+    init_i$SR_switch <- paste(par_sim$SR_switch[i])
 
     # obs_prop_f
     init_i$obs_prop_f <- Pf_sim[i,]
@@ -1191,8 +1218,9 @@ names(sim_out) <- nm_sim
         delete_files <- TRUE
       }
       if(delete_files){
-        unlink(paste0(dir_bam_sim,"/*"))
-        message(paste("The contents of the folder",paste0("'",dir_bam_sim,"'"),"have been deleted."))
+        res <- unlink(paste0(dir_bam_sim,"/*"),recursive=TRUE)
+        txt_res <- ifelse(res!=0,"could not be","were")
+        message(paste("The contents of the folder",paste0("'",dir_bam_sim,"'"),txt_res,"deleted."))
         if(dir.exists(dir_bam_sim_fail)){
           unlink(paste0(dir_bam_sim_fail,"/*"))
           message(paste("The contents of the folder",paste0("'",dir_bam_sim_fail,"'"),"have been deleted."))
@@ -1232,27 +1260,44 @@ names(sim_out) <- nm_sim
       setwd(sim_dir_i)
 
       fileName_exe_base <- paste0(fileName,".exe")
+      fileName_sim_i <- paste0(nm_sim_i,"-",fileName)
 
-      fileName_dat_i <- paste(nm_sim_i,'-',fileName,'.dat',sep="") # Name of dat file for i
-      fileName_rdat_i <- paste(nm_sim_i,'-',fileName,'.rdat',sep="") # Name of rdat file for i
-      fileName_exe_i <- paste(nm_sim_i,'-',fileName,'.exe',sep="") # Name of exe file for i
-      fileName_par_i <- paste(nm_sim_i,'-',fileName,'.par',sep="") # Name of par file for i
+      fileName_dat_i  <- paste0(fileName_sim_i,".dat")  # Name of dat file for i
+      fileName_rdat_i <- paste0(fileName_sim_i,".rdat") # Name of rdat file for i
+      fileName_exe_i  <- paste0(fileName_sim_i,".exe")  # Name of exe file for i
+      fileName_par_i  <- paste0(fileName_sim_i,".par")  # Name of par file for i
 
-      # Copy executable to directory for sim i
-      file.copy(file.path("..",dir_bam_base,fileName_exe_base), fileName_exe_i, overwrite=TRUE)
+      # # Copy executable to directory for sim i
+      # file.copy(file.path("..",dir_bam_base,fileName_exe_base), fileName_exe_i, overwrite=TRUE)
+      #
+      # # Rewrite dat file incorporating modified data
+      # writeLines(text=bam_i$dat, con=fileName_dat_i)
+      #
+      # #######Run bam for sim_i
+      # code_i <- shell(paste(fileName_exe_i, admb_options_sim, fileName_dat_i, sep=" "))
+      dir_bam_i <- "bam"
+      bamout_i <- run_bam(
+        fileName=fileName_sim_i,
+        dir_bam = dir_bam_i,
+        admb_options = admb_options_sim,
+        dat_obj=bam_i$dat,
+        exe_file=file.path("..",dir_bam_base,fileName_exe_base),
+        return_obj = NULL,
+        subset_rdat=subset_rdat,
+        unlink_dir_bam=FALSE
+        )
 
-      # Rewrite dat file incorporating modified data
-      writeLines(text=bam_i$dat, con=fileName_dat_i)
 
-      #######Run bam for sim_i
-      shell(paste(fileName_exe_i, admb_options_sim, fileName_dat_i, sep=" "))
+      par_i <- bamout_i$par
+      lk_total_i <- bamout_i$admb$lk_total
+      grad_max_i <- bamout_i$admb$grad_max
+      error_code_run_i <- bamout_i$admb$error_code_run
 
-      par_i <- readLines(fileName_par_i)
-      lk_total_i <- gsub("^.*Objective function value = (.*)  Maximum.*$","\\1",par_i[1])
-      grad_max_i <- gsub("^.*component = ","\\1",par_i[1])
+      nm_files <- list.files(dir_bam_i)
+      is_rdat_file <- fileName_rdat_i%in%nm_files
 
-      if(!is.na(as.numeric(lk_total_i))){ # If the total likelihood of the model was a numeric result
-        rdat_i <- dget(file=fileName_rdat_i)
+      if(is_rdat_file&is.finite(as.numeric(lk_total_i))&is.finite(as.numeric(grad_max_i))&error_code_run_i==0){
+        rdat_i <- dget(file=file.path(dir_bam_i,fileName_rdat_i))
         # Collect the most important values from rdat
         parms_i <- unlist(rdat_i$parms)
         # Add values from par.sim to parms, unless there is already a parameter with the same name in parms
@@ -1266,17 +1311,21 @@ names(sim_out) <- nm_sim
                     like_i,
                     sdnr_i)
 
-        # Subset rdat to decrease size on disk
-        for(nm_k in names(subset_rdat)){
-          k <- rdat_i[[nm_k]]
-          if(is.null(subset_rdat[[nm_k]])){
-            rdat_i[[nm_k]] <- NULL
-          }else{
-            rdat_i[[nm_k]] <- k[seq(1,nrow(k),length=subset_rdat[[nm_k]]),,drop=FALSE]
-          }
-        }
+        # # Subset rdat to decrease size on disk
+        # for(nm_k in names(subset_rdat)){
+        #   if(!is.null(subset_rdat[[nm_k]])){ # won't subset anything if the value of nm_k is NULL
+        #     k <- rdat_i[[nm_k]]
+        #     if(nm_k%in%c("eq.series","pr.series")){
+        #       rdat[[nm_k]] <- k[seq(1,nrow(k),length=subset_rdat[[nm_k]]),,drop=FALSE]
+        #     }else if(nm_k=="t.series"){
+        #       rdat[[nm_k]] <- k[paste(subset_rdat[[nm_k]]),]
+        #     }else{
+        #       message(paste("no subsetting method is currently specified for",nm_k,"so no change was made"))
+        #     }
+        #   }
+        # }
         # Save file over previous
-        dput(x=rdat_i,file=fileName_rdat_i)
+        # dput(x=rdat_i,file=fileName_rdat_i)
         file_to <- file.path("..",dir_bam_sim)
       }else{
         rdat_i <- rdat_base
@@ -1296,7 +1345,7 @@ names(sim_out) <- nm_sim
       }
 
       ########## Copy data files to folder
-      file.copy(from=c(fileName_dat_i,fileName_rdat_i),
+      file.copy(from=file.path(dir_bam_i,c(fileName_dat_i,fileName_rdat_i)),
                 to=file_to,
                 overwrite = TRUE)
 
@@ -1327,6 +1376,7 @@ names(sim_out) <- nm_sim
   }else{
     out <- sim_out
   } # end if(run_est)
+
   ## parallel shut down
   parallel::stopCluster(cl)
 

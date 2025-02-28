@@ -2,14 +2,17 @@
 #'
 #' @param sim_summary Output object from summarize_MCBE
 #' @param dir_figs name of directory that will be created to store figures
-#' @param fileName Name given to BAM base files, not including file extensions.
-#' @param dir_bam_base Name of directory to write bam base model files to, relative to the working directory.
+#' @param fileName Name of BAM base files in dir_bam_base, not including file extensions.
+#' @param dir_bam_base Name of directory where the bam base model is located relative to the working directory, for adding base model results to plots (optional).
 #' @param filter_info list of ranges used to filter out MCBE results. set to NULL to retain all results.
 #' @param tseries_plot_args List of arguments to pass to \code{bamExtras::plot_boot_vec} when plotting time series.
 #' @param aseries_plot_args List of arguments to pass to \code{bamExtras::plot_boot_vec} when plotting age series.
 #' @param base_tseries_args List of arguments to add to plotting functions (e.g. \code{points()}) that add base results to time series plots
 #' @param base_aseries_args List of arguments to add to plotting functions (e.g. \code{points()}) that add base results to age series plots
-#' @param nm_rp names of reference points to include in plots
+#' @param nm_rp list specifying names of reference points to include in plots.
+#' @param plot2pdf If \code{plot2pdf} = TRUE, each plot will be written to a pdf
+#' in \code{dir_figs}. If false, figures will be plotted to the active graphic device.
+#' @param sc_pdf Optional scalars for pdf width and height. Multiplied by defaults pdf width and height. Defaults to 1 which has no effect.
 #' @keywords bam MCBE stock assessment fisheries
 #' @export
 #' @examples
@@ -23,38 +26,98 @@
 
 
 
-plot_MCBE <- function(sim_summary,
+plot_MCBE <- function(sim_summary = NULL,
                       dir_figs = "figs",
                       fileName     = "bam",
                       dir_bam_base = NULL,
-                      filter_info = list("gradient.max"  = c(0,0.01),
-                                         "Fref"          = c(0,5),
-                                         "F.Fref"        = c(0,5),
-                                        "R.sigma.par"    = c(0.2,1.0),
-                                        "R0_prob"        = c(0.005,0.995) # Not limits but probabilities used to compute limits
-                      ),
+                      filter_MCBE_args = list("filter_info"=
+                                                list("gradient.max"  = c(0,0.01),
+                                                     "Fref"          = c(0,5),
+                                                     "F.Fref"        = c(0,5),
+                                                     "R.sigma.par"   = c(0.2,1.0),
+                                                     "R0_prob"       = c(0.005,0.995), # Not limits but probabilities used to compute limits
+                                                     "avoid_bounds"  = TRUE # logical. If TRUE, filter out runs with parameters near the bounds
+                                                ),
+                                              "nm_rp" = list("parms"=c("Fref"="Fmsy","F.Fref"="Fend.Fmsy.mean"))
+                                              ),
                       tseries_plot_args = list(),
                       aseries_plot_args = list(),
                       base_tseries_args = list("type"="o","lty"=1,"lwd"=2,"pch"=16, "col"="black"),
                       base_aseries_args = list("type"="o","lty"=1,"lwd"=2,"pch"=16, "col"="black"),
-                      nm_rp = list("parms"=c("Fref"="Fmsy","F.Fref"="Fend.Fmsy.mean","Sref"="msst","S.Sref"="SSBend.MSST"),
+                      nm_rp = list("parms"=c("Fref"="Fmsy","F.Fref"="Fend.Fmsy.mean",
+                                             "Sref"="msst","S.Sref"="SSBend.MSST",
+                                             "Lref"="msy.klb","Bref"="Bmsy"),
                                     "t.series"=c("F"="F.full","F.Fref"="F.Fmsy","S"="SSB","S.Sref"="SSB.msst")
-                      )
+                      ),
+                      plot2pdf=TRUE,
+                      sc_pdf=list("w"=1,"h"=1)
                       ){
+if(!dir.exists(dir_figs)){
+  dir.create(dir_figs,recursive = TRUE)
+}
+
+# filter_MCBE_args <- modifyList(filter_MCBE_args,list("nm_rp"=nm_rp))
+
 ss <- sim_summary
 
 parms <- ss$parms
+if("spr.brps"%in%names(ss)){
+  spr.brps <- ss$spr.brps
+  nm_spr.brps <- names(spr.brps)
+  nm_parms <- names(parms)
+  nm_spr.brps.new <- nm_spr.brps[!nm_spr.brps%in%nm_parms]
+  parms <- cbind(parms,spr.brps[,nm_spr.brps.new])
+  message(paste("Added the following variables from spr.brps to bootstrapped parms:",paste(nm_spr.brps.new,collapse=", ")))
+}else{
+  message("spr.brps not found in sim_summary")
+}
+nm_parms <- names(parms)
+
 parm.cons <- ss$parm.cons
 a.series <- ss$a.series
 
 styr <- unique(parms$styr)
-if(length(styr)>1){warning("styr not the same among all sims")}
+if(length(styr)>1){
+  styr <- min(styr)
+  warning(paste0("styr not the same among all sims. Will attempt to use earliest styr (",styr,")"))
+  }
+
 endyr <- unique(parms$endyr)
-if(length(endyr)>1){warning("endyr not the same among all sims")}
+if(length(endyr)>1){
+  endyr <- max(endyr)
+  warning(paste0("endyr not the same among all sims. Will attempt to use latest endyr (",endyr,")"))
+  }
 yrs <- paste(styr:endyr)
 t.series <- lapply(ss$t.series,function(x){x[,yrs]})
 
 is_base <- !is.null(dir_bam_base)
+
+env_rp <- new.env()
+env_rp$nm_rp2 <- c() # names of reference points assigned to vectors (e.g. Fref) rather than matrices of time series (e.g. F)
+for(i in seq_along(nm_rp)){
+  nm_i <- names(nm_rp)[i]
+  nm_rp_i <- nm_rp[[nm_i]]
+  xi <- ss[[nm_i]]
+  # Don't try to assign values from anything other than a matrix or data frame.
+  if(is.matrix(xi)|is.data.frame(xi)){
+    for(j in seq_along(nm_rp_i)){
+      nm_rp_ij <- nm_rp_i[j]
+      if(nm_rp_ij%in%names(xi)){
+          xij <- xi[,nm_rp_ij]}else{
+          message(paste0(nm_rp_ij," not found in ", nm_i,". Set a valid value for ", names(nm_rp_ij) ," in nm_rp."))
+          xij <- NA
+        }
+      if(names(nm_rp_ij)%in%ls(env_rp)){
+        warning(paste(names(nm_rp_ij),
+                      "was specified twice in nm_rp. Only the first value will be used.",nm_rp_ij,
+                      "will be ignored."))}else{
+                        assign(names(nm_rp_ij),xij,envir=env_rp)
+                        env_rp$nm_rp2 <- c(env_rp$nm_rp2,nm_rp_ij)
+
+        }
+    }
+  }
+}
 
 ### Do stuff with base run
 if(is_base){
@@ -68,6 +131,20 @@ t.series.b <- rb$t.series[yrs_b,]
 a.series.b <- rb$a.series
 
 parms.b <- rb$parms
+
+if("spr.brps"%in%names(rb)){
+  spr.brps.b <- rb$spr.brps
+
+  nm_spr.brps.b <- names(spr.brps.b)
+  nm_parms.b <- names(parms.b)
+  nm_spr.brps.b.new <- nm_spr.brps.b[!nm_spr.brps.b%in%nm_parms.b]
+  parms.b <- c(parms.b,spr.brps.b[nm_spr.brps.b.new])
+  message(paste("Added the following variables from spr.brps to base parms:",paste(nm_spr.brps.b.new,collapse=", ")))
+
+}else{
+  message("spr.brps not found in base model rdat.")
+}
+nm_parms.b <- names(parms.b)
 }
 
 
@@ -87,25 +164,46 @@ parms.b <- rb$parms
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ####   plotsConvergence   ####
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    # pdf(file.path(dir_figs,"Fig-MCB-converge.pdf"))
-      sd.eda1 <- sd.eda2 <- sd.eda3 <- rep(NA,nsim)
+  Lref_sim <- Fref_sim <- Sref_sim <- rep(NA,nsim)
+if(nsim>1){
+  nm_Lref <- env_rp$nm_rp2[["Lref"]]
+  if(!nm_Lref%in%nm_parms){
+    message(paste(nm_Lref,"not found in parms. Will not appear in convergence plots."))
+  }else{
+    Lref_sim <- parms[,nm_Lref]
+  }
+  nm_Fref <- env_rp$nm_rp2[["Fref"]]
+  if(!nm_Fref%in%nm_parms){
+    message(paste(nm_Fref,"not found in parms. Will not appear in convergence plots."))
+  }else{
+    Fref_sim <- parms[,nm_Fref]
+  }
+  nm_Sref <- env_rp$nm_rp2[["Sref"]]
+  if(!nm_Sref%in%nm_parms){
+    message(paste(nm_Sref,"not found in parms. Will not appear in convergence plots."))
+  }else{
+    Sref_sim <- parms[,nm_Sref]
+  }
+
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-converge.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+      sd.Lref <- sd.Fref <- sd.Sref <- rep(NA,nsim)
       for(i in 1:nsim)
       {
-        nm_msy <- names(parms)[grepl("^msy.(mt|klb)",names(parms))]
-        msy_sim <- parms[[nm_msy]]
-        sd.eda1[i]=sd(msy_sim[1:i])
-        sd.eda2[i]=sd(parms$Fmsy[1:i])
-        sd.eda3[i]=sd(parms$SSBmsy[1:i])
+        #nm_msy <- names(parms)[grepl("^msy.(mt|klb)",names(parms))]
+        # msy_sim <- parms[[nm_msy]]
+        sd.Lref[i]=sd(Lref_sim[1:i])
+        sd.Fref[i]=sd(Fref_sim[1:i])
+        sd.Sref[i]=sd(Sref_sim[1:i])
       }
-      par(mfrow=c(3,1),mar=c(2,2,1,1),mgp=c(1.2,.3,0))
+      par(mfrow=c(3,1),mar=c(2.5,3,0,0),oma=c(0,0,1,1.5),mgp=c(1.2,.3,0),tck=-.02)
 
-      plot(1:nsim, sd.eda1,xlab="", ylab="SE(msy)", type="l", lwd=2)
-      plot(1:nsim, sd.eda2,xlab="", ylab="SE(Fmsy)", type="l", lwd=2)
-      plot(1:nsim, sd.eda3,xlab="Number bootstrap replicates", ylab="SE(SSBmsy)", type="l", lwd=2)
-    # dev.off()
+      plot(1:nsim, sd.Lref,xlab="", ylab=paste0("SE(",nm_Lref,")"), type="l", lwd=2)
+      plot(1:nsim, sd.Fref,xlab="", ylab=paste0("SE(",nm_Fref,")"), type="l", lwd=2)
+      plot(1:nsim, sd.Sref,xlab="Number bootstrap replicates", ylab=paste0("SE(",nm_Sref,")"), type="l", lwd=2)
+        if(plot2pdf){dev.off()}
 
-  #   pdf(file.path(dir_figs,"lk.total.v.gradient.max.pdf"))
-    par(mfrow=c(3,1),mar=c(3,3,1,1),mgp=c(1.2,.3,0))
+      if(plot2pdf){pdf(file.path(dir_figs,"lk.total.v.gradient.max.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+      par(mfrow=c(3,1),mar=c(2.5,3,0,0),oma=c(0,0,1,1.5),mgp=c(1.2,.3,0),tck=-.02)
     x <- ss$like$lk.total
     y <- ss$like$gradient.max
     plot(x=x,
@@ -122,46 +220,25 @@ parms.b <- rb$parms
     plot_boot_density(ss$like,"gradient.max",plot_args = list(xlab = "gradient.max", ylab="density",main = "", type = "l"))
 
     # abline(v=spp$like[["gradient.max"]],col="red",lwd=2)
-    # dev.off()
-
+        if(plot2pdf){dev.off()}
+}else{
+  message("nsim is not greater than 1. convergence plots will not be drawn")
+}
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ####       trimRuns       ####
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    # trim some runs that didn't converge or params hit upper bounds
-    nearbound <- parms$nearbound
-    Nnearbound <- length(which(nearbound))
-    R0 <- exp(parm.cons$log.R0$out)
-    R.sigma.par <- parms$R.sigma.par
-    gradient.max <- ss$like$gradient.max
-    Fref <- parms[[nm_rp$parms[["Fref"]]]]
-    F.Fref <- parms[[nm_rp$parms[["F.Fref"]]]]
-
-    if(!is.null(filter_info)){
-    R0_lim <- quantile(R0, probs=c(filter_info$R0_prob[1],filter_info$R0_prob[2]))
-
-    # simID2 <- simID[which(gradient.max<0.01 & R0>=R0.trim[1] & R0<=R0.trim[2] & !nearbound)] # Include runs that meet certain criteria
-    # Most of these criteria for trimming MCB runs are from the SEDAR 25 2016 update, except for the !nearbound which I added in SEDAR 66 (NK 2021-04-02)
-    # Several commented out were used in the SEDAR 25 2017 update
-
-    filter_tests <- data.frame("gradient.max" = (gradient.max>filter_info$gradient.max[1] & gradient.max<filter_info$gradient.max[2]),
-                               F.Fref = F.Fref > filter_info$F.Fref[1] & F.Fref < filter_info$F.Fref[2],
-                               Fref = Fref > filter_info$Fref[1] & Fref < filter_info$Fref[2],
-                               R.sigma.par = R.sigma.par > filter_info$R.sigma.par[1] & R.sigma.par < filter_info$R.sigma.par[2],
-                               R0 = R0 > R0_lim[1] & R.sigma.par < R0_lim[2],
-                               notNearBound = !nearbound
-                               )
-    sim_pass <- which(apply(filter_tests,1,all))
+    filter_MCBE_res <- do.call(filter_MCBE,c(list(sim_summary = ss), filter_MCBE_args))
+    sim_pass <- filter_MCBE_res$sim_pass
     simID2 <- simID[sim_pass]
-    }
 
-    # pdf(file.path(dir_figs,"gradient.max.density.pdf"))
+    if(plot2pdf){pdf(file.path(dir_figs,"gradient.max.density.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
     par(mfrow=c(1,1))
     if(length(simID2)>1){
     plot_boot_density(data=ss$like[simID2,],x_name="gradient.max")
     }else{
       message("Filtered results do not contain more than 1 sim run. gradient.max.density not plotted.")
     }
-    # dev.off()
+        if(plot2pdf){dev.off()}
 
     # Filter some objects
     parms.2 <- parms[simID2,]
@@ -172,32 +249,32 @@ parms.b <- rb$parms
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ####     plotMCBData      ####
   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  # if(diagnostics.i=="MCB"){
-    #base.t.series <- spp$t.series[spp$t.series$year%in%yr.plot,] # Remove last year (projection) from t.series
     # Plot input data
     # Landings
-    # pdf(file.path(dir_figs,"Fig-MCB-landings.ob.pdf"))
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-landings.ob.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
 
     names_L_ob <- names(t.series)[grepl("^L.*ob$",names(t.series))]
 
     par(mfrow=c(length(names_L_ob),1),mar=c(2,5,0.5,0.5),mgp=c(1.5,.3,0),cex.axis=1.5,cex.lab=1.5,tck=0.02)
     for(i in names_L_ob){
       obj.i <- t.series.2[[i]]
+      if(is_base){tseries_plot_args$ylim <- range(c(obj.i,t.series.b[,i]),na.rm=TRUE)}
       do.call(plot_boot_vec,c(list(data=obj.i,xlab="",ylab=i),tseries_plot_args))
       if(is_base){
         do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,i]),base_tseries_args))
       }
     }
-    # dev.off()
+        if(plot2pdf){dev.off()}
 
     # Discards
-    # pdf(file.path(dir_figs,"Fig-MCB-discards.ob.pdf"))
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-discards.ob.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
 
     names_D_ob <- names(t.series)[grepl("^D.*ob$",names(t.series))]
     if(length(names_D_ob)>0){
     par(mfrow=c(length(names_D_ob),1),mar=c(2,5,0.5,0.5),mgp=c(1.5,.3,0),cex.axis=1.5,cex.lab=1.5,tck=0.02)
     for(i in names_D_ob){
       obj.i <- t.series.2[[i]]
+      if(is_base){tseries_plot_args$ylim <- range(c(obj.i,t.series.b[,i]),na.rm=TRUE)}
       do.call(plot_boot_vec,c(list(data=obj.i,xlab="",ylab=i),tseries_plot_args))
       if(is_base){
         do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,i]),base_tseries_args))
@@ -206,10 +283,10 @@ parms.b <- rb$parms
     }else{
       warning("Discard time series not found. No plot produced.")
     }
-    # dev.off()
+        if(plot2pdf){dev.off()}
 
     # Indices of abundance
-    # pdf(file.path(dir_figs,"Fig-MCB-indices.ob.pdf"))
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-indices.ob.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
 
     names_U_ob <- names(t.series)[grepl("^U.*ob$",names(t.series))]
 
@@ -220,30 +297,34 @@ parms.b <- rb$parms
         message(paste("Negative values found in",i,"will not be plotted."))
       }
       obj.i[obj.i<0] <- NA
-      do.call(plot_boot_vec,c(list(data=obj.i,xlab="",ylab=i),tseries_plot_args))
       if(is_base){
+        t.series.b[,i]
         xi <- t.series.b$year
         yi <- t.series.b[,i]
         yi[yi<0] <- NA
+        tseries_plot_args$ylim <- range(c(obj.i,yi),na.rm=TRUE)}
+      do.call(plot_boot_vec,c(list(data=obj.i,xlab="",ylab=i),tseries_plot_args))
+      if(is_base){
         do.call("points",c(list("x"=xi,"y"=yi),base_tseries_args))
       }
     }
-    # dev.off()
+        if(plot2pdf){dev.off()}
 
   #   # Natural mortality
-  #   pdf(file.path(dir_figs,"Fig-MCB-naturalMortality.ob.pdf"))
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-naturalMortality.ob.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
     par(mfrow=c(2,1),mar=c(3,5,0.5,0.5),mgp=c(1.5,.3,0),cex.axis=1.5,cex.lab=1.5,tck=0.02)
-    if("M.constant"%in%names(parms.2)){
+    if("M.constant"%in%names(parms.2)&nsim>1){
     plot_boot_density(data=parms.2,x_name="M.constant")
      abline(v=median(parms.2[,"M.constant"]),lty=2,lwd=2)
      if(is_base){
        abline(v=parms.b$M.constant,lty=1,lwd=2)
      }
     }else{
-      warning("M.constant not found in parms. No plot produced.")
+      warning("M.constant not found in parms or nsim is not greater than 1. M.constant density plot not produced.")
     }
 
     if("M"%in%names(a.series.2)){
+      if(is_base){aseries_plot_args$ylim <- range(c(a.series.2$M,a.series.b[,"M"]),na.rm=TRUE)}
       do.call(plot_boot_vec,c(list(data=a.series.2$M,xlab="age",ylab="natural mortality"),aseries_plot_args))
     # plot_boot_vec(data=a.series.2$M,
     #                #ref_x=spp$a.series$age,ref_y=spp$a.series$M,
@@ -254,12 +335,12 @@ parms.b <- rb$parms
     }else{
       warning("M not found in a.series. No plot produced.")
     }
-  #   dev.off()
-  #
-  #   # Discard mortality
-  #   # pdf(file.path(dir_figs,"Fig-MCB-discardMortality.ob.pdf"))
+    if(plot2pdf){dev.off()}
+
+  # Discard mortality
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-discardMortality.ob.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
     names_Dmort <- names(parms.2)[grepl("^D.mort",names(parms.2))]
-    if(length(names_Dmort)>0){
+    if(length(names_Dmort)>0&nsim>1){
       par(mfrow=c(length(names_Dmort),1),mar=c(3,5,0.5,0.5),mgp=c(1.5,.3,0),cex.axis=1.5,cex.lab=1.5,tck=0.02)
       for(i in names_Dmort){
 
@@ -270,125 +351,160 @@ parms.b <- rb$parms
         }
       }
     }
-  #   # dev.off()
-  #
-  # }
-  #
+         if(plot2pdf){dev.off()}
+
   # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   # ####     plotTSeries      ####
-  # #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  # if(diagnostics.i=="MCB"){
+    nm_ts2 <- names(t.series.2)
+
     par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
-  #
-  #   pdf(file.path(dir_figs,"Fig-MCB-apicalF.pdf"))
+
     nm_par <- nm_rp$t.series[["F"]]
-    # plot_boot_vec(t.series.2[[nm_F]],xlab="",ylab=nm_F)
+    if(!nm_par%in%nm_ts2){
+      message(paste(nm_par,"not found in sim_summary$t.series. Plot not drawn."))
+    }else{
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-apicalF.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+    if(is_base){tseries_plot_args$ylim <- range(c(t.series.2[[nm_par]],t.series.b[,nm_par]),na.rm=TRUE)}
     do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
     if(is_base){
       do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
     }
-  #   dev.off()
-  #
-  #   pdf(file.path(dir_figs,"Fig-MCB-FdFmsy.pdf"))
-  #   plot_boot_vec(dataBoot=D.boot.F.Fmsy[,paste(yr.plot)],runsToKeep = simID2,
-  #                  ref_x=base.t.series$year,ref_y=base.t.series$F.Fmsy,
-  #                  xlab="",ylab="F/Fmsy")
-  #   abline(h=1,lwd=2)
-    #par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
+    if(plot2pdf){dev.off()}
+    }
+
     nm_par <- nm_rp$t.series[["F.Fref"]]
+    if(!nm_par%in%nm_ts2){
+      message(paste(nm_par,"not found in sim_summary$t.series. Plot not drawn."))
+    }else{
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-FdFmsy.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+    par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
+    if(is_base){tseries_plot_args$ylim <- range(c(t.series.2[[nm_par]],t.series.b[,nm_par]),na.rm=TRUE)}
     do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
-    abline(h=1,lwd=2)
+    # abline(h=1,lwd=2)
     if(is_base){
       do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
     }
+    if(plot2pdf){dev.off()}
+    }
 
-  #   dev.off()
-  #
-  #   pdf(file.path(dir_figs,"Fig-MCB-N.pdf"))
-  #   plot_boot_vec(dataBoot=D.boot.N[,paste(yr.plot)], runsToKeep = simID2,
-  #                  ref_x=base.t.series$year,ref_y=base.t.series$N,
-  #                  xlab="",ylab="Abundance (N)")
     nm_par <- "N"
+    if(!nm_par%in%nm_ts2){
+      message(paste(nm_par,"not found in sim_summary$t.series. Plot not drawn."))
+    }else{
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-N.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+      par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
+    if(is_base){tseries_plot_args$ylim <- range(c(t.series.2[[nm_par]],t.series.b[,nm_par]),na.rm=TRUE)}
     do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
     if(is_base){
       do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
     }
+    if(plot2pdf){dev.off()}
+    }
 
-
-  #   dev.off()
-  #
-  #   pdf(file.path(dir_figs,"Fig-MCB-SSB.pdf"))
-  #   plot_boot_vec(dataBoot=D.boot.SSB[,paste(yr.plot)],runsToKeep = simID2,
-  #                  ref_x=base.t.series$year,ref_y=base.t.series$SSB,
-  #                  xlab="",ylab="SSB")
     nm_par <- nm_rp$t.series[["S"]]
+    if(!nm_par%in%nm_ts2){
+      message(paste(nm_par,"not found in sim_summary$t.series. Plot not drawn."))
+    }else{
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-SSB.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+    par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
+    if(is_base){tseries_plot_args$ylim <- range(c(t.series.2[[nm_par]],t.series.b[,nm_par]),na.rm=TRUE)}
     do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
-    abline(h=1,lwd=2)
     if(is_base){
       do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
     }
+    if(plot2pdf){dev.off()}
+    }
 
-  #   dev.off()
-  #
-  #   pdf(file.path(dir_figs,"Fig-MCB-SSBdMSST.pdf"))
-  #   plot_boot_vec(dataBoot=D.boot.SSB.msst[,paste(yr.plot)],runsToKeep = simID2,
-  #                  ref_x=base.t.series$year,ref_y=base.t.series$SSB.msst,
-  #                  xlab="",ylab="SSB/MSST")
     nm_par <- nm_rp$t.series[["S.Sref"]]
+    if(!nm_par%in%nm_ts2){
+      message(paste(nm_par,"not found in sim_summary$t.series. Plot not drawn."))
+    }else{
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-SSBdMSST.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+    par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
+    if(is_base){tseries_plot_args$ylim <- range(c(t.series.2[[nm_par]],t.series.b[,nm_par]),na.rm=TRUE)}
     do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
-    abline(h=1,lwd=2)
+    # abline(h=1,lwd=2)
     if(is_base){
       do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
     }
+     # abline(h=1,lwd=2)
+     if(plot2pdf){dev.off()}
+    }
 
-     abline(h=1,lwd=2)
-  #   dev.off()
-  #
-  #   pdf(file.path(dir_figs,"Fig-MCB-SSBdSSBmsy.pdf"))
-     nm_par <- "SSB.SSBmsy"
+    nm_par <- "SSB.SSBmsy"
+    if(!nm_par%in%nm_ts2){
+      message(paste(nm_par,"not found in sim_summary$t.series. Plot not drawn."))
+    }else{
+     if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-SSBdSSBmsy.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+     par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
+     if(is_base){tseries_plot_args$ylim <- range(c(t.series.2[[nm_par]],t.series.b[,nm_par]),na.rm=TRUE)}
      if(nm_par%in%names(t.series.2)){
        do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
-       abline(h=1,lwd=2)
+       # abline(h=1,lwd=2)
        if(is_base){
          do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
        }
-       abline(h=1,lwd=2)
+       # abline(h=1,lwd=2)
      }
-  #   dev.off()
-  #
-  #   pdf(file.path(dir_figs,"Fig-MCB-recruits.pdf"))
-     nm_par <- "recruits"
+     if(plot2pdf){dev.off()}
+    }
+
+    nm_par <- "recruits"
+    if(!nm_par%in%nm_ts2){
+      message(paste(nm_par,"not found in sim_summary$t.series. Plot not drawn."))
+    }else{
+     if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-recruits.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+     par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
+     if(is_base){tseries_plot_args$ylim <- range(c(t.series.2[[nm_par]],t.series.b[,nm_par]),na.rm=TRUE)}
      do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
      if(is_base){
        do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
      }
-  #   dev.off()
-  #
+     if(plot2pdf){dev.off()}
+    }
+
     # Benchmarks time series, two panel plot
-    #pdf(file.path(dir_figs,"Fig-MCB-status-ts.pdf"), width=8,height=10)
-    par(mfrow=c(2,1),mar=c(1.1,2,1,1),mgp=c(1,.2,0),cex.lab=1,cex.axis=1,cex=1,tck=-0.02)
+     if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-status-ts.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+    par(mfrow=c(2,1),mar=c(3,3,1,1),mgp=c(1,.2,0),cex.lab=1,cex.axis=1,cex=1,tck=-0.02)
     nm_par <- nm_rp$t.series[["S.Sref"]]
+    if(!nm_par%in%nm_ts2){
+      message(paste(nm_par,"not found in sim_summary$t.series. Plot not drawn."))
+      plot.new()
+      legend("center",legend=paste("no plot for",nm_par),bty="n")
+    }else{
+    if(is_base){tseries_plot_args$ylim <- range(c(t.series.2[[nm_par]],t.series.b[,nm_par]),na.rm=TRUE)}
     do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
-    abline(h=1,lwd=2)
+    # abline(h=1,lwd=2)
     if(is_base){
       do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
     }
-    abline(h=1,lwd=2)
+    # abline(h=1,lwd=2)
+    }
 
     nm_par <- nm_rp$t.series[["F.Fref"]]
+    if(!nm_par%in%nm_ts2){
+      message(paste(nm_par,"not found in sim_summary$t.series. Plot not drawn."))
+      plot.new()
+      legend("center",legend=paste("no plot for",nm_par),bty="n")
+    }else{
+    if(is_base){tseries_plot_args$ylim <- range(c(t.series.2[[nm_par]],t.series.b[,nm_par]),na.rm=TRUE)}
     do.call(plot_boot_vec,c(list(data=t.series.2[[nm_par]],xlab="",ylab=nm_par),tseries_plot_args))
-    abline(h=1,lwd=2)
+    # abline(h=1,lwd=2)
     if(is_base){
       do.call("points",c(list("x"=t.series.b$year,"y"=t.series.b[,nm_par]),base_tseries_args))
     }
-    abline(h=1,lwd=2)
-  #   dev.off()
-  #
-  #   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  #   ####     plotASeries      ####
-  #   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    # abline(h=1,lwd=2)
+    }
+    if(plot2pdf){dev.off()}
+
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ####     plotASeries      ####
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-length-at-age.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
     nm_par <- "length"
     if(nm_par%in%names(a.series.2)){
+      par(mfrow=c(1,1),mar=c(3,2,1,1),mgp=c(1.2,.3,0),cex.lab=1,cex.axis=1,cex=1,tck=-0.02)
+      if(is_base){aseries_plot_args$ylim <- range(c(a.series.2[[nm_par]],a.series.b[,nm_par]),na.rm=TRUE)}
       do.call(plot_boot_vec,c(list(data=a.series.2[[nm_par]],xlab="age",ylab=nm_par),aseries_plot_args))
       if(is_base){
         do.call("points",c(list("x"=a.series.b$age,"y"=a.series.b[,nm_par]),base_aseries_args))
@@ -396,99 +512,172 @@ parms.b <- rb$parms
     }else{
       warning(paste(nm_par,"not found in a.series. No plot produced."))
     }
-  #   dev.off()
-  #
-  #   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  #   ####     plotDensity      ####
-  #   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  #   pdf(file.path(dir_figs,"Fig-MCB-status.pdf"),width=8,height=10)
-  #   #par(mfrow=c(3,1),mar=c(2,2,1,1),mgp=c(1.2,.3,0))
-  #   par(mfrow=c(2,1),mar=c(2,2,1,1),mgp=c(1,.2,0),cex.lab=1,cex.axis=1,cex=1,tck=-0.02)
-  #   # plot_boot_density(data=D.boot.parms[simID2,],par.name="SSBend.SSBmsy",xlab=paste("SSB(",max(yr.plot),")/SSBmsy",sep=""))
-  #   # abline(v=spp$parms$SSBend.SSBmsy,lty=1,lwd=2)
-  #   # abline(v=median(D.boot.parms[simID2,"SSBend.SSBmsy"]),lty=2,lwd=2)
-  #
-  #   plot_boot_density(data=D.boot.parms[simID2,],par.name="SSBend.MSST",xlab=paste("SSB(",max(yr.plot),")/MSST",sep=""),
-  #                   xlim=c(0.01,6),ylim=c(0,0.9))
-  #   abline(v=spp$parms$SSBend.MSST,lty=1,lwd=2)
-  #   abline(v=median(D.boot.parms[simID2,"SSBend.MSST"]),lty=2,lwd=2)
-  #
-  #   plot_boot_density(data=D.boot.parms[simID2,],par.name="Fend.Fmsy.mean",xlab=paste("F(",max(yr.plot)-2,"-",max(yr.plot),")/Fmsy",sep=""),
-  #                   xlim=c(0.01,6),ylim=c(0,0.9))
-  #   abline(v=spp$parms$Fend.Fmsy.mean,lty=1,lwd=2)
-  #   abline(v=median(D.boot.parms[simID2,"Fend.Fmsy.mean"]),lty=2,lwd=2)
-  #   dev.off()
-  #
-  #   pdf(file.path(dir_figs,"Fig-MCB-benchmarks.pdf"))
-  #   par(mfrow=c(2,2),mar=c(3,2,1,1),mgp=c(1.5,.3,0),tck=-0.01,lend="butt")
-  #
-  #   plot_boot_density(data=D.boot.parms[simID2,],par.name="Fmsy",
-  #                   xlab=expression(Fmsy~(yr^-1)))
-  #   abline(v=spp$parms$Fmsy,lty=1,lwd=2)
-  #   abline(v=median(D.boot.parms[simID2,"Fmsy"]),lty=2,lwd=2)
-  #
-  #   plot_boot_density(data=D.boot.parms[simID2,],par.name="SSBmsy",
-  #                   xlab="SSBmsy (mt)")
-  #   abline(v=spp$parms$SSBmsy,lty=1,lwd=2)
-  #   abline(v=median(D.boot.parms[simID2,"SSBmsy"]),lty=2,lwd=2)
-  #
-  #   plot_boot_density(data=D.boot.parms[simID2,],par.name="msy.klb",
-  #                   xlab="MSY (1000 lb)")
-  #   abline(v=spp$parms$msy.klb,lty=1,lwd=2)
-  #   abline(v=median(D.boot.parms[simID2,"msy.klb"]),lty=2,lwd=2)
-  #
-  #   plot_boot_density(data=D.boot.parms[simID2,],par.name="Bmsy",
-  #                   xlab="Bmsy (mt)")
-  #   abline(v=spp$parms$Bmsy,lty=1,lwd=2)
-  #   abline(v=median(D.boot.parms[simID2,"Bmsy"]),lty=2,lwd=2)
-  #   dev.off()
-  #
-  #   pdf(file.path(dir_figs,"Fig-MCB-SR-parms.pdf"))
-  #   par(mfrow=c(2,2),mar=c(3,2,1,1),mgp=c(1.2,.3,0),tck=-0.01,lend="butt")
-  #
-  #   plot_boot_density(data=D.boot.parms[simID2,],par.name="R0")
-  #   abline(v=spp$parms$R0,lty=1,lwd=2)
-  #   abline(v=median(D.boot.parms[simID2,"R0"]),lty=2,lwd=2)
-  #
-  #   plot_boot_density(data=D.boot.parms[simID2,],par.name="BH.steep",
-  #                   xlab="steepness")
-  #   abline(v=spp$parms$BH.steep,lty=1,lwd=2)
-  #   abline(v=median(D.boot.parms[simID2,"BH.steep"]),lty=2,lwd=2)
-  #
-  #   plot_boot_density(data=D.boot.parms[simID2,],par.name="BH.Phi0",
-  #                   xlab="Unfished spawning biomass per recruit") # AKA sprF0
-  #   abline(v=spp$parms$BH.Phi0,lty=1,lwd=2)
-  #   abline(v=median(D.boot.parms[simID2,"BH.Phi0"]),lty=2,lwd=2)
-  #
-  #   plot_boot_density(data=D.boot.parms[simID2,],par.name="R.sigma.par",
-  #                   xlab="SD of log recruitment residuals")
-  #   abline(v=spp$parms$R.sigma.par,lty=1,lwd=2)
-  #   abline(v=median(D.boot.parms[simID2,"R.sigma.par"]),lty=2,lwd=2)
-  #   dev.off()
-  #
-  #   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  #   ####      plotPhase      ####
-  #   #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  #   pdf(file.path(dir_figs,"Fig-MCB-phase.pdf"))
-  #   par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
-  #
-  #   # Fig-MCB-phaseMSST
-  #   plotBootPhase(x.Boot=D.boot.parms[simID2,"Fend.Fmsy.mean"],y.Boot = D.boot.parms[simID2,"SSBend.MSST"],
-  #                 ref_x = spp$parms$Fend.Fmsy.mean, ref_y = spp$parms$SSBend.MSST,
-  #                 xlab=paste("F(",max(yr.plot)-2,"-",max(yr.plot),")/Fmsy",sep=""),
-  #                 ylab=paste("SSB(",max(yr.plot),")/MSST",sep=""),
-  #                 text.y.adj=c(0.2,0,0.2,0))
-  #
-  #   # Fig-MCB-phaseSSB
-  #   # plotBootPhase(x.Boot=D.boot.parms[simID2,"Fend.Fmsy.mean"],y.Boot = D.boot.parms[simID2,"SSBend.SSBmsy"],
-  #   #               ref_x = spp$parms$Fend.Fmsy.mean, ref_y = spp$parms$SSBend.SSBmsy,
-  #   #               xlab=paste("F(",max(yr.plot)-2,"-",max(yr.plot),")/Fmsy",sep=""),
-  #   #               ylab=paste("SSB(",max(yr.plot),")/SSBmsy",sep=""),
-  #   #               text.y.adj=c(0.2,0,0.2,0))
-  #   dev.off()
-  #
-  # }
+    if(plot2pdf){dev.off()}
 
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ####     plotDensity      ####
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+    ##### status ####
+    nmfile <- "Fig-MCBE-status.pdf"
+    if(length(simID2)>1){
+      if(plot2pdf){pdf(file.path(dir_figs,nmfile),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+      par(mfrow=c(2,1),mar=c(3,3,1,1),mgp=c(1,.2,0),cex.lab=1,cex.axis=1,cex=1,tck=-0.02)
+      nm_par <- env_rp$nm_rp2[["S.Sref"]]
+      if(!nm_par%in%nm_parms){
+        message(paste(nm_par,"not found in parms. Plot not drawn."))
+        plot.new()
+        legend("center",legend=paste("no plot for",nm_par),bty="n")
+      }else{
+        dt <- parms[simID2,]
+        plot_boot_density(data=dt,x_name=nm_par,quantile_draw = TRUE)
+        if(is_base){abline(v=parms.b[[nm_par]],lty=1,lwd=2)}
+      }
+      nm_par <- env_rp$nm_rp2[["F.Fref"]]
+      if(!nm_par%in%nm_parms){
+        message(paste(nm_par,"not found in parms. Plot not drawn."))
+        plot.new()
+        legend("center",legend=paste("no plot for",nm_par),bty="n")
+      }else{
+        dt <- parms[simID2,]
+        plot_boot_density(data=dt,x_name=nm_par,quantile_draw = TRUE)
+        if(is_base){abline(v=parms.b[[nm_par]],lty=1,lwd=2)}
+      }
+      if(plot2pdf){dev.off()}
+    }else{
+      message(paste("Filtered results do not contain more than 1 sim run.",nmfile,"not produced."))
+    }
 
-}
+    ##### benchmarks ####
+    nmfile <- "Fig-MCBE-benchmarks.pdf"
+    if(length(simID2)>1){
+      if(plot2pdf){pdf(file.path(dir_figs,nmfile),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+      par(mfrow=c(2,2),mar=c(3,2,1,1),mgp=c(1,.2,0),cex.lab=1,cex.axis=1,cex=1,tck=-0.02)
+      nm_par <- env_rp$nm_rp2[["Fref"]]
+      if(!nm_par%in%nm_parms){
+        message(paste(nm_par,"not found in parms. Plot not drawn."))
+        plot.new()
+        legend("center",legend=paste("no plot for",nm_par),bty="n")
+      }else{
+        dt <- parms[simID2,]
+        plot_boot_density(data=dt,x_name=nm_par,quantile_draw = TRUE)
+        if(is_base){abline(v=parms.b[[nm_par]],lty=1,lwd=2)}
+      }
+      nm_par <- env_rp$nm_rp2[["Sref"]]
+      if(!nm_par%in%nm_parms){
+        message(paste(nm_par,"not found in parms. Plot not drawn."))
+        plot.new()
+        legend("center",legend=paste("no plot for",nm_par),bty="n")
+      }else{
+        dt <- parms[simID2,]
+        plot_boot_density(data=dt,x_name=nm_par,quantile_draw = TRUE)
+        if(is_base){abline(v=parms.b[[nm_par]],lty=1,lwd=2)}
+      }
+      nm_par <- env_rp$nm_rp2[["Lref"]]
+      if(!nm_par%in%nm_parms){
+        message(paste(nm_par,"not found in parms. Plot not drawn."))
+        plot.new()
+        legend("center",legend=paste("no plot for",nm_par),bty="n")
+      }else{
+        dt <- parms[simID2,]
+        plot_boot_density(data=dt,x_name=nm_par,quantile_draw = TRUE)
+        if(is_base){abline(v=parms.b[[nm_par]],lty=1,lwd=2)}
+      }
+      nm_par <- env_rp$nm_rp2[["Bref"]]
+      if(!nm_par%in%nm_parms){
+        message(paste(nm_par,"not found in parms. Plot not drawn."))
+        plot.new()
+        legend("center",legend=paste("no plot for",nm_par),bty="n")
+      }else{
+        dt <- parms[simID2,]
+        plot_boot_density(data=dt,x_name=nm_par,quantile_draw = TRUE)
+        if(is_base){abline(v=parms.b[[nm_par]],lty=1,lwd=2)}
+      }
+      if(plot2pdf){dev.off()}
+    }else{
+      message(paste("Filtered results do not contain more than 1 sim run.",nmfile,"not produced."))
+    }
+
+    ##### stock-recruit parameters ####
+    nmfile <- "Fig-MCBE-SR-parms.pdf"
+    if(length(simID2)>1){
+      if(plot2pdf){pdf(file.path(dir_figs,nmfile),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+    par(mfrow=c(2,2),mar=c(3,2,1,1),mgp=c(1.2,.3,0),tck=-0.01,lend="butt")
+
+    nm_par <- c("BH.R0","R0")
+    if(!any(nm_par%in%nm_parms)){
+      message(paste(paste(nm_par,collapse=", "),"not found in parms. Plot not drawn."))
+      plot.new()
+      legend("center",legend=paste("no plot for",nm_par),bty="n")
+    }else{
+      dt <- parms[simID2,]
+      nm_par1 <- nm_par[which(nm_par%in%nm_parms)][1] # Just use the first match in case both versions were added to parms
+      plot_boot_density(data=dt,x_name=nm_par1,quantile_draw = TRUE)
+      if(is_base){abline(v=parms.b[[nm_par1]],lty=1,lwd=2)}
+    }
+
+    nm_par <- c("BH.steep","steep")
+    if(!any(nm_par%in%nm_parms)){
+      message(paste(paste(nm_par,collapse=", "),"not found in parms. Plot not drawn."))
+      plot.new()
+      legend("center",legend=paste("no plot for",nm_par),bty="n")
+    }else{
+      dt <- parms[simID2,]
+      nm_par1 <- nm_par[which(nm_par%in%nm_parms)][1] # Just use the first match in case both versions were added to parms
+      plot_boot_density(data=dt,x_name=nm_par1,quantile_draw = TRUE)
+      if(is_base){abline(v=parms.b[[nm_par1]],lty=1,lwd=2)}
+    }
+    nm_par <- c("BH.Phi0","Phi0")
+    if(!any(nm_par%in%nm_parms)){
+      message(paste(paste(nm_par,collapse=", "),"not found in parms. Plot not drawn."))
+      plot.new()
+      legend("center",legend=paste("no plot for",nm_par),bty="n")
+    }else{
+      dt <- parms[simID2,]
+      nm_par1 <- nm_par[which(nm_par%in%nm_parms)][1] # Just use the first match in case both versions were added to parms
+      plot_boot_density(data=dt,x_name=nm_par1,quantile_draw = TRUE)
+      if(is_base){abline(v=parms.b[[nm_par1]],lty=1,lwd=2)}
+    }
+    nm_par <- c("BH.R.sigma.par","R.sigma.par")
+    if(!any(nm_par%in%nm_parms)){
+      message(paste(paste(nm_par,collapse=", "),"not found in parms. Plot not drawn."))
+      plot.new()
+      legend("center",legend=paste("no plot for",nm_par),bty="n")
+    }else{
+      dt <- parms[simID2,]
+      nm_par1 <- nm_par[which(nm_par%in%nm_parms)][1] # Just use the first match in case both versions were added to parms
+      plot_boot_density(data=dt,x_name=nm_par1,quantile_draw = TRUE)
+      if(is_base){abline(v=parms.b[[nm_par1]],lty=1,lwd=2)}
+    }
+    if(plot2pdf){dev.off()}
+    }else{
+      message(paste("Filtered results do not contain more than 1 sim run.",nmfile,"not produced."))
+    }
+
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ####      plotPhase      ####
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if(plot2pdf){pdf(file.path(dir_figs,"Fig-MCBE-phase.pdf"),width=sc_pdf$w*7,height=sc_pdf$h*7)}
+    par(mfrow=c(1,1),mar=c(2.5,2.5,0.5,0.5),mgp=c(1,.25,0),cex.axis=1,cex.lab=1,tck=0.02)
+    nm_par_x <- env_rp$nm_rp2[["F.Fref"]]
+    nm_par_y <- env_rp$nm_rp2[["S.Sref"]]
+    test_tmp <- !c(nm_par_x,nm_par_y)%in%nm_parms
+    if(any(test_tmp)){
+      paste(c(nm_par_x,nm_par_y)[which(test_tmp)],collapse=" and ")
+      message(paste(paste(c(nm_par_x,nm_par_y)[which(test_tmp)],collapse=" and "),"not found in parms. Plot not drawn."))
+      plot.new()
+      legend("center",legend="no plot",bty="n")
+    }else{
+      dt <- parms[simID2,]
+      if(is_base){
+        xref <- parms.b[[nm_par_x]]
+        yref <- parms.b[[nm_par_y]]
+        }else{
+          xref <- NULL
+          yref <- NULL
+        }
+      plot_boot_phase(x=dt[,nm_par_x],y=dt[,nm_par_y],xref=xref,yref=yref,xlab=nm_par_x,ylab=nm_par_y)
+    }
+    if(plot2pdf){dev.off()}
+
+  }

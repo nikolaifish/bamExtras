@@ -47,6 +47,9 @@ run_proj_seq <- function(CommonName = NULL,
 
 ){
   draw_plot <- ifelse(plot_type=="all",TRUE,FALSE)
+  wdt <- getwd()
+  message(paste("working directory:",wdt))
+
 
   if(!"nyp"%in%names(run_proj_args)){
     nyp <- formals(run_proj)$nyp
@@ -126,8 +129,8 @@ run_proj_seq <- function(CommonName = NULL,
   endyr_proj <- as.numeric(endyr) + nyp
   dir_curr <- file.path(fileName_i,paste0("endyr_",endyr))
   dir_proj <- file.path(fileName_i,paste0("endyr_",endyr_proj))
-  dir_curr_figs <- file.path(dir_curr,"figs")
-  dir_proj_figs <- file.path(dir_proj,"figs")
+  dir_curr_figs <- "figs" #file.path(dir_curr,"figs")
+  dir_proj_figs <- "figs" #file.path(dir_proj,"figs")
 
   # if(write_bam_files!="none"){
     if(write_bam_files=="all"){
@@ -158,6 +161,8 @@ run_proj_seq <- function(CommonName = NULL,
       ########## Copy data files to folder
       if(j==1&draw_plot){
         # plot initial (base) run
+        setwd(dir_curr)
+        message(paste("Working directory temporarily changed to:\n",dir_curr))
         plot_bam(rdat)
 
         if(!dir.exists(dir_curr_figs)){
@@ -166,12 +171,14 @@ run_proj_seq <- function(CommonName = NULL,
         file.copy(from=file.path("spp-figs",list.files("spp-figs")),
                   to=dir_curr_figs,recursive = TRUE)
         unlink("spp-figs", recursive=T)
+        setwd(wdt)
+        message(paste("Working directory changed back to:\n",wdt))
       }
 
       unlink_dir_bam_update <- FALSE
   }else{
     dir_proj <- fileName_i
-    dir_proj_figs <- file.path(dir_proj,"figs")
+    dir_proj_figs <- "figs"#file.path(dir_proj,"figs")
     if(!dir.exists(dir_proj)){
       dir.create(dir_proj,recursive=TRUE)
     }
@@ -191,6 +198,8 @@ run_proj_seq <- function(CommonName = NULL,
   if(plot_type=="final"&j==n_cyc){draw_plot <- TRUE}
 
   if(draw_plot){
+    setwd(dir_proj)
+    message(paste("Working directory temporarily changed to:\n",dir_proj))
     plot_bam(bam_update$rdat)
 
     ########## Copy data files to folder
@@ -200,6 +209,8 @@ run_proj_seq <- function(CommonName = NULL,
     file.copy(from=file.path("spp-figs",list.files("spp-figs")),
               to=dir_proj_figs,recursive = TRUE)
     unlink("spp-figs", recursive=T)
+    setwd(wdt)
+    message(paste("Working directory changed back to:\n",wdt))
   }
 
   # update object values

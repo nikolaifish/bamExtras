@@ -10,6 +10,10 @@
 #' @param cxx_obj cxx file read in as a character vector with readLines(con=cxx_file)
 #' @param init user supplied list of tpl "init" object names defined in tpl Data Section. If missing, the function builds one from values in the dat and tpl files.
 #' @param object_labels list of labels for bounded points and vectors
+#' @param is_bam Are you using this function on an actual bam model? If FALSE,
+#' code that is very specific to bam will not be run. The function was designed
+#' to read bam model files into R, but in many cases it should work to read other
+#' dat and tpl files.
 #' @keywords bam stock assessment fisheries
 #' @export
 #' @examples
@@ -53,7 +57,8 @@ bam2r <- function(CommonName=NULL,init=NULL,
                   dat_obj=NULL, tpl_obj=NULL,cxx_obj=NULL,
                   object_labels=list("bounded_point"=c("init","lower","upper","phase","prior_mean","prior_var","prior_pdf"),
                                      "bounded_vector"=c("lower","upper","phase")
-                                     )
+                                     ),
+                  is_bam=TRUE
 
 ){
   fcn_args <- as.list(environment()) # Gets function arguments
@@ -65,14 +70,14 @@ bam2r <- function(CommonName=NULL,init=NULL,
     cxx <- get(paste0("cxx_",CommonName))
   }
 
-  if(!is.null(dat_obj)&!is.null(tpl_obj)&!is.null(cxx_obj)){
+  if(!is.null(dat_obj) & !is.null(tpl_obj) & !is.null(cxx_obj)){
     dat <- dat_obj
     tpl <- tpl_obj
     cxx <- cxx_obj
   }
 
   # Read in dat, tpl, and cxx files
-  if(!is.null(dat_file)&!is.null(tpl_file)&!is.null(cxx_file)){
+  if(!is.null(dat_file) & !is.null(tpl_file) & !is.null(cxx_file)){
     dat <- readLines(con=dat_file)
     tpl <- readLines(con=tpl_file)
     cxx <- readLines(con=cxx_file)
@@ -98,19 +103,10 @@ bam2r <- function(CommonName=NULL,init=NULL,
     sp2 <- lapply(sp1,FUN=function(x){x[[1]]})
 
     sp2ab <- strsplit(unlist(sp2),split=" ",fixed=TRUE)
-    # type <- unlist(lapply(sp2ab,FUN=function(x){x[[1]]}))
     type <- stringr::str_extract(tplDATA_items,"^[a-z_0-9]*")
-    #nameArg <- unlist(lapply(sp2ab,FUN=function(x){x[[2]]}))
     nameArg <- stringr::str_extract(tplDATA_items,"(?<= )[A-Za-z_0-9,\\(\\)]*")
-    #sp_nameArg <- strsplit(nameArg,split="(",fixed=TRUE)
-    # name <- unlist(lapply(sp_nameArg,FUN=function(x){x[[1]]}))
     name <- stringr::str_extract(tplDATA_items,"(?<= )[A-Za-z_0-9]*")
-    #arg <- unlist(lapply(sp_nameArg,FUN=function(x){ifelse(length(x)==2,x[[2]],"")}))
-    #arg <- gsub(x=arg,pattern=")",replacement="",fixed=TRUE)
     arg <- stringr::str_extract(nameArg,"(?<=\\().+?(?=\\))")
-
-    #sp3 <- unlist(lapply(sp1,FUN=function(x){ifelse(length(x)==2,x[[2]],"")}))
-    #comment <- unlist(lapply(strsplit(sp3,split="//",fixed=TRUE),FUN=function(x){ifelse(length(x)==2,x[[2]],"")}))
     comment <- stringr::str_extract(tplDATA_items,"(?<=//).*")
 
     # Create a data frame that can be used to parse the dat file and create an R list
@@ -136,10 +132,7 @@ bam2r <- function(CommonName=NULL,init=NULL,
   # Create a data frame that includes only numeric values from the dat file that the tpl reads, and adjacent comments
   D_dat_num <- local({
     dat_num_row <- dat[dat_num_rows] # dat rows that begin with a numeric value
-    # sp1 <- strsplit(dat_num_row,split="#")
-    #dat_value <- unlist(lapply(sp1,FUN=function(x){x[[1]]}))
     dat_value <- trimws(stringr::str_extract(dat_num_row,"^[^#]*")) # start at the beginning and get everything until you hit an octothorp
-    # dat_comment <- trimws(unlist(lapply(sp1,FUN=function(x){ifelse(length(x)==2,x[[2]],"")})))
     dat_comment <- trimws(stringr::str_extract(dat_num_row,"(?<=#).*")) # Get everything after the first octothorp
     data.frame("value"=dat_value,"datRow"=dat_num_rows,"comment"=dat_comment,stringsAsFactors=FALSE)
   })
@@ -180,15 +173,12 @@ bam2r <- function(CommonName=NULL,init=NULL,
       dat_vals_i <- dat_vals_read_i+(1:varValueLength_i)
       varValue_i <- dat_vals[dat_vals_i]
       dat_vals_read_i <- tail(dat_vals_i,1) # update value
-      #varValue_i <- D_dat_num$value[datRow_i]
 
       if(type_i=="init_int"){
         varValue_i <- as.integer(varValue_i)
-        #varValue_i <- as.character(varValue_i)
       }
       if(type_i=="init_number"){
         varValue_i <- as.numeric(varValue_i)
-        #varValue_i <- as.character(varValue_i)
       }
     }
 
@@ -200,15 +190,15 @@ bam2r <- function(CommonName=NULL,init=NULL,
         lim2 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][2]
         lim1 <- type.convert(lim1,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
         lim2 <- type.convert(lim2,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
-        if(type_i=="init_vector"&grepl("^set_(?!log_dev_vals)",name_i,perl=TRUE)&lim1==1&lim2%in%c(3,7)){
+        if(is_bam & type_i=="init_vector" & grepl("^set_(?!log_dev_vals)",name_i,perl=TRUE) & lim1==1 & lim2%in%c(3,7)){
           if(lim2==7){
             out <- object_labels$bounded_point
           } else if(lim2==3){
             out <- object_labels$bounded_vector
           }
-        } else if (grepl("^nyr",lim2)&exists(gsub("nyr","yrs",lim2),envir=env_tmp,inherits=FALSE)){
+        } else if (is_bam & grepl("^nyr",lim2) & exists(gsub("nyr","yrs",lim2),envir=env_tmp,inherits=FALSE)){
         out <- get(gsub("nyr","yrs",lim2), envir=env_tmp)
-          } else if (grepl("^nages",lim2)&exists(paste0("agebins",gsub("nages","",lim2)),envir=env_tmp,inherits=FALSE)){
+          } else if (is_bam & grepl("^nages",lim2) & exists(paste0("agebins",gsub("nages","",lim2)),envir=env_tmp,inherits=FALSE)){
             out <- get(paste0("agebins",gsub("nages","",lim2)),envir=env_tmp,inherits=FALSE)[lim1:get(lim2,envir=env_tmp,inherits=FALSE)]
             } else {
           if(is.character(lim1)){lim1 <- get(lim1,envir=env_tmp,inherits=FALSE)}
@@ -228,15 +218,12 @@ bam2r <- function(CommonName=NULL,init=NULL,
       }
 
       # Assign values to vector
-      #varValue_i <- as.numeric(scan(text=D_dat_num$value[i],what=""))
-      #varValue_i <- as.character(strsplit(D_dat_num$value[datRow_i], "\\s+")[[1]])
-
       dat_vals_i <- dat_vals_read_i+(1:varValueLength_i)
       varValue_i <- setNames(dat_vals[dat_vals_i],varValueNames_i)
       dat_vals_read_i <- tail(dat_vals_i,1) # update value
     }
 
-    if(type_i=="init_matrix"){
+    if(type_i%in%c("init_matrix","init_imatrix")){
       datRow_first <- datRow_first # First row of matrix
       matrix_rownames <- local({
         rowlim1 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][1]
@@ -245,9 +232,9 @@ bam2r <- function(CommonName=NULL,init=NULL,
 
         rowlim2 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][2]
         rowlim2 <- type.convert(rowlim2,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
-        if(grepl("^nyr",rowlim2)){
+        if(is_bam & grepl("^nyr",rowlim2)){
           out <-  get(gsub("nyr","yrs",rowlim2),envir=env_tmp,inherits=FALSE)
-        } else if (grepl("^nages",rowlim2)&exists(paste0("agebins",gsub("nages","",rowlim2)),envir=env_tmp,inherits=FALSE)){
+        } else if (is_bam & grepl("^nages",rowlim2) & exists(paste0("agebins",gsub("nages","",rowlim2)),envir=env_tmp,inherits=FALSE)){
           out <- get(paste0("agebins",gsub("nages","",rowlim2)),envir=env_tmp,inherits=FALSE)[rowlim1:get(rowlim2,envir=env_tmp,inherits=FALSE)]
         } else if(is.character(rowlim2)){
           rowlim2 <- get(rowlim2,envir=env_tmp,inherits=FALSE)
@@ -265,12 +252,17 @@ bam2r <- function(CommonName=NULL,init=NULL,
 
         collim2 <- strsplit(arg_i,split=",",fixed=TRUE)[[1]][4]
         collim2 <- type.convert(collim2,as.is=TRUE) # Converts character vector to numeric if it can. Otherwise leaves it as character
-        if(grepl("^nlenbins",collim2)){
+        if(is_bam & grepl("^nlenbins",collim2)){
           out <- get(gsub("^nlenbins","lenbins",collim2),envir=env_tmp,inherits=FALSE)
-        } else if (grepl("^nages",collim2)&exists(paste0("agebins",gsub("nages","",collim2)),envir=env_tmp,inherits=FALSE)){
+        } else if (is_bam & grepl("^nages",collim2) & exists(paste0("agebins",gsub("nages","",collim2)),envir=env_tmp,inherits=FALSE)){
           out <- get(paste0("agebins",gsub("nages","",collim2)),envir=env_tmp,inherits=FALSE)[collim1:get(collim2,envir=env_tmp,inherits=FALSE)]
-        } else if(is.character(collim2)&!grepl("^nlenbins",collim2)){
+        } else if(is_bam & is.character(collim2) & !grepl("^nlenbins",collim2)){
           collim2 <- get(collim2,envir=env_tmp,inherits=FALSE)
+          out <- collim1:collim2
+        } else{
+          if(collim2%in%ls(env_tmp)){
+            collim2 <- get(collim2,envir=env_tmp,inherits=FALSE)
+          }
           out <- collim1:collim2
         }
         return(out)

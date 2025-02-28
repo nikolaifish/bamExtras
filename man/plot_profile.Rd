@@ -11,10 +11,18 @@ plot_profile(
   like_pattern = "^lk.",
   like_groups = c("L", "D", "U", "lenc", "agec", "SR"),
   like_shift = "min_par",
-  like_prop_exclude = c("lk.total", "lk.unwgt.data"),
+  like_exclude = c("lk.unwgt.data", "lk.Nage.init", "lk.fullF", "lk.Ftune", "lk.SRearly",
+    "lk.SRend"),
+  like_exclude_stacked = c("lk.total", "lk.unwgt.data"),
+  like_plot_last = "lk.total",
   par_args = list(mfrow = c(2, 1), mar = c(3, 3, 0, 0), mgp = c(1, 0.3, 0), tck = -0.01),
+  matplot_args_all = list(),
+  matplot_args_group = list(),
   plot_profiles = TRUE,
-  plot_stacked = TRUE
+  plot_stacked = TRUE,
+  filter_info = list(gradient.max = c(0, 0.01)),
+  par_val_ref = NULL,
+  col_sub = c(total = rgb(0, 0, 0))
 )
 }
 \arguments{
@@ -39,14 +47,30 @@ to the group names to find parameters to group in \code{like}.}
 "min_par" shifts each likelihood component by its own minimum,
 "none" returns raw likelihoods}
 
-\item{like_prop_exclude}{Names of columns in \code{like} to exclude when computing}
+\item{like_exclude}{Names of columns in \code{like} to exclude from plotting profiles}
+
+\item{like_exclude_stacked}{Names of columns in \code{like} to exclude from plotting stacked barplot}
+
+\item{like_plot_last}{Name of the likelihood component to
+plot last so that it is on top in the plots.}
 
 \item{par_args}{arguments to pass to \code{par}}
 
-\item{plot_profiles}{logical. Plot likelihood profiles as lines, possibles shifted with like_shift?}
+\item{matplot_args_all}{arguments to pass to \code{matplot} for plot of all likelihoods}
 
-\item{plot_stacked}{logical. Plot likelihood profiles as stacked areas (\code{ggplot})?
+\item{matplot_args_group}{arguments to pass to \code{matplot} for plot of grouped likelihoods}
+
+\item{plot_profiles}{logical. Plot likelihood profiles as lines, possibly shifted with like_shift.}
+
+\item{plot_stacked}{logical. Plot likelihood profiles as stacked areas (\code{ggplot})
 columns not in like_prop_exclude.}
+
+\item{filter_info}{list of ranges used to filter out sim runs. set to NULL to retain all results.}
+
+\item{par_val_ref}{reference value to add to profile plots (e.g. parameter value from base model)}
+
+\item{col_sub}{Specify colors to substitute for colors in the ungrouped profile plot.
+named vector where the names match the names match the names in the plot legend.}
 }
 \description{
 Plot results from MCBE parameter profile analysis

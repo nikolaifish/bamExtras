@@ -7,7 +7,7 @@
 exp_decay(age, Z, N1 = 1, plus_group = FALSE)
 }
 \arguments{
-\item{age}{ages at which to compute numbers alive. Can be fractional ages (e.g. daily, monthly) but}
+\item{age}{ages at which to compute numbers alive. Can be fractional ages (e.g. daily, monthly).}
 
 \item{Z}{instantaneous mortality rate}
 

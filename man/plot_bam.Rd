@@ -10,28 +10,24 @@ plot_bam(
   draft = FALSE,
   use.color = TRUE,
   years_plot = NULL,
-  FGPlot_args = list(x = quote(spp), DataName = "spp", draft = draft, use.color =
-    use.color, graphics.type = graphics.type),
+  FGPlot_args = list(),
   windows_args = list(),
   Bound.vec.plots.args = list(),
-  BSR.time.plots.args = list(BSR.references = list("Bmsy", "SSBmsy", "Rmsy")),
-  CLD.total.plots.args = list(CLD.w.references = list("msy.klb", "msy.klb", "Dmsy.klb"),
-    CLD.n.references = list("msy.num", "msy.num", "Dmsy.num"), units.CLD.w =
-    x$info$units.landings),
+  BSR.time.plots.args = list(),
+  CLD.total.plots.args = list(),
   Cohort.plots.args = list(),
   Comp.plots.args = list(),
   Comp.yearly.plots.args = list(print.neff = TRUE, print.n = TRUE),
-  Eq.plots.args = list(F.references = list("Fmsy", "F30"), user.Eq =
-    list("L.eq.wholeklb", "L.eq.knum", "D.eq.knum")),
-  F.time.plots.args = list(F.references = list("Fmsy", "F30"), F.additional =
-    c("F.F30.ratio")),
+  Eq.plots.args = list(F.references = list("Fmsy", "F40"), user.Eq = list("L.eq.klb",
+    "L.eq.knum", "D.eq.knum")),
+  F.time.plots.args = list(F.references = NULL, F.additional = NULL),
   Growth.plots.args = list(plot.all = TRUE),
   Index.plots.args = list(),
   Landings.plots.args = list(),
   NFZ.age.plots.args = list(user.plots = "N.age.mdyr"),
   Parm.plots.args = list(),
-  PerRec.plots.args = list(user.PR = list("SPR", "ypr.lb.whole"), F.references =
-    list("Fmsy", "F30")),
+  PerRec.plots.args = list(user.PR = list("SPR", "ypr.lb"), user.lab = list("SPR",
+    "ypr.lb"), F.references = list("Fmsy", "F40")),
   Phase.plots.args = list(Xaxis.F = FALSE),
   Selectivity.plots.args = list(compact = TRUE),
   StockRec.plots.args = list()

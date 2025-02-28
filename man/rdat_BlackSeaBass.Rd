@@ -3,7 +3,7 @@
 \docType{data}
 \name{rdat_BlackSeaBass}
 \alias{rdat_BlackSeaBass}
-\title{BAM stock assessment results (rdat file): US Southeast Atlantic Black Sea Bass (SEDAR 56)}
+\title{BAM stock assessment results (rdat file): US Southeast Atlantic Black Sea Bass (SEDAR 76)}
 \format{
 An object of class \code{"list"}
 }

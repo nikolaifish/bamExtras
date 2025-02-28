@@ -1,4 +1,4 @@
-#' Compute age-varying natural mortality (M) based on Charnov et al (2013) and scale based on constant M
+#' Compute age-varying natural mortality (M) based on Lorenzen et al (1996) and scale based on constant M
 #'
 #' @param a ages at which to compute M
 #' @param Linf length infinity

@@ -20,24 +20,22 @@ plot_bam <- function(spp=NULL,
                      draft=FALSE, # draft type
                      use.color=TRUE,   # color type
                      years_plot = NULL,
-                     FGPlot_args=list(x=quote(spp), DataName="spp",draft=draft, use.color=use.color, graphics.type=graphics.type),
+                     FGPlot_args=list(),
                      windows_args=list(),
                      Bound.vec.plots.args = list(),
-                     BSR.time.plots.args = list(BSR.references = list("Bmsy", "SSBmsy", "Rmsy")),
-                     CLD.total.plots.args = list(CLD.w.references=list("msy.klb", "msy.klb", "Dmsy.klb"),
-                                                 CLD.n.references=list("msy.num","msy.num","Dmsy.num"),
-                                                 units.CLD.w = "1000 lb"),
+                     BSR.time.plots.args = list(),
+                     CLD.total.plots.args = list(),
                      Cohort.plots.args = list(),
                      Comp.plots.args = list(),
                      Comp.yearly.plots.args = list(print.neff=TRUE,print.n=TRUE),
-                     Eq.plots.args = list(F.references=list("Fmsy","F30"), user.Eq=list("L.eq.wholeklb", "L.eq.knum", "D.eq.knum")),
-                     F.time.plots.args = list(F.references=list("Fmsy","F30"), F.additional=c("F.F30.ratio")),
+                     Eq.plots.args = list(F.references=list("Fmsy","F40"), user.Eq=list("L.eq.klb", "L.eq.knum", "D.eq.knum")),
+                     F.time.plots.args = list(F.references=NULL, F.additional=NULL),
                      Growth.plots.args = list(plot.all = TRUE),
                      Index.plots.args = list(),
                      Landings.plots.args = list(),
                      NFZ.age.plots.args = list(user.plots="N.age.mdyr"),
                      Parm.plots.args = list(),
-                     PerRec.plots.args = list(user.PR = list("SPR", "ypr.lb.whole"),F.references=list("Fmsy","F30")),
+                     PerRec.plots.args = list(user.PR = list("SPR", "ypr.lb"), user.lab= list("SPR", "ypr.lb") , F.references=list("Fmsy","F40")),
                      Phase.plots.args = list(Xaxis.F=FALSE),
                      Selectivity.plots.args = list(compact=TRUE),
                      StockRec.plots.args = list()
@@ -45,6 +43,9 @@ plot_bam <- function(spp=NULL,
                      {
 
 library(FishGraph)
+  FGPlot_args_user <- FGPlot_args
+  FGPlot_args_default <- list(x=quote(spp), DataName="spp",draft=draft, use.color=use.color, graphics.type=graphics.type)
+  FGPlot_args <- modifyList(FGPlot_args_default,FGPlot_args_user)
 
   # set_ts_years()
   # Set years of time series in data frame, when rownames are years
@@ -64,12 +65,12 @@ library(FishGraph)
     BSR.time =    list(width =  8, height = 8, record = TRUE),
     CLD.total =   list(width =  7, height = 5, record = TRUE),
     Cohort =      list(width = 10, height = 8, record = TRUE),
-    Comp =        list(width = 10, height = 8, record = TRUE),
-    Comp.yearly = list(width = 10, height = 8, record = TRUE),
+    Comp =        list(width = 7, height = 7, record = TRUE),
+    Comp.yearly = list(width = 6, height = 6, record = TRUE),
     Eq =          list(width =  7, height = 5, record = TRUE),
     F.time =      list(width =  7, height = 5, record = TRUE),
     Growth =      list(width =  7, height = 5, record = TRUE),
-    Index =       list(width =  7, height = 5, record = TRUE),
+    Index =       list(width =  7, height = 7, record = TRUE),
     Landings =    list(width =  7, height = 5, record = TRUE),
     NFZ.age =     list(width =  7, height = 5, record = TRUE),
     Parm =        list(width =  8, height = 6, record = TRUE),

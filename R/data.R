@@ -1,4 +1,4 @@
-#' BAM stock assessment results (rdat file): US Southeast Atlantic Black Sea Bass (SEDAR 56)
+#' BAM stock assessment results (rdat file): US Southeast Atlantic Black Sea Bass (SEDAR 76)
 #'
 #' Data stored in the standard rdat file output by the Beaufort Assessment Model (BAM)
 #'

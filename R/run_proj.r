@@ -1,14 +1,21 @@
 #' run_proj
 #'
-#' Deterministic projections
+#' Project BAM forward in time to conduct deterministic or stochastic projections.
 #' @param rdat BAM output rdat (list) object read in with dget().
 #' @param run_bam_args list of arguments passed internally to run_bam if any are provided
 #' @param bam2r_args list of arguments passed internally to bam2r if any are provided
+#' @param stochastic logical. Is this a stochastic projection? Mostly runs the same code
+#'  either way, but stochastic projections add normal errors to recruitment. Stochastic
+#'  setting is intended to be run with rdat input from MCBE.
 #' @param pstar Value to use for applying pstar scaling of Fmsy. If set to NULL, it is not used and pstar code will not be run.
 #' @param styr_proj start year (i.e. first calendar year) of projection
-#' @param nyb_rcn number of years in calculations that include recent landings (L) or discards and their cvs, index cvs (U), recruitment (R), or numbers of samples in age or length compositions (comp). Fleets without L or D within the last nyb_rcn years of the base model will not be projected forward. named list
+#' @param nyb_rcn number of years in calculations that include recent landings
+#' (L) or discards and their cvs, index cvs (U), recruitment (R), or numbers of
+#' samples in age or length compositions (comp). Fleets without L or D within the
+#' last nyb_rcn years of the base model will not be projected forward. named list
 #' @param nyp_cur  number of years to maintain current conditions before implementing management
 #' @param nyp  number of years of projection. Must be >nyp_cur
+#' @param nm_yr_p names of \code{init} objects to project forward by \code{nyp}
 #' @param F_cur current fully selected fishing mortality rate
 #' @param F_proj fully selected fishing mortality rate
 #' @param L_cur current level of landings
@@ -27,17 +34,31 @@
 #' @param sel_tot  selectivity at age to compute Z (includes landings and discards). numeric vector
 #' @param sel_F_flt list of selectivity vectors (by age) or matrices (by year,age) for each fleet associated with landings or discards. numeric vector or matrix
 #' @param spawn_time time of year for peak spawning
-#' @param SR_par list of parameters associated with the stock-recruit (SR) relationship. Currently only works with a Beverton-Holt SR relationship for which the parameters are: h = steepness of spawner-recruit function, R0 = virgin recruitment of spawner-recruit function, Phi0 = virgin spawners per recruit, biascorr = bias correction
-#' @param SR_method Spawner-recruit function BH = Beverton-Holt, GM = constant geometric mean of nyb_rcn$R recent years of t.series$recruits. By default, run_proj will try to use BH, but if it can't find all the parameters, it will resort to GM (and will return a message letting you know that)
+#' @param SR_par list of parameters associated with the stock-recruit (SR) relationship.
+#' Currently only works with a Beverton-Holt SR relationship for which the parameters are:
+#' h = steepness of spawner-recruit function, R0 = virgin recruitment of spawner-recruit
+#' function, Phi0 = virgin spawners per recruit, biascorr = bias correction
+#' @param SR_method Spawner-recruit function BH = Beverton-Holt, R0 = model estimated
+#' mean recruitment (R0), GM = constant geometric mean of nyb_rcn$R recent years of
+#' t.series$recruits. By default, run_proj will try to use BH, or R0, but if it can't
+#' find all the parameters, it will resort to GM. Note GM method has not been reviewed
+#' and should be used with caution.
 #' @param age_error age error matrix to use for the projection years. By default, the function uses the same age_error matrix from the base model
 #' @param project_bam logical. After the projection is run, should the function build a new set of projected bam files?
 #' @param ia_args list of arguments to pass to interim adjustment function. See Details section below.
 #' @param obs_error list of optional arguments for incorporating observation error into projections. See Details section below.
 #' @param plot logical. Produce plots of extended base model including projected data
+#' @param nm_comp_sfx Character vector. Possible suffix added to fleet abbreviation in comps
+#' (e.g. c("a","b") in SEDAR 82 gray triggerfish). Used to match comps with catch when projecting
+#' comp data when \code{project_bam=TRUE}
+#' @param t_series_na_vals Numeric vector of values to consider as NA in t.series object.
+#' @param key_lenprob Optional list for specifying cv values for length-at-age,
+#' for each set of length compositions. (e.g. key_lenprob = c("D.rHD"="len.cv.L", "L.rGN"="len.cv.L")). Use keyword 'all', as in default to set all
+#' values to a particular value in parm.cons.
 #' @details
 #' \code{ia_args}:
 #' \itemize{
-#' \item{U_nm}{The fleet abbreviation for an index of abundance that you want to use to adjust F (e.g. sTV, sCT).}
+#' \item{U_nm}{The fleet abbreviation for an index of abundance that you want to use to adjust F (e.g. sTV, sCT). If set to \code{NULL}, no interim adjustment will be used.}
 #' \item{type}{Method used for computing F adjustment. "Uprop" computes the mean U from recent years, divided by U from
 #' reference year. The reference year is the terminal year of the last full stock assessment. The set of recent years is computed
 #' as the current projection year plus yr_U_lag. By default, type = "Uprop"}
@@ -58,23 +79,42 @@
 #' @export
 #' @examples
 #' \dontrun{
-#' proj_VeSn <- run_proj(rdat_VermilionSnapper)
-#' proj_VeSn <- run_proj(rdat_VermilionSnapper, project_bam=TRUE,
-#' run_bam_args = list(
+#' # Run deterministic projection with defaults
+#' proj_VeSn <- run_proj(rdat_VermilionSnapper,plot=TRUE)
+#'
+#' # Run deterministic projection with defaults
+#' # and project bam inputs, by adding the bam files with bam2r_args
+#' proj_VeSn <- run_proj(rdat_VermilionSnapper,
+#' project_bam=TRUE,
+#' bam2r_args = list(
 #' dat_obj=dat_VermilionSnapper,
 #' tpl_obj=tpl_VermilionSnapper,
 #' cxx_obj=cxx_VermilionSnapper
 #' ))
+#' # The projections work for most of the assessments
+#' proj_BlSb <- run_proj(rdat_BlackSeaBass,plot=TRUE)
+#' proj_GaGr <- run_proj(rdat_GagGrouper,plot=TRUE)
+#' proj_RdGr <- run_proj(rdat_RedGrouper,plot=TRUE)
+#' proj_RdSn <- run_proj(rdat_RedSnapper,plot=TRUE)
+#' proj_VeSn <- run_proj(rdat_VermilionSnapper,plot=TRUE)
+#' # Some need additional arguments to run correctly
+#' proj_GrTr <- run_proj(rdat_GrayTriggerfish,
+#' nm_comp_sfx = c("a","b"),
+#' plot=TRUE,
+#' key_lenprob = c("D.rHDs"="len.cv.L", "L.rGNs"="len.cv.L")
+#' )
 #' }
 
 run_proj <- function(rdat = NULL,
                      run_bam_args = NULL,
                      bam2r_args = NULL,
+                     stochastic = FALSE,
                      pstar = NULL,
                      styr_proj = NULL,
                      nyb_rcn = list(L=3, U=3, R=5, comp=3),
                      nyp_cur = 3,
                      nyp = 5,
+                     nm_yr_p=c("endyr","endyr_rec_dev","endyr_rec_phase2","endyr_rec_spr","styr_regs","endyr_proj"),
                      F_cur = NULL,
                      F_proj = NULL,
                      L_cur = NULL,
@@ -99,7 +139,10 @@ run_proj <- function(rdat = NULL,
                      project_bam = FALSE,
                      ia_args = list(U_nm = NULL),
                      obs_error = list("cv_U_sc" = 0),
-                     plot = FALSE
+                     plot = FALSE,
+                     nm_comp_sfx = c(""),
+                     t_series_na_vals=c(-9999,-99999,-999999),
+                     key_lenprob = c("all"="^len.cv")
 
 ) {
 library(ggplot2)
@@ -137,14 +180,25 @@ if(!is.null(run_bam_args)){
 }
 
   # if(!is.null(rdat)){
-    styr <- rdat$parms$styr
-    endyr <- rdat$parms$endyr
+   parms <- rdat$parms
+   nm_parms <- names(parms)
+
+    styr <- parms$styr
+    endyr <- parms$endyr
     yb <- styr:endyr # years of the base model
     nyb <- length(yb)
 
     a.series <- rdat$a.series
-    t.series <- rdat$t.series
-    t.series[t.series==-99999] <- NA
+    t.series <- t.series.raw <- rdat$t.series
+    if(any(unlist(t.series)%in%t_series_na_vals)){
+      t.series <- apply(t.series,2,
+                        function(x){x[x%in%t_series_na_vals] <- NA
+                        x}
+                        )
+      t.series <- as.data.frame(t.series)
+      message(paste0("values in t.series in the set '", paste(t_series_na_vals,collapse=", "), "' found and changed to NA"))
+    }
+    # t.series[t.series==-99999] <- NA
     parm.cons <- rdat$parm.cons
     sel_age <- rdat$sel.age
     sel_age_1 <- sel_age[names(sel_age)%in%c("sel.v.wgted.L","sel.v.wgted.D","sel.v.wgted.tot")]
@@ -168,11 +222,19 @@ if(!is.null(run_bam_args)){
     Z <- rdat$Z.age[paste(yb),]
     N <- rdat$N.age[paste(yb),]
     Nmdyr <- rdat$N.age.mdyr[paste(yb),]
+    logRdev <- rdat$t.series[paste(yb),"logR.dev"]
+    if("SSB"%in%names(t.series)){
+    S <- t.series[paste(yb),"SSB"]
+    }else{
+      warning("SSB not found in t.series. I'm not sure what to use to characterize stock size.")
+    }
     R <- N[,1] # Recruits
     # Like F_fleet in bam tpl (e.g. F_cHL). Same computation as bam
     F_flt <- lapply(Cn,function(x){x*Z/(N*(1-exp(-Z)))}) # Computes a list of F (year,age) for each fleet, which are not in the rdat
     # names(F_flt) <- paste("F",gsub("([LD])(n)(.*)","\\1\\3",names(F_flt)),sep=".")
     names(F_flt) <- gsub("^Cn","F",names(F_flt))
+    Fage <- Reduce("+",F_flt)
+    Ffull <- apply(Fage,1,max)
 
     if(is.null(ages)){ages <- a.series$age}
     nages <- length(ages)
@@ -183,12 +245,12 @@ if(!is.null(run_bam_args)){
       dimnames(age_error) <- list("age"=ages,"age"=ages)
     }
     }
-    if(is.null(spawn_time)){spawn_time <- rdat$parms$spawn.time}
+    if(is.null(spawn_time)){spawn_time <- parms$spawn.time}
     if(is.null(reprod)){reprod <- a.series$reprod}
     if(is.null(styr_proj)){styr_proj <- endyr+1}
     yp <- styr_proj:(styr_proj+nyp-1) # years of the projection period
     if(is.null(F_cur)){F_cur <- bamExtras::geomean2(t.series[yrs_L_b,"F.full"],na.rm=TRUE)}
-    if(is.null(F_proj)){F_proj <- rdat$parms$Fmsy}
+    if(is.null(F_proj)){F_proj <- parms$Fmsy}
     if(is.null(L_cur)){
       is.total.L.klb <- "total.L.klb"%in%names(t.series)
       if(!is.total.L.klb){
@@ -218,14 +280,24 @@ if(!is.null(run_bam_args)){
 
     if(is.null(sel_F_flt)){
       LD_abb <- gsub(".pr$","",names(t.series)[grepl("^[LD].*.pr$",names(t.series),perl=TRUE)]) # landings abbreviations
-      LD_abb_ts <- paste0("F.",gsub("^(D.)(.*)","\\2.D",gsub("^L.","",LD_abb)))
+      LD_abb1_ts <- paste0("F.",gsub("^(D.)(.*)","\\2.D",gsub("^L.","",LD_abb))) # pattern 1 (typical)
+      LD_abb2_ts <- paste0("F.",LD_abb) # pattern 2 (less typical but preferred)
+      if(all(LD_abb1_ts%in%names(t.series))){
+        LD_abb_ts <- LD_abb1_ts
+      }else if(all(LD_abb2_ts%in%names(t.series))){
+        LD_abb_ts <- LD_abb2_ts
+      }else {
+        warning(paste0("Can't match Fs. Neither set 1 (",paste(LD_abb1_ts,collapse=", "),
+                       ") nor set 2 (",paste(LD_abb2_ts,collapse=", "),
+                       ") column names can all be found in t.series"))
+      }
       Fsum_flt <- t.series[paste(yb),LD_abb_ts] # F time series for each fleet
       names(Fsum_flt) <- paste0("F.",LD_abb)
       Fsum <- rowSums(Fsum_flt) # Should be equal to t.series$Fsum
 
       # Compute selectivity for each fleet associated with an F value.
       # NOTE: Computing selectivities is somewhat more reliable than trying to find
-      # then in the rdat, in instances when selectivities from one fleet are used
+      # them in the rdat, in instances when selectivities from one fleet are used
       # for multiple fleets (e.g. when the headboat selectivity is used for the MRIP landings)
       sel_F_flt <- lapply(names(F_flt),function(x){
         a <- pmax(pmin(F_flt[[x]]/Fsum_flt[,x],1),0)
@@ -288,24 +360,42 @@ if(!is.null(run_bam_args)){
 
     ## Weights of fish (year, age) by fleet.
     if(is.null(wgt_F_flt_klb)){
+      # initialize
       wgt_F_flt_klb <- rdat$size.age.fishery[grepl("^[a-zA_Z]*.*wgt",names(rdat$size.age.fishery))]
-      # Reformat names to wgt.fleetType.fleet
+
+      nm_unit_wgt <- c("lb","klb")
+      wgt_F_flt_klb_type <- gsub(".*\\<([a-zA-Z]*wgt[a-zA-Z]*)\\>.*","\\1",names(wgt_F_flt_klb))
+      wgt_F_flt_klb_units <- gsub(paste0(".*\\<([:alpha:]*",paste(nm_unit_wgt,collapse = "|"),"[:alpha:]*)\\>.*"),
+                              "\\1",names(wgt_F_flt_klb))
+
+      # Reformat names to wgt.fleetType.fleet which should be a combination of
+      # type (e.g. wgt or wholewgt), unit (e.g. lb or klb) and fleet abbreviation (e.g. rHB or cHL)
       # (e.g. wgt.L.cHL for weight of landings in the commercial hook and line fleet)
       wgt_F_flt_abb <- local({
-        a <- gsub("^([a-zA-Z]+)(.)(.*?)(.)([a-zA-Z]+)$","\\3",names(wgt_F_flt_klb),perl=TRUE)
-        gsub("^([^D.])([a-zA-Z]+)","L.\\1\\2",gsub("(.*?)(?<=.)(.D)$","D.\\1",a,perl=TRUE))
+        a <- gsub(paste0(c(unique(wgt_F_flt_klb_type),unique(wgt_F_flt_klb_units)),collapse="|"),"",names(wgt_F_flt_klb))
+        b <- gsub("^\\.*|\\.*$","",a)
+
+        #a <- gsub("^([a-zA-Z]+)(.)(.*?)(.)([a-zA-Z]+)$","\\3",names(wgt_F_flt_klb),perl=TRUE)
+        c <- gsub("(.*?)(?<=.)(\\.D)$","D.\\1",b,perl=TRUE) # Change .D suffix to D. prefix
+        d <- gsub("^([a-zA-Z]{2})(D)","D.\\1\\2",c)         # Add D. prefix if third letter is D
+        e <- gsub("^([cr])(.*)","L.\\1\\2",d) # Add L. prefix to comps starting with c or r (landings not discards. won't modify fishery independent survey comps)
+        e
       })
 
-      wgt_F_flt_units <- gsub("^([a-zA-Z]+)(.)(.*?)(.)([a-zA-Z]+)$","\\1.\\5",names(wgt_F_flt_klb),perl=TRUE)
-      names(wgt_F_flt_klb) <- names(wgt_F_flt_units) <- paste("wgt", #wgt_F_flt_units,
+      # wgt_F_flt_klb_units <- gsub("^([a-zA-Z]+)(.)(.*?)(.)([a-zA-Z]+)$","\\1.\\5",names(wgt_F_flt_klb),perl=TRUE)
+      names(wgt_F_flt_klb) <- names(wgt_F_flt_klb_units) <- paste("wgt", #wgt_F_flt_klb_units,
                                                           wgt_F_flt_abb,sep=".")
 
       # Convert weights in lb to klb
       for(nm_i in names(wgt_F_flt_klb)){
         xi <- wgt_F_flt_klb[[nm_i]]
-        if(grepl("\\.lb$",wgt_F_flt_units[[nm_i]])){
+        if(wgt_F_flt_klb_units[[nm_i]]=="klb"){
+          # do nothing
+        } else if(wgt_F_flt_klb_units[[nm_i]]=="lb"){
           wgt_F_flt_klb[[nm_i]] <- xi/1000
-          wgt_F_flt_units[[nm_i]] <- gsub(".lb$",".klb",wgt_F_flt_units[[nm_i]])
+          wgt_F_flt_klb_units[[nm_i]] <- "klb"
+        } else {
+          warning(paste("units of",nm_i,"are not lb or klb"))
         }
       }
     }
@@ -313,15 +403,26 @@ if(!is.null(run_bam_args)){
     # Lengths of fish (year, age) by fleet.
     if(is.null(len_F_flt_mm)){
       len_F_flt_mm <- rdat$size.age.fishery[grepl("^[a-zA_Z]*.*len",names(rdat$size.age.fishery))]
+      nm_unit_len <- c("mm")
+      len_F_flt_mm_type <- gsub(".*\\<([a-zA-Z]*len[a-zA-Z]*)\\>.*","\\1",names(len_F_flt_mm))
+      len_F_flt_mm_units <- gsub(paste0(".*\\<([:alpha:]*",paste(nm_unit_len,collapse = "|"),"[:alpha:]*)\\>.*"),
+                              "\\1",names(len_F_flt_mm))
+
       # Reformat names to len.fleetType.fleet
       # (e.g. len.L.cHL for length of landings in the commercial hook and line fleet)
       len_F_flt_abb <- local({
-        a <- gsub("^([a-zA-Z]+)(.)(.*?)(.)([a-zA-Z]+)$","\\3",names(len_F_flt_mm),perl=TRUE)
-        gsub("^([^D.])([a-zA-Z]+)","L.\\1\\2",gsub("(.*?)(?<=.)(.D)$","D.\\1",a,perl=TRUE))
+        a <- gsub(paste0(c(unique(len_F_flt_mm_type),unique(len_F_flt_mm_units)),collapse="|"),"",names(len_F_flt_mm))
+        b <- gsub("^\\.*|\\.*$","",a)
+        c <- gsub("(.*?)(?<=.)(\\.D)$","D.\\1",b,perl=TRUE) # Change .D suffix to D. prefix
+        d <- gsub("^([a-zA-Z]{2})(D)","D.\\1\\2",c)         # Add D. prefix if third letter is D
+        e <- gsub("^([cr])(.*)","L.\\1\\2",d) # Add L. prefix to comps starting with c or r (landings not discards. won't modify fishery independent survey comps)
+        e
+
       })
 
-      len_F_flt_units <- gsub("^([a-zA-Z]+)(.)(.*?)(.)([a-zA-Z]+)$","\\1.\\5",names(len_F_flt_mm),perl=TRUE)
-      names(len_F_flt_mm) <- names(len_F_flt_units) <- paste("len", #len_F_flt_units,
+
+      len_F_flt_mm_units <- gsub("^([a-zA-Z]+)(.)(.*?)(.)([a-zA-Z]+)$","\\1.\\5",names(len_F_flt_mm),perl=TRUE)
+      names(len_F_flt_mm) <- names(len_F_flt_mm_units) <- paste("len", #len_F_flt_mm_units,
                                                           len_F_flt_abb,sep=".")
     }
 
@@ -532,31 +633,59 @@ if(!is.null(run_bam_args)){
     lcomp_b_ob <- rdat$comp.mats[grepl("^lcomp.*.ob$",names(rdat$comp.mats))]
     names(lcomp_b_ob) <- local({
       a <- gsub("^(lcomp.)(.*)(.ob)$","\\2",names(lcomp_b_ob))
-      b <- gsub("(.*)(.D)$","D.\\1",a) # Convert .D suffix to D. prefix
-      c <- gsub("^([cr])(.*)","L.\\1\\2",b) # Add L. prefix to comps starting with c or r (landings not discards. won't modify fishery independent survey comps)
-      c
+      b <- gsub("(.*)(\\.D)$","D.\\1",a) # Convert .D suffix to D. prefix
+      c <- gsub("^([a-zA-Z]{2})(D)","D.\\1\\2",b) # Add D. prefix if third letter is D
+      d <- gsub("^([cr])(.*)","L.\\1\\2",c) # Add L. prefix to comps starting with c or r (landings not discards. won't modify fishery independent survey comps)
+      d
     })
     # predicted
     lcomp_b_pr <- rdat$comp.mats[grepl("^lcomp.*.pr$",names(rdat$comp.mats))]
     names(lcomp_b_pr) <- local({
       a <- gsub("^(lcomp.)(.*)(.pr)$","\\2",names(lcomp_b_pr))
-      b <- gsub("(.*)(.D)$","D.\\1",a) # Convert .D suffix to D. prefix
-      c <- gsub("^([cr])(.*)","L.\\1\\2",b) # Add L. prefix to comps starting with c or r (landings not discards. won't modify fishery independent survey comps)
-      c
+      b <- gsub("(.*)(\\.D)$","D.\\1",a) # Convert .D suffix to D. prefix
+      c <- gsub("^([a-zA-Z]{2})(D)","D.\\1\\2",b) # Add D. prefix if third letter is D
+      d <- gsub("^([cr])(.*)","L.\\1\\2",c) # Add L. prefix to comps starting with c or r (landings not discards. won't modify fishery independent survey comps)
+      d
     })
 
     lenprob <- list()
 
     ## Build age-length conversion matrix associated with each set of length comps
     ## (will often be the same for all comps)
+    if("all"%in%names(key_lenprob)){
+      rgx_len_cv <- key_lenprob[["all"]] # pattern to use when searching names of parm.cons objects
+      message(paste("keyword 'all' found in names of key_lenprob. ",rgx_len_cv, "will be used to search names of parm.cons to identify the cv of length-at-age to use when generating age-length converstion matrices."))
+    }else{
+      rgx_len_cv <- NULL
+    }
+      avail_len_cv <- names(parm.cons)[grepl("^len.cv",names(parm.cons))]
+      message(paste("The following len.cv parameters were found in parm.cons:",paste(avail_len_cv,collapse=", ")))
+
     for(i in 1:length(lcomp_b_pr)){
-      avail_len_cv_val <- names(parm.cons)[grepl("^len.cv",names(parm.cons))]
-      if(length(avail_len_cv_val)>1){
-        message(paste("found multiple len.cv.val in rdat:",paste(avail_len_cv_val,collapse=", "),"Currently only using len.cv.val"))
+      nmi <- names(lcomp_b_pr)[i]
+      if("all"%in%names(key_lenprob)){
+        rgx_len_cv_i <- rgx_len_cv
+        nm_len_cv_i <- names(parm.cons)[grepl(rgx_len_cv_i,names(parm.cons))][1]
+      }else if(nmi%in%names(key_lenprob)){
+        rgx_len_cv_i <- key_lenprob[[nmi]]
+        nm_len_cv_i <- names(parm.cons)[grepl(rgx_len_cv_i,names(parm.cons))][1]
+      }else{
+        rgx_len_cv_i <- "^len.cv"
+        nm_len_cv_i <- names(parm.cons)[grepl(rgx_len_cv_i,names(parm.cons))][1]
+        warning(paste(nmi, "not found in names(key_lenprob). Will use estimated value of",nm_len_cv_i,"from parm.cons.") )
       }
 
-      len_cv_val_i <- parm.cons$len.cv.val[8]
-      len_sd_i <- len*len_cv_val_i
+      if(is.na(nm_len_cv_i)){
+        nm_len_cv_i <- avail_len_cv[1]
+        warning(paste("Couldn't match",rgx_len_cv_i, "in names(parm.cons). Using",avail_len_cv[1],"instead for.",nmi,"length comps."))
+      }
+
+      # if(length(avail_len_cv)>1){
+      #   message(paste("found multiple len.cv.val in rdat:",paste(avail_len_cv,collapse=", "),"Currently only using len.cv.val"))
+      # }
+
+      len_cv_i <- parm.cons[8,nm_len_cv_i]
+      len_sd_i <- len*len_cv_i
 
       lc_i <- lcomp_b_pr[[i]]
       lc_bm_i <- as.numeric(colnames(lc_i))  # bin mid point
@@ -611,7 +740,7 @@ if(!is.null(run_bam_args)){
     ##
     # number of trips in compositions
     ntrip <- t.series[paste(yb),grepl("^([la]comp).*(.n)$",names(t.series))]
-    ntrip[ntrip==-99999] <- NA
+    # ntrip[ntrip==-99999] <- NA
     names(ntrip) <- local({
       a <- gsub("(.n)$","",names(ntrip))
       b <- gsub("^([al]comp.)(.*)(.)(D)$","\\1D.\\2",a) # Convert .D suffix to D. prefix
@@ -620,7 +749,7 @@ if(!is.null(run_bam_args)){
     })
     # number of fish in compositions
     nfish <- t.series[paste(yb),grepl("^([la]comp).*(.nfish)$",names(t.series))]
-    nfish[nfish==-99999] <- NA
+    # nfish[nfish==-99999] <- NA
     names(nfish) <- local({
       a <- gsub("(.nfish)$","",names(nfish))
       b <- gsub("^([al]comp.)(.*)(.)(D)$","\\1D.\\2",a) # Convert .D suffix to D. prefix
@@ -640,25 +769,111 @@ if(!is.null(run_bam_args)){
       })
     }
 
+    ## SR stuff. Kind of long but used to accomodate varying naming conventions.
+    # Note NK 2023-10-15: I think that biascorr and R.autocorr should be available
+    # in all models, but maybe with a different name.
+
+    biascorr <-  if("BH.biascorr"%in%nm_parms){parms$BH.biascorr
+    }else if("biascorr"%in%nm_parms){
+      nm_biascorr <- "biascorr"
+      message(paste("BH.biascorr not found in parms.",nm_biascorr,"found and will be used instead."))
+      parms[[nm_biascorr]]
+    }else if(any(grepl("biascorr",nm_parms))){
+      nm_biascorr <- nm_parms[which(grepl("biascorr",nm_parms))][1]
+      message(paste("BH.biascorr not found in parms.",nm_biascorr,"found and will be used instead."))
+      parms[[nm_biascorr]]
+    }else{
+      message(paste("Can't match biascorr in parms. Setting biascorr = 1."))
+      1
+    }
+
+    R.autocorr <-  if("R.autocorr"%in%nm_parms){parms$R.autocorr
+    }else{
+      message(paste("R.autocorr not found in parms. Setting R.autocorr = 0."))
+      0
+    }
+
     if(SR_method=="BH"){
       if(is.null(SR_par)){
-        h <-        rdat$parms$BH.steep
-        R0 <-       rdat$parms$BH.R0
-        Phi0 <-     rdat$parms$BH.Phi0
-        biascorr <- rdat$parms$BH.biascorr
+        h <-  if("BH.steep"%in%nm_parms){parms$BH.steep
+        }else if("steep"%in%nm_parms){
+          nm_steep <- "steep"
+          message(paste("BH.steep not found in parms.",nm_steep,"found and will be used instead."))
+          parms[[nm_steep]]
+        }else if(any(grepl("steep",nm_parms))){
+          nm_steep <- nm_parms[which(grepl("steep",nm_parms))][1]
+          message(paste("BH.steep not found in parms.",nm_steep,"found and will be used instead."))
+          parms[[nm_steep]]
+        }else{
+          message(paste("Can't match steep in parms."))
+          NULL
+        }
+        R0 <-  if("BH.R0"%in%nm_parms){parms$BH.R0
+        }else if("R0"%in%nm_parms){
+          nm_R0 <- "R0"
+          message(paste("BH.R0 not found in parms.",nm_R0,"found and will be used instead."))
+          parms[[nm_R0]]
+        }else if(any(grepl("R0",nm_parms))){
+          nm_R0 <- nm_parms[which(grepl("R0",nm_parms))][1]
+          message(paste("BH.R0 not found in parms.",nm_R0,"found and will be used instead."))
+          parms[[nm_R0]]
+        }else{
+          message(paste("Can't match R0 in parms."))
+          NULL
+        }
+        Phi0 <-  if("BH.Phi0"%in%nm_parms){parms$BH.Phi0
+        }else if("Phi0"%in%nm_parms){
+          nm_Phi0 <- "Phi0"
+          message(paste("BH.Phi0 not found in parms.",nm_Phi0,"found and will be used instead."))
+          parms[[nm_Phi0]]
+        }else if(any(grepl("Phi0",nm_parms))){
+          nm_Phi0 <- nm_parms[which(grepl("Phi0",nm_parms))][1]
+          message(paste("BH.Phi0 not found in parms.",nm_Phi0,"found and will be used instead."))
+          parms[[nm_Phi0]]
+        }else{
+          message(paste("Can't match Phi0 in parms."))
+          NULL
+        }
       }else{
         for(i in 1:length(SR_par)){xi <- SR_par[i]; assign(x=names(xi),value=xi)}
       }
-      SR_par_null <- c("h","R0","Phi0","biascorr")[c(is.null(h),is.null(R0),is.null(Phi0),is.null(biascorr))]
+      SR_par_null <- c("h","R0","Phi0")[c(is.null(h),is.null(R0),is.null(Phi0))]
       # If not all of the BH SR parameters are found, resort to using the GM method
       if(length(SR_par_null)>0){
-        message(paste("BH SR parameters not found:",paste(SR_par_null,collapse=", ")," Using SR_method = GM.\n"))
-        SR_method <- "GM"
+        message(paste("BH SR parameters not found:",paste(SR_par_null,collapse=", ")," Can't use SR_method = BH.\n"))
+        if(!is.null(R0)){
+        message(paste("R0 parameter found. Using SR_method = R0.\n"))
+        SR_method <- "R0"
+        }else{
+          message(paste("Using SR_method = GM.\n"))
+          SR_method <- "GM"
+        }
       }else{
         message("all BH SR parameters found. Using SR_method = BH.\n")
       }
-    }else{
+    }else if(SR_method=="R0"){
+      R0 <-  if("BH.R0"%in%nm_parms){parms$BH.R0
+      }else if("R0"%in%nm_parms){
+        nm_R0 <- "R0"
+        message(paste("BH.R0 not found in parms.",nm_R0,"found and will be used instead."))
+        parms[[nm_R0]]
+      }else if(any(grepl("R0",nm_parms))){
+        nm_R0 <- nm_parms[which(grepl("R0",nm_parms))][1]
+        message(paste("BH.R0 not found in parms.",nm_R0,"found and will be used instead."))
+        parms[[nm_R0]]
+      }else{
+        message(paste("Can't match R0 in parms."))
+        NULL
+      }
+      if(!any(is.null(c(R0,biascorr)))){
+        message(paste("Found values of R0 and biascorr. Using SR_method = R0.\n"))
+      }
+
+    }else if(SR_method=="GM"){
       message(paste("Using SR_method = GM.\n"))
+    }else{
+      message(paste("SR_method value not valid. Using default SR_method = GM.\n"))
+      SR_method <- "GM"
     }
 
     if(is.null(M)){
@@ -704,7 +919,9 @@ if(!is.null(run_bam_args)){
   S_p <-    emyp # spawning stock (often biomass in mt, sometimes eggs in n)
   B_p <-    emyp # population biomass (mt)
   R_p <-    emyp # recruits (n)
-  Fsum_p <- emyp # sum F across all fleets (/yr)
+  logRdev_p <- emyp # log recruitment deviation
+  Ffull_p <- emyp # Max F across by year, across all fleets (/yr) (comment from bam: Max across ages, fishing mortality rate by year (may differ from Fsum bc of dome-shaped sel)
+
 
   Ln_p <- emyp	# total landings (n)
   Lw_p <- emyp	# total landings (weight)
@@ -734,8 +951,27 @@ if(!is.null(run_bam_args)){
   names(Cw_p) <- gsub("^F","Cw",names(emfypa))
 
   ## Initialization
-  N_p[1,] <- N_styr_proj
   S_p[1] <- S_styr_proj
+
+  N_p[1,] <- N_styr_proj
+  if(stochastic){
+    # Compute rec devs (independent of SR_method)
+    logRdev_endyr <- rdat$t.series[paste(rdat$parms$endyr),"logR.dev"]
+      logRdev_p[1] <- rnorm(n=1 ,mean=logRdev_endyr*R.autocorr,    sd=sqrt(2.0*log(biascorr)))
+    for(i in 2:nyp){
+      logRdev_p[i] <- rnorm(n=1 ,mean=logRdev_p[i-1]*R.autocorr, sd=sqrt(2.0*log(biascorr)))
+    }
+    if(SR_method=="BH"){
+      N_p[1,1] = exp(logRdev_p[1]) * (0.8*R0*h*S_p[1])/(0.2*R0*Phi0*(1.0-h)+ (h-0.2)*S_p[1])
+    }else if(SR_method=="R0"){
+      N_p[1,1] = exp(logRdev_p[1]) * R0
+    }else{
+      # Use default GM method
+      N_p[1,1] = exp(logRdev_p[1]) * R_b_gm
+    }
+  }else{
+    logRdev_p[paste(yp)] <- 0
+  }
   B_p[1] <- sum(N_p[1,]*wgt_mt)
 
   # Project cvs for catch and cpue
@@ -829,9 +1065,9 @@ if(!is.null(run_bam_args)){
 
       # Set fishing mortality
       if(i%in%1:nyp_cur){
-        Fsum_p_i <- F_cur
+        Ffull_p_i <- F_cur
       }else if(i%in%((nyp_cur+1):nyp)){
-        Fsum_p_i <- F_proj
+        Ffull_p_i <- F_proj
       }
 
       # Interim adjustment of F (optional)
@@ -854,14 +1090,14 @@ if(!is.null(run_bam_args)){
         F_adj <- 1
       }
 
-      Fsum_p[i] <- Fsum_p_i*F_adj
+      Ffull_p[i] <- Ffull_p_i*F_adj
 
       # Compute total Z and F at-age for year i
-      # Z_p <-   outer(Fsum_p,M+sel_tot,FUN="*") # Z for population
-      Z_p[i,] <-   M+Fsum_p[i]*sel_tot   # Z for population  #t(M+t(outer(Fsum_p,sel_tot,FUN="*")))
-      F_L_p[i,] <- Fsum_p[i]*sel_L       # F for landings outer(Fsum_p,sel_L,  FUN="*")
+      # Z_p <-   outer(Ffull_p,M+sel_tot,FUN="*") # Z for population
+      Z_p[i,] <-   M+Ffull_p[i]*sel_tot   # Z for population  #t(M+t(outer(Ffull_p,sel_tot,FUN="*")))
+      F_L_p[i,] <- Ffull_p[i]*sel_L       # F for landings outer(Ffull_p,sel_L,  FUN="*")
       if(!is.null(sel_D)){
-        F_D_p[i,] <-  Fsum_p[i]*sel_D # F for discards outer(Fsum_p,sel_D,  FUN="*")
+        F_D_p[i,] <-  Ffull_p[i]*sel_D # F for discards outer(Ffull_p,sel_D,  FUN="*")
       }else{
         F_D_p[i,] <- F_L_p[i,]*0
       }
@@ -872,9 +1108,14 @@ if(!is.null(run_bam_args)){
       #      F.L.tmp <- Reduce("+",F_flt_p[grepl("^F.L.",names(F_flt_p))])
       #      F.L.tmp == F_L_p
       F_flt_p <- lapply(1:length(F_flt_p),function(j){
-        sel_F_flt_p[[j]]*Fsum_p
+        sel_F_flt_p[[j]]*Ffull_p
       })
       names(F_flt_p) <- names(Fsum_flt)
+
+      # 2023-10-16 This isn't quite right. Need to figure out how to compute Fsum
+      # for the projections
+      # Fage_p <- Reduce("+",F_flt_p)
+      # Fsum_p <- rowSums(Fage_p)
 
       # wgt during projection years (by py, age, fleet) for any source of F (landings or discards)
       # Fill with fish weights from last year of base (endyr)
@@ -962,9 +1203,23 @@ if(!is.null(run_bam_args)){
         ## Population (year i+1)
         # Calculate number of offspring at midyear in year i which will be recruits in first age class in year i+1
         if(SR_method=="BH"){ # Beverton-Holt stock-recruit relationship
-          N_p[i+1,1] <- biascorr*(0.8*R0*h*S_p[i])/(0.2*R0*Phi0*(1.0-h)+ (h-0.2)*S_p[i])
-        }
-        if(SR_method=="GM"){ # Geometric mean recruitment
+          if(stochastic){
+            N_p[i+1,1] <- exp(logRdev_p[i+1]) * (0.8*R0*h*S_p[i])/(0.2*R0*Phi0*(1.0-h)+ (h-0.2)*S_p[i])
+          }else{
+            N_p[i+1,1] <- biascorr            * (0.8*R0*h*S_p[i])/(0.2*R0*Phi0*(1.0-h)+ (h-0.2)*S_p[i])
+          }
+        }else if(SR_method=="R0"){ # model estimated mean recruitment
+          if(stochastic){
+            N_p[i+1,1] <- exp(logRdev_p[i+1]) * R0
+          }else{
+            N_p[i+1,1] <- biascorr            * R0
+          }
+        }else if(SR_method=="GM"){ # Geometric mean recruitment
+          if(stochastic){
+            N_p[i+1,1] <- exp(logRdev_p[i+1]) * R_b_gm
+          }else{
+            N_p[i+1,1] <- biascorr            * R_b_gm
+          }
           N_p[i+1,1] <- R_b_gm
         }
 
@@ -987,13 +1242,19 @@ if(!is.null(run_bam_args)){
     # If the last year of comps is within the last nyb_rcn$comp of the assessment, then project them.
     if(max(as.numeric(yrs_acomp_i))%in%tail(as.numeric(yb),nyb_rcn$comp)){
     if(grepl("^[LD]",nm_i)){ # If length comps are associated with catch (landings or discards), use numbers from landings
-      n_i <- Cn_p[[paste0("Cn.",nm_i)]][yrs_acomp_p_i,,drop=FALSE]
+      # Remove nm_comp_sfx from nm_i, if specified
+      nm_Cn_i <- nm_i
+      if(nm_comp_sfx[1]!=""){
+        pat_i <- paste0(nm_comp_sfx,collapse="|")
+        nm_Cn_i <- gsub(paste0("(.*)(",pat_i,")$"),"\\1",nm_i)
+      }
+      n_i <- Cn_p[[paste0("Cn.",nm_Cn_i)]][yrs_acomp_p_i,,drop=FALSE]
     }else if(nm_i%in%names(NU_p)){
       n_i <- NU_p[[nm_i]][yrs_acomp_p_i,,drop=FALSE] # If not, see if it's associated with an index (e.g. fishery independent) and use numbers associated with the index
     }else if(nm_i%in%names(Nmisc_p)){
       n_i <- Nmisc_p[[nm_i]][yrs_acomp_p_i,,drop=FALSE] # If not, the should be an N-at-age matrix in Nmisc that matches
     }else{
-      warning(paste0(nm_i, "from acomp_p doesn't seem to match any sources of F, indices, or other data sources associated with a selectivity."))
+      warning(paste0(nm_i, " from acomp_p doesn't appear to match any sources of F, indices, or other data sources associated with a selectivity."))
     }
     P_n_i <- t(apply(n_i,1,function(x){x/sum(x)}))
     agebins_agec_i <- dimnames(acomp_b_ob[[nm_i]])[[2]]
@@ -1020,9 +1281,9 @@ if(!is.null(run_bam_args)){
       }else if(nm_i%in%names(NU_p)){
         n_i <- NU_p[[nm_i]][yrs_lcomp_p_i,,drop=FALSE] # If not, see if it's associated with an index (e.g. fishery independent) and use numbers associated with the index
       }else if(nm_i%in%names(Nmisc_p)){
-        n_i <- Nmisc_p[[nm_i]][yrs_lcomp_p_i,,drop=FALSE] # If not, the should be an N-at-age matrix in Nmisc that matches
+        n_i <- Nmisc_p[[nm_i]][yrs_lcomp_p_i,,drop=FALSE] # If not, their should be an N-at-age matrix in Nmisc that matches
       }else{
-        warning(paste0(nm_i, "from lcomp_p doesn't seem to match any sources of F, indices, or other data sources associated with a selectivity."))
+        warning(paste0(nm_i, "from lcomp_p doesn't appear to match any sources of F, indices, or other data sources associated with a selectivity."))
       }
       P_n_i <- t(apply(n_i,1,function(x){x/sum(x)}))
       lenbins_lenc_i <- dimnames(lcomp_b_ob[[nm_i]])[[2]]
@@ -1053,9 +1314,18 @@ if(!is.null(run_bam_args)){
   # })
 
 # Add projected values to base values
+  ybp <- c(yb,yp)
+  nybp <- length(ybp)
   N <- rbind(N,N_p)
+  logRdev <- c(logRdev,logRdev_p)
   R <- c(R,R_p)
-  # U <- rbind(U,U_p)
+  S <- c(S,S_p)
+  # U <- rbind(U,U_p) # U is updated above
+  U_a <- local({
+    a <- lapply(seq_along(U_a),function(i){rbind(U_a[[i]],U_a_p[[i]])})
+    names(a) <- names(U_a)
+    a
+  })
   C_ts_cv <- rbind(C_ts_cv,C_ts_cv_p)
   U_ts_cv <- rbind(U_ts_cv,U_ts_cv_p)
   nfish <- rbind(nfish,nfish_p)
@@ -1081,7 +1351,8 @@ if(!is.null(run_bam_args)){
     a
   })
 
-  Fsum <- c(Fsum,Fsum_p)
+  ##Fsum <-  c(Fsum, Fsum_p)
+  Ffull <- c(Ffull, Ffull_p)
 
   for(nm_i in names(Cn)){
     Cn[[nm_i]] <- rbind(Cn[[nm_i]],Cn_p[[nm_i]])
@@ -1139,17 +1410,17 @@ if(!is.null(run_bam_args)){
   Cn.D.tot <- tapply(Cn.D[,"Dn"],Cn.D[,"year"],sum)
   Cw.D.tot <- tapply(Cw.D[,"Dw"],Cw.D[,"year"],sum)
   }else{
-    Cn.D.tot <- NULL
-    Cw.D.tot <- NULL
+    Cn.D.tot <- setNames(rep(NA,nybp),paste(ybp))
+    Cw.D.tot <- setNames(rep(NA,nybp),paste(ybp))
   }
-
 
 #############################################################
 ###### Extend data inputs and build projected dat file ######
 #############################################################
   # Identify the parts of init that need to be changed
   # Identify the new parts and match them with the parts that need to change
-  if(!is.null(bam2r_args)){
+  if(project_bam&!is.null(bam2r_args)){
+    bam2r_args <- modifyList(x=as.list(formals(bam2r)),val=bam2r_args) # Add user supplied arguments to defaults
     bam <- do.call(bam2r,bam2r_args)
     init_p <- init_b <- bam$init
 
@@ -1216,7 +1487,7 @@ if(!is.null(run_bam_args)){
     }
 
     # I'll have to do some more monkeying around to deal with the tv objects in menhaden
-    # mostly because they have wierd names
+    # mostly because they have weird names
     # tv (time varying objects currently in Atlantic Menhaden model)
     # init_tv <- init_b[grepl("_tv$",names(init_b))]
 
@@ -1225,15 +1496,18 @@ if(!is.null(run_bam_args)){
     # Any _endyr for select values and for data sets that extend to the terminal
     # year of the assessment should be extended by nyp
     yr_nm_add_p <- local({
-      a <- c("endyr","endyr_rec_dev","endyr_rec_phase2","endyr_rec_spr","styr_regs","endyr_proj"
-                     #,names(init_endyr[grepl("^endyr_([DL]|cpue)",names(init_endyr))&as.numeric(init_endyr)>=endyr])
-             )
+      a <- nm_yr_p
       a[a%in%names(init_b)]
     })
     init_p[yr_nm_add_p] <- lapply(init_p[yr_nm_add_p],function(x){paste(as.numeric(x)+nyp)})
 
-    yrs_rec_dev <- init_p$styr_rec_dev:init_p$endyr_rec_dev
-    init_p[["set_log_dev_vals_rec"]] <- setNames(rep("0.0",length(yrs_rec_dev)),yrs_rec_dev)
+    # Allows fairly flexible naming of rec dev parameters
+    nm_styr_dev_rec <- names(init_p)[grepl("^(?=.*styr)(?=.*rec)(?=.*dev).*$",names(init_p),perl=TRUE)]
+    nm_endyr_dev_rec <- names(init_p)[grepl("^(?=.*endyr)(?=.*rec)(?=.*dev).*$",names(init_p),perl=TRUE)]
+    nm_set_log_dev_vals_rec <- names(init_p)[grepl("^(?=.*set)(?=.*log)(?=.*dev)(?=.*vals)(?=.*rec)(?=.*dev).*$",names(init_p),perl=TRUE)]
+
+    yrs_rec_dev <- init_p[[nm_styr_dev_rec]]:init_p[[nm_endyr_dev_rec]]
+    init_p[[nm_set_log_dev_vals_rec]] <- setNames(rep("0.0",length(yrs_rec_dev)),yrs_rec_dev)
 
     ## landings
     # Note: need to make sure you get the right units (n or w)
@@ -1408,18 +1682,23 @@ if(!is.null(run_bam_args)){
 
     for(nm_i in init_obs_cpue_nm){
       abb_i <- gsub("^(obs_cpue)(_)(.*)","\\3",nm_i)
-      xbi <- setNames(as.numeric(init_b[[nm_i]]),names(init_b[[nm_i]]))
-      yrsbi <- names(xbi)
+      xbi <- setNames(as.numeric(init_b[[nm_i]]),names(init_b[[nm_i]])) # get index values from init
+      # yrsbi <- names(xbi)
       xproji <- setNames(U[,abb_i],dimnames(U)[[1]])
-      xcvi <- init_b[[paste0("obs_cv_cpue_",abb_i)]]
       ndigi <- round(median(nchar(gsub("([0-9]*.)([0-9]*)","\\2",xbi))))
-      ndigcvi <- round(median(nchar(gsub("([0-9]*.)([0-9]*)","\\2",xcvi))))
-
-      xpi <- round(xproji[paste(yp)],ndigi)
+      xpi <- round(xproji[paste(yp)],ndigi) # get projected index values
       xi <- c(xbi,xpi[!is.na(xpi)])
       yrsi <- names(xi)
+
+      xcvbi <- init_b[[paste0("obs_cv_cpue_",abb_i)]] # get index cv values from init
+      xprojcvi <- setNames(U_ts_cv[,paste0("cv.U.",abb_i)],dimnames(U_ts_cv)[[1]])
+      ndigcvi <- round(median(nchar(gsub("([0-9]*.)([0-9]*)","\\2",xcvbi))))
+      xcvpi <- round(xprojcvi[paste(yp)],ndigcvi) # get projected index values
+      xcvi <- c(xcvbi,xcvpi[!is.na(xcvpi)])
+
       init_p[[nm_i]] <- setNames(paste(xi),names(xi))
-      init_p[[paste0("obs_cv_cpue_",abb_i)]] <- setNames(paste(round(U_ts_cv[,paste0("cv.U.",abb_i)],ndigcvi)),rownames(U_ts_cv))[names(xi)]
+      # init_p[[paste0("obs_cv_cpue_",abb_i)]] <- setNames(paste(round(U_ts_cv[,paste0("cv.U.",abb_i)],ndigcvi)),rownames(U_ts_cv))[names(xi)]
+      init_p[[paste0("obs_cv_cpue_",abb_i)]] <- setNames(paste(xcvi),names(xcvi))
 
       # update styr, endyr, yrs, and nyr as necessary
       yrinfoi <- setNames(list(min(yrsi),max(yrsi),yrsi,paste(length(yrsi))),
@@ -1433,6 +1712,11 @@ if(!is.null(run_bam_args)){
     init_obs_agec_nm <- names(init_b)[grepl("^obs_agec",names(init_b))]
     init_obs_agec_nm_key <- setNames(names(acomp),
                                      paste0("obs_agec_",gsub("^(D.)([A-Za-z]+)","\\2_D",gsub("^L.","",names(acomp)))))
+    # If the age comp names aren't using the _D suffix, attempt to remove _D suffix from the names in the key
+    if(!any(grepl("\\_D$",init_obs_agec_nm))){
+      names(init_obs_agec_nm_key) <- gsub("\\_D$","",names(init_obs_agec_nm_key))
+    }
+
     for(nm_i in init_obs_agec_nm){
       nm2_i <- init_obs_agec_nm_key[[nm_i]]
       xbi <- init_b[[nm_i]]
@@ -1470,36 +1754,11 @@ if(!is.null(run_bam_args)){
     init_obs_lenc_nm <- names(init_b)[grepl("^obs_lenc",names(init_b))]
     init_obs_lenc_nm_key <- setNames(names(lcomp),
                                      paste0("obs_lenc_",gsub("^(D.)([A-Za-z]+)","\\2_D",gsub("^L.","",names(lcomp)))))
-    # for(nm_i in init_obs_lenc_nm){
-    #   nm2_i <- init_obs_lenc_nm_key[[nm_i]]
-    #   xbi <- init_b[[nm_i]]
-    #   x2bi <- lcomp[[nm2_i]]
-    #   ndigi <- round(median(nchar(gsub("([0-9]*.)([0-9]*)","\\2",xbi))))
-    #   obsi <- apply(x2bi,2,function(x){sprintf(paste0("%.",ndigi,"f"), x)})
-    #   dimnames(obsi) <- dimnames(x2bi)
-    #   yrsi <- rownames(obsi)
-    #   init_p[[nm_i]] <- obsi
-    #   # update styr, endyr, yrs, and nyr as necessary
-    #   yrinfoi <- setNames(list(min(yrsi),max(yrsi),yrsi,paste(length(yrsi))),
-    #                       paste0(c("styr","endyr","yrs","nyr"),gsub("obs","",nm_i))
-    #   )
-    #   yrinfoi_nm_is <- names(yrinfoi)[names(yrinfoi)%in%names(init_p)]
-    #   init_p[yrinfoi_nm_is] <- yrinfoi[yrinfoi_nm_is]
-    #
-    #   # update nfish and nsamp as necessary
-    #   nfish_nm_i <- gsub("obs","nfish",nm_i)
-    #   nsamp_nm_i <- gsub("obs","nsamp",nm_i)
-    #   nfishbi <- init_b[[nfish_nm_i]]
-    #   nsampbi <- init_b[[nsamp_nm_i]]
-    #   nfishdigi <- round(median(nchar(gsub("([0-9]*.)([0-9]*)","\\2",nfishbi))))
-    #   nsampdigi <- round(median(nchar(gsub("([0-9]*.)([0-9]*)","\\2",nsampbi))))
-    #   nfish2i <- setNames(sprintf(paste0("%.",nfishdigi,"f"), nfish[,paste0("lcomp.",nm2_i)]),rownames(nfish))
-    #   nsamp2i <- setNames(sprintf(paste0("%.",nsampdigi,"f"), ntrip[,paste0("lcomp.",nm2_i)]),rownames(ntrip))
-    #
-    #
-    #   init_p[[nfish_nm_i]] <- nfish2i[yrsi]
-    #   init_p[[nsamp_nm_i]] <- nsamp2i[yrsi]
-    # }
+    # If the length comp names aren't using the _D suffix, attempt to remove _D suffix from the names in the key
+    if(!any(grepl("\\_D$",init_obs_lenc_nm))){
+      names(init_obs_lenc_nm_key) <- gsub("\\_D$","",names(init_obs_lenc_nm_key))
+    }
+
     for(nm_i in init_obs_lenc_nm){
       nm2_i <- init_obs_lenc_nm_key[[nm_i]]
       xbi <- init_b[[nm_i]]
@@ -1542,17 +1801,21 @@ if(!is.null(run_bam_args)){
   if(plot){
   par(mfrow=c(2,2),mar=c(3,3,1,1),mgp=c(1,0.2,0),tck=-0.01)
   # N
-  plot(as.numeric(names(Nsum)),Nsum,type="o")
-  abline(v=endyr)
+  plot(as.numeric(names(Nsum)),Nsum,type="o",xlab="year")
+  abline(v=endyr,lty=2)
+  text(x=endyr,y=par("usr")[4]*0.9,labels = "endyr",srt=90,pos=1)
   # R
-  plot(as.numeric(names(R)),R,type="o")
-  abline(v=endyr)
+  plot(as.numeric(names(R)),R,type="o",xlab="year")
+  abline(v=endyr,lty=2)
+  text(x=endyr,y=par("usr")[4]*0.9,labels = "endyr",srt=90,pos=1)
   # B
-  plot(as.numeric(names(Bsum)),Bsum,type="o")
-  abline(v=endyr)
-  # Fsum
-  plot(as.numeric(names(Fsum)),Fsum,type="o")
-  abline(v=endyr)
+  plot(as.numeric(names(Bsum)),Bsum,type="o",xlab="year")
+  abline(v=endyr,lty=2)
+  text(x=endyr,y=par("usr")[4]*0.9,labels = "endyr",srt=90,pos=1)
+  # Ffull
+  plot(as.numeric(names(Ffull)),Ffull,type="o",xlab="year")
+  abline(v=endyr,lty=2)
+  text(x=endyr,y=par("usr")[4]*0.9,labels = "endyr",srt=90,pos=1)
 
   # Landings and discards
   # Cn.L
@@ -1563,56 +1826,91 @@ if(!is.null(run_bam_args)){
     stat_summary(fun = sum, geom = "line", size = 1)+
     stat_summary(fun = sum, geom = "point", size = 2)+
     geom_vline(xintercept = endyr, linetype="dashed", size = 0.3)
-  p2 <- p + geom_text(aes(x=endyr, label="endyr\n",y=max(Ln)), angle=90)
+  p2 <- p + annotate("text",x=endyr, label="endyr\n",y=Inf, angle=90,hjust=1.5,vjust=1)
   print(p2)
 
 
   # Cn.D
   if(nrow(Cn.D)>0){
   p2 <- p %+% Cn.D + aes(y=Dn) +
-    geom_text(aes(x=endyr, label="endyr\n",y=max(Dn)), angle=90)
+  annotate("text",x=endyr, label="endyr\n",y=Inf, angle=90,hjust=1.5,vjust=1)
   print(p2)
 }
 
   # Cw.L
   p2 <- p %+% Cw.L + aes(y=Lw) +
-    geom_text(aes(x=endyr, label="endyr\n",y=max(Lw)), angle=90)
+  annotate("text",x=endyr, label="endyr\n",y=Inf, angle=90,hjust=1.5,vjust=1)
   print(p2)
 
 
   # Cw.D
   if(nrow(Cw.D)>0){
   p2 <- p %+% Cw.D + aes(y=Dw) +
-    geom_text(aes(x=endyr, label="endyr\n",y=max(Dw)), angle=90)
+  annotate("text",x=endyr, label="endyr\n",y=Inf, angle=90,hjust=1.5,vjust=1)
   print(p2)
 }
 
   # cpue
-    matplot(as.numeric(dimnames(U)[[1]]),U,type="o",xlab="",xlim=c(styr,endyr+nyp),pch=1)
+    matplot(as.numeric(dimnames(U)[[1]]),U,type="o",xlab="",xlim=c(styr,endyr+nyp),pch=1,ylim=range(c(0,U),na.rm=TRUE))
     # matpoints(as.numeric(rownames(U_p)),U_p,type="o",pch=1)
     legend("topleft",legend=dimnames(U)[[2]],col=1:ncol(U),lty=1:ncol(U),pch=1)
-    abline(v=endyr)
+    abline(v=endyr,lty=2)
+    text(x=endyr,y=par("usr")[4]*0.9,labels = "endyr",srt=90,pos=1)
   }
 
   # Return results
-  names(U_p) <- paste0("U_",names(U_p))
-
+  dimnames(U)[[2]]   <- paste0("U_", dimnames(U)[[2]])
+  dimnames(U_p)[[2]] <- paste0("U_", dimnames(U_p)[[2]])
   invisible(list(
-    p_results = list(
-      p_series=cbind(data.frame(years_p=yp,
-                          F=Fsum_p,
-                          L_wgt=Lw_p,
-                          L_num=Ln_p,
-                          D_wgt=Dw_p,
-                          D_num=Dn_p,
-                          S=S_p,
-                          B=B_p,
-                          R=R_p
+    results = list(
+      t_series=cbind(data.frame(years=ybp,
+                          # Fsum=Fsum,
+                          Ffull=Ffull,
+                          L_wgt=Cw.L.tot,
+                          L_num=Cn.L.tot,
+                          D_wgt=Cw.D.tot,
+                          D_num=Cn.D.tot,
+                          N=Nsum,
+                          S=S,
+                          B=Bsum,
+                          R=R,
+                          Rlogdev=logRdev
                           ),
-                     U_p),
+                     U),
+      Nage = N,
+      Uage = U_a,
+      Cn=Cn,
+      Cw=Cw,
+      Cn.L=Cn.L,
+      Cw.L=Cw.L,
+      Cn.D=Cn.D,
+      Cw.D=Cw.D
+    ),
+    results_p = list(
+      t_series=cbind(data.frame(years_p=yp,
+                                # Fsum=Fsum_p,
+                                Ffull=Ffull_p,
+                                L_wgt=Lw_p,
+                                L_num=Ln_p,
+                                D_wgt=Dw_p,
+                                D_num=Dn_p,
+                                S=S_p,
+                                B=B_p,
+                                R=R_p,
+                                Rlogdev=logRdev_p
+      ),
+      U_p),
       Nage = N_p,
       Uage = U_a_p
     ),
+    parms_bam = parms,
+    # Fage=Fage,
+    # Fage_p=Fage_p,
+    # Fage=Fage,
+    # Fage_p=Ffull_p,
+    # F_flt=F_flt,
+    # F_flt_p=F_flt_p,
+    # Fage_p=Fage_p,
     bam_p = bam_p
   )
   )

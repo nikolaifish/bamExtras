@@ -11,7 +11,7 @@ First, install and load the package.
 
 ```{r, echo=TRUE, message=FALSE}
 # Install and load package
-devtools::install_github("nikolaifish/bamExtras", build_vignettes = TRUE)
+devtools::install_github("Nikolai-Klibansky/bamExtras", build_vignettes = TRUE)
 library(bamExtras)
 ```
 
